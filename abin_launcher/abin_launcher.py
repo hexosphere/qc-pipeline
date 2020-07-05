@@ -150,7 +150,7 @@ print("".center(columns,"*"))
 # TODO: create prog_jinja_render.py and just look for that file?
 # => Name them in the YAML config file
 
-if prog == "orca":
+""" if prog == "orca":
   tpl_inp = "orca.inp.jinja"                             # Jinja template file for the orca input
   tpl_manifest = "orca_job.sh.jinja"                     # Jinja template file for the orca job manifest (slurm script)
   rnd_manifest = "orca_job.sh"                           # Name of the orca job manifest that will be created by this script
@@ -158,7 +158,7 @@ if prog == "orca":
 elif prog == "qchem":
   tpl_inp = "qchem.in.jinja"                           # Jinja template file for the q-chem input
   tpl_manifest = "qchem_job.sh.jinja"                   # Jinja template file for the q-chem job manifest (slurm script)
-  rnd_manifest = "qchem_job.sh"                         # Name of the q-chem job manifest that will be created by this script
+  rnd_manifest = "qchem_job.sh"                         # Name of the q-chem job manifest that will be created by this script """
 
 # Associated scripts
 # TODO: just check for prog_check.py? => or better, just leave those names in the jina, there's no need for them to be variables
@@ -461,11 +461,14 @@ for mol_filename in mol_inp_list:
   # Dynamically call the inputs render function for the given program
 
   #prog_rnd_fct = prog + "_render"
-  inputs_content = eval("inputs_render." + prog + "_render")(vars()) 
-  #TODO: store all the contents of the input file in a dictionary to write them later on in the script.
+  inputs_content = eval("inputs_render." + prog + "_render")(locals()) 
 
-  # TODO : Idea: create subscripts called orca_jinja_render.py and qchem_jinja_render.py to simplify coding in this section
-  if prog == "orca":
+  for filename, file_content in inputs_content:
+    rendered_file_path = os.path.join(mol_dir, filename)
+    with open(rendered_file_path, "w") as result_file:
+      result_file.write(file_content)
+   
+  """ if prog == "orca":
   
     # Rendering the jinja template for the ORCA job manifest
   
@@ -548,7 +551,7 @@ for mol_filename in mol_inp_list:
     
     rnd_input = mol_name + ".in"
   
-    jinja_render(path_tpl_dir, tpl_inp, mol_dir, rnd_input, render_vars)
+    jinja_render(path_tpl_dir, tpl_inp, mol_dir, rnd_input, render_vars) """
       
   # =========================================================
   # The end step
