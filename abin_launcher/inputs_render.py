@@ -19,12 +19,14 @@ def jinja_render(path_tpl_dir, tpl, var):
     
     return output_text
 
+
+# Renders Orca input files
 def orca_render(vars):
 
     tpl_inp = "orca.inp.jinja"                             # Jinja template file for the orca input
     tpl_manifest = "orca_job.sh.jinja"                     # Jinja template file for the orca job manifest (slurm script)
     rnd_input = vars['mol_name'] + ".inp"
-    rnd_manifest = "orca_job.sh"                           # Name of the orca job manifest that will be created by this script
+    rnd_manifest = vars['config'][vars['prog']]['manifest_name']                           # Name of the orca job manifest that will be created by this script
 
     inputs_content = {}                                    # Variable where all the contents of the inputs files will be stored
 
@@ -39,13 +41,15 @@ def orca_render(vars):
         "job_duration" : vars['job_time'],
         "job_cores" : vars['job_cores'],
         "partition" : vars['job_partition'],
-        "set_env" : vars[vars['clusters_cfg']][vars['cluster_name']]['progs'][vars['prog']]['set_env'],
-        "command" : vars[vars['clusters_cfg']][vars['cluster_name']]['progs'][vars['prog']]['command'],
-        "output_folder" : vars['config']['orca']['output-folder'],
+#        "set_env" : clusters_cfg[cluster_name]['progs'][prog]['set_env'],        
+        "set_env" : vars['clusters_cfg'][vars['cluster_name']]['progs'][vars['prog']]['set_env'],
+#        "command" : clusters_cfg[cluster_name]['progs'][prog]['command'],        
+        "command" : vars['clusters_cfg'][vars['cluster_name']]['progs'][vars['prog']]['command'],
+        "output_folder" : vars['config'][vars['prog']]['output-folder'],
         "results_folder" : vars['config']['general']['results-folder'],
         "codes_folder" : vars['code_dir'],
         "check_script" : vars['check_script'],
-        "job_manifest" : vars['rnd_manifest'],
+        "job_manifest" : rnd_manifest,
         "config_file" : vars['config_filename']
         }
     

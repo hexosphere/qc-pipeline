@@ -251,7 +251,7 @@ if prog not in clusters_cfg[cluster_name]["progs"]:
   print("Aborting...")
   exit(3) 
 
-if (prog + "_render") not in dir(inputs_render) or not callable(inputs_render, prog + "_render"):
+if (prog + "_render") not in dir(inputs_render) or not callable(getattr(inputs_render, prog + "_render")):
   print("\nERROR: There is no function defined for the %s program in inputs_render.py." % prog)
   print("Aborting...")
   exit(3) 
@@ -461,9 +461,11 @@ for mol_filename in mol_inp_list:
   # Dynamically call the inputs render function for the given program
 
   #prog_rnd_fct = prog + "_render"
+  # inputs_content is a Dict of each template files rendered such as:
+  #   <filename>: <rendered_content>
   inputs_content = eval("inputs_render." + prog + "_render")(locals()) 
 
-  for filename, file_content in inputs_content:
+  for filename, file_content in inputs_content.items():
     rendered_file_path = os.path.join(mol_dir, filename)
     with open(rendered_file_path, "w") as result_file:
       result_file.write(file_content)
@@ -570,7 +572,7 @@ for mol_filename in mol_inp_list:
   print("\nLaunching the job ...", end='')
   os.chdir(mol_dir)
   subcommand = clusters_cfg[cluster_name]['subcommand']
-  launch_command = subcommand + " " + rnd_manifest
+  launch_command = subcommand + " " + config[prog]['manifest_name']
   retcode = os.system(launch_command)
   if retcode != 0 :
     print("Job submit encountered an issue")
