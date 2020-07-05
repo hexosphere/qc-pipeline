@@ -11,6 +11,7 @@ general:
 
 orca:
   output-folder: /CECI/home/ulb/cqp/niacobel/ORCA               # Folder where the orca output files needed for the next step will be sent.
+  manifest_name: orca_job.sh
 # The keywords you provide here are the keywords that will be used "as-is" in the keyword line of the ORCA input file, be sure that ORCA knows them! (see ORCA's manual for more informations)
   job-type: Opt
   method: B3LYP
@@ -20,8 +21,10 @@ orca:
   # add jinja files names
   j2-templates:
       - 
+
 qchem:
   output-folder: /CECI/home/ulb/cqp/niacobel/Q-CHEM             # Folder where the q-chem output files needed for the next step will be sent.
+  manifest_name: qchem_job.sh
 # The keywords you provide here are the keywords that will be used "as-is" in the Q-CHEM input file, be sure that Q-CHEM knows them! (see Q-CHEM's manual for more informations)
   job-type: sp
   exchange: b3lyp

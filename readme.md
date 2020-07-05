@@ -33,6 +33,8 @@ CECIHOME
     ├── molecule1.xyz
     ├── molecule2.xyz
 └── ORCA
+    ├── molecule1_opt.xyz
+    ├── molecule2_opt.xyz
 └── Q-CHEM
 └── CONTROLE
     ├── molecule1/

@@ -21,6 +21,7 @@ import jinja2
 import yaml
 
 import get_bigindex
+import inputs_render
 
 """
 # SERVERHOME for repl.it
@@ -149,7 +150,7 @@ print("".center(columns,"*"))
 # TODO: create prog_jinja_render.py and just look for that file?
 # => Name them in the YAML config file
 
-if prog == "orca":
+""" if prog == "orca":
   tpl_inp = "orca.inp.jinja"                             # Jinja template file for the orca input
   tpl_manifest = "orca_job.sh.jinja"                     # Jinja template file for the orca job manifest (slurm script)
   rnd_manifest = "orca_job.sh"                           # Name of the orca job manifest that will be created by this script
@@ -157,7 +158,7 @@ if prog == "orca":
 elif prog == "qchem":
   tpl_inp = "qchem.in.jinja"                           # Jinja template file for the q-chem input
   tpl_manifest = "qchem_job.sh.jinja"                   # Jinja template file for the q-chem job manifest (slurm script)
-  rnd_manifest = "qchem_job.sh"                         # Name of the q-chem job manifest that will be created by this script
+  rnd_manifest = "qchem_job.sh"                         # Name of the q-chem job manifest that will be created by this script """
 
 # Associated scripts
 # TODO: just check for prog_check.py? => or better, just leave those names in the jina, there's no need for them to be variables
@@ -248,9 +249,13 @@ if prog not in clusters_cfg[cluster_name]["progs"]:
   print("\nERROR: Program unknown on this cluster. Possible program(s) include" , ', '.join(program for program in clusters_cfg[cluster_name]["progs"].keys()))
   print("Please use one of those, change cluster or add informations for this program to the YAML cluster file.")
   print("Aborting...")
-  exit(3)
+  exit(3) 
 
-# TODO: Check if the program is defined in the jinja render file 
+if (prog + "_render") not in dir(inputs_render) or not callable(getattr(inputs_render, prog + "_render")):
+  print("\nERROR: There is no function defined for the %s program in inputs_render.py." % prog)
+  print("Aborting...")
+  exit(3) 
+
 # TODO: case insensitive program name?
 
 # Check if the path to the working directory exists and make sure it's absolute.
@@ -453,8 +458,19 @@ for mol_filename in mol_inp_list:
 
   path_tpl_dir = os.path.join(code_dir,"Templates")
 
-  # TODO : Idea: create subscripts called orca_jinja_render.py and qchem_jinja_render.py to simplify coding in this section
-  if prog == "orca":
+  # Dynamically call the inputs render function for the given program
+
+  #prog_rnd_fct = prog + "_render"
+  # inputs_content is a Dict of each template files rendered such as:
+  #   <filename>: <rendered_content>
+  inputs_content = eval("inputs_render." + prog + "_render")(locals()) 
+
+  for filename, file_content in inputs_content.items():
+    rendered_file_path = os.path.join(mol_dir, filename)
+    with open(rendered_file_path, "w") as result_file:
+      result_file.write(file_content)
+   
+  """ if prog == "orca":
   
     # Rendering the jinja template for the ORCA job manifest
   
@@ -537,7 +553,7 @@ for mol_filename in mol_inp_list:
     
     rnd_input = mol_name + ".in"
   
-    jinja_render(path_tpl_dir, tpl_inp, mol_dir, rnd_input, render_vars)
+    jinja_render(path_tpl_dir, tpl_inp, mol_dir, rnd_input, render_vars) """
       
   # =========================================================
   # The end step
@@ -556,7 +572,7 @@ for mol_filename in mol_inp_list:
   print("\nLaunching the job ...", end='')
   os.chdir(mol_dir)
   subcommand = clusters_cfg[cluster_name]['subcommand']
-  launch_command = subcommand + " " + rnd_manifest
+  launch_command = subcommand + " " + config[prog]['manifest_name']
   retcode = os.system(launch_command)
   if retcode != 0 :
     print("Job submit encountered an issue")
