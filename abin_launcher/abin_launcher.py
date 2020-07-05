@@ -21,6 +21,7 @@ import jinja2
 import yaml
 
 import get_bigindex
+import inputs_render
 
 """
 # SERVERHOME for repl.it
@@ -248,9 +249,13 @@ if prog not in clusters_cfg[cluster_name]["progs"]:
   print("\nERROR: Program unknown on this cluster. Possible program(s) include" , ', '.join(program for program in clusters_cfg[cluster_name]["progs"].keys()))
   print("Please use one of those, change cluster or add informations for this program to the YAML cluster file.")
   print("Aborting...")
-  exit(3)
+  exit(3) 
 
-# TODO: Check if the program is defined in the jinja render file 
+if (prog + "_render") not in dir(inputs_render) or not callable(inputs_render, prog + "_render"):
+  print("\nERROR: There is no function defined for the %s program in inputs_render.py." % prog)
+  print("Aborting...")
+  exit(3) 
+
 # TODO: case insensitive program name?
 
 # Check if the path to the working directory exists and make sure it's absolute.
@@ -452,6 +457,12 @@ for mol_filename in mol_inp_list:
   # Get the path to jinja templates folder
 
   path_tpl_dir = os.path.join(code_dir,"Templates")
+
+  # Dynamically call the inputs render function for the given program
+
+  #prog_rnd_fct = prog + "_render"
+  inputs_content = eval("inputs_render." + prog + "_render")(vars()) 
+  #TODO: store all the contents of the input file in a dictionary to write them later on in the script.
 
   # TODO : Idea: create subscripts called orca_jinja_render.py and qchem_jinja_render.py to simplify coding in this section
   if prog == "orca":
