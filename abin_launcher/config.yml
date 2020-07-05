@@ -1,0 +1,32 @@
+# This is the main configuration file, this file will contain every information you need to provide to the different scripts and programs your molecule will run through.
+# This is a YAML database, see https://yaml.org/ for more informations
+
+general:
+  charge: 0
+  multiplicity: 1
+  user-email: niacobel@ulb.ac.be
+  mail-type: FAIL
+  molecule-folder: /CECI/home/ulb/cqp/niacobel/INIT             # Folder where the .xyz file of the molecule is present
+  results-folder: /CECI/home/ulb/cqp/niacobel/FINAL             # Folder where all the results of this molecule will be sent (a subfolder with the name of the molecule will be created)
+
+orca:
+  output-folder: /CECI/home/ulb/cqp/niacobel/ORCA               # Folder where the orca output files needed for the next step will be sent.
+# The keywords you provide here are the keywords that will be used "as-is" in the keyword line of the ORCA input file, be sure that ORCA knows them! (see ORCA's manual for more informations)
+  job-type: Opt
+  method: B3LYP
+  basis-set: def2-TZVP
+  aux-basis-set: def2/J
+  other: RIJCOSX TightSCF
+  # add jinja files names
+  j2-templates:
+      - 
+qchem:
+  output-folder: /CECI/home/ulb/cqp/niacobel/Q-CHEM             # Folder where the q-chem output files needed for the next step will be sent.
+# The keywords you provide here are the keywords that will be used "as-is" in the Q-CHEM input file, be sure that Q-CHEM knows them! (see Q-CHEM's manual for more informations)
+  job-type: sp
+  exchange: b3lyp
+  basis-set: def2-tzvp
+  cis-n-roots: 4
+
+qoct-ra:
+  output-folder: /CECI/home/ulb/cqp/niacobel/QOCT-RA            # Folder where the qoct-ra output files will be sent for data treatment and final results presentation.

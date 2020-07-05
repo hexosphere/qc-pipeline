@@ -1,0 +1,9 @@
+! {{  method  }} {{  basis_set  }} {{  aux_basis_set  }} {{  job_type  }} {{  other  }} xyzfile 
+%pal 
+nprocs {{  job_cores  }}
+end
+* xyz {{  charge  }} {{  multiplicity  }}
+{% for coordinate_line in coordinates -%}
+{{  coordinate_line  }}
+{% endfor -%}
+*

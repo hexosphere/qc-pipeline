@@ -1,0 +1,26 @@
+$molecule
+   {{  charge  }} {{  multiplicity  }}
+{% for coordinate_line in coordinates -%}
+{{  coordinate_line  }}
+{% endfor -%}
+$end
+
+$rem
+   JOBTYPE              {{  job_type  }}
+   EXCHANGE             {{  exchange  }}
+   BASIS                {{  basis_set  }}
+   CIS_N_ROOTS          {{  cis_n_roots  }}
+   CIS_CONVERGENCE      8
+   CORRELATION          none
+   MAX_SCF_CYCLES       600
+   MAX_CIS_CYCLES       50
+   SCF_ALGORITHM        diis_gdm
+   SYMMETRY             false
+   SYM_IGNORE           true
+   UNRESTRICTED         false
+   CIS_SINGLETS         true
+   CIS_TRIPLETS         true
+   CALC_SOC             true
+   SET_ITER             300
+   STS_MOM              true
+$end

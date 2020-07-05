@@ -1,0 +1,46 @@
+#!/bin/bash -l
+
+{# Parameters for the job scheduler Torque, see https://support.ceci-hpc.be/doc/_contents/QuickStart/SubmittingJobs/SlurmTutorial.html #}
+#PBS -N {{  mol_name  }}
+#PBS -M {{  user_email  }}
+#PBS -m {{  mail_type  }}
+#PBS -l nodes=1:ppn={{  job_cores  }}
+#PBS -l walltime={{  job_duration  }}
+
+{# Job instructions for loading and running Q-CHEM, and defining the Q-CHEM input and output files. #}
+
+echo "============================================================================="
+echo "======================  Q-CHEM execution begins now  ========================"
+echo "============================================================================="
+
+{% for set_env_line in set_env -%}
+{{  set_env_line  }}
+{% endfor -%}
+
+ulimit -s unlimited
+
+cd $PBS_O_WORKDIR
+
+input="${PBS_JOBNAME}.in"
+output="${PBS_JOBNAME}.out"
+
+{{  command  }} {{  job_cores  }} $input $output
+
+echo "============================================================================="
+echo "========================  Q-CHEM execution ends now  ========================"
+echo "============================================================================="
+
+{# Quality control (was there any problem with Q-CHEM?) #}
+cd $PBS_O_WORKDIR
+source {{  codes_folder  }}/load_modules.sh
+python {{  codes_folder  }}/{{  check_script  }} $output  || exit $?
+
+{# Job instructions for sending the qchem output to the qchem output folder for use in the next step. #}
+echo "Copying optimized geometry to ~/Q-CHEM/qchem_out_queue."
+mkdir -p ~/Q-CHEM/qchem_out_queue
+cp $output ~/Q-CHEM/qchem_out_queue/
+
+{# Job instructions for archiving the results into the temporary results folder on Hydra. #}
+echo "Archiving output files to ~/FINAL/${PBS_JOBNAME}/Q-CHEM."
+mkdir -p ~/FINAL/${PBS_JOBNAME}/Q-CHEM
+cp ./* ~/FINAL/${PBS_JOBNAME}/Q-CHEM
