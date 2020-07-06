@@ -17,11 +17,11 @@ import shutil
 import sys
 from inspect import getsourcefile
 
-import jinja2
+import jinja2     # Only needed in the renderer subscript, it is loaded here to check if your python installation does support jinja2
 import yaml
 
 import get_bigindex
-import inputs_render
+import renderer
 
 """
 # SERVERHOME for repl.it
@@ -78,21 +78,6 @@ out_dir = _ROOT_+"/ORCA"
 # ===================================================================
 # ===================================================================
 
-# Define the function that will render our files, based on the jinja templates
-
-def jinja_render(path_tpl_dir, tpl, path_rnd_dir, rnd, var):
-  template_file_path = os.path.join(path_tpl_dir, tpl)
-  print("  Template path:  ",template_file_path)
-  
-  rendered_file_path = os.path.join(path_rnd_dir, rnd)
-  print("  Output path:    ",rendered_file_path)
-  
-  environment = jinja2.Environment(loader=jinja2.FileSystemLoader(path_tpl_dir))
-  output_text = environment.get_template(tpl).render(var)
-  
-  with open(rendered_file_path, "w") as result_file:
-      result_file.write(output_text)
-
 # Define the function that will scan our xyz files to interpret the data
 
 def xyz_scan(mol_content:list,model_file_data:dict):
@@ -141,33 +126,6 @@ print("")
 print("EXECUTION OF THE AB INITIO INPUT BUILDER & JOB LAUNCHER BEGINS NOW".center(columns))
 print("")
 print("".center(columns,"*"))
-
-# =========================================================
-# TO BE REMOVED WHEN RENDER IS READY
-# =========================================================
-
-# Jinja templates
-# TODO: create prog_jinja_render.py and just look for that file?
-# => Name them in the YAML config file
-
-""" if prog == "orca":
-  tpl_inp = "orca.inp.jinja"                             # Jinja template file for the orca input
-  tpl_manifest = "orca_job.sh.jinja"                     # Jinja template file for the orca job manifest (slurm script)
-  rnd_manifest = "orca_job.sh"                           # Name of the orca job manifest that will be created by this script
-
-elif prog == "qchem":
-  tpl_inp = "qchem.in.jinja"                           # Jinja template file for the q-chem input
-  tpl_manifest = "qchem_job.sh.jinja"                   # Jinja template file for the q-chem job manifest (slurm script)
-  rnd_manifest = "qchem_job.sh"                         # Name of the q-chem job manifest that will be created by this script """
-
-# Associated scripts
-# TODO: just check for prog_check.py? => or better, just leave those names in the jina, there's no need for them to be variables
-
-if prog == "orca": 
-  check_script = "orca_check.py"                           # Python script used to check if the ORCA job ended normally
-
-elif prog == "qchem": 
-  check_script = "qchem_check.py"                         # Python script used to check if the Q-CHEM job ended normally
 
 # =========================================================
 # Important folders
@@ -251,8 +209,8 @@ if prog not in clusters_cfg[cluster_name]["progs"]:
   print("Aborting...")
   exit(3) 
 
-if (prog + "_render") not in dir(inputs_render) or not callable(getattr(inputs_render, prog + "_render")):
-  print("\nERROR: There is no function defined for the %s program in inputs_render.py." % prog)
+if (prog + "_render") not in dir(renderer) or not callable(getattr(renderer, prog + "_render")):
+  print("\nERROR: There is no function defined for the %s program in renderer.py." % prog)
   print("Aborting...")
   exit(3) 
 
@@ -273,7 +231,7 @@ if not os.path.isdir(out_dir):
   exit(4)
 
 out_dir = os.path.abspath(out_dir)
-print("\nWorking directory: ", out_dir)
+print("\nJobs main directory: ", out_dir)
 
 # Check if the path to the molecule file or the folder containing the molecule files exists and make sure it's absolute.
 
@@ -413,7 +371,6 @@ for mol_filename in mol_inp_list:
   elif jobscale not in clusters_cfg[cluster_name]['progs'][prog]['partition']:
     print("\n\nERROR: Requested job scale (%s) is too big for this cluster (%s). Please change cluster." % (jobscale, cluster_name))
     print("Skipping this molecule...")
-    #TODO : either get rid of the newly created mol_name folder, or do all files and folders writing at the end of the loop
     continue
   else:
     job_time = clusters_cfg[cluster_name]['progs'][prog]['partition'][jobscale]['time']
@@ -424,26 +381,8 @@ for mol_filename in mol_inp_list:
   print("    => Number of cores: ", job_cores)
   print("    => Job duration:    ", job_time)
     
-  # Creating the molecule subfolder where the job will be run
-  
-  mol_dir = os.path.join(out_dir,mol_name)
-
-  if os.path.exists(mol_dir):
-    shutil.rmtree(mol_dir)
-
-  os.makedirs(mol_dir)
-
-  print("The %s subfolder has been created at %s" % (mol_name, out_dir))
-  
-  # Copying the config file and the molecule file into the molecule subfolder
-  
-  shutil.copy(os.path.join(mol_inp_path,mol_filename), mol_dir)
-  shutil.copy(config_file, mol_dir)
-
-  print("The files %s and %s have been successfully copied into the subfolder." % (config_filename, mol_filename))
-
   # =========================================================
-  # Creating the orca job manifest and orca input files
+  # Rendering the needed input files
   # =========================================================
 
   section_title = "3. Generation of the job manifest and input files"
@@ -454,107 +393,14 @@ for mol_filename in mol_inp_list:
   print(section_title.center(len(section_title)+10))
   print(''.center(len(section_title)+10, '-'))
   
-  # Get the path to jinja templates folder
+  # Get the path to jinja templates folder (a folder named "Templates" in the samed folder as this script)
 
   path_tpl_dir = os.path.join(code_dir,"Templates")
 
   # Dynamically call the inputs render function for the given program
 
-  #prog_rnd_fct = prog + "_render"
-  # inputs_content is a Dict of each template files rendered such as:
-  #   <filename>: <rendered_content>
-  inputs_content = eval("inputs_render." + prog + "_render")(locals()) 
-
-  for filename, file_content in inputs_content.items():
-    rendered_file_path = os.path.join(mol_dir, filename)
-    with open(rendered_file_path, "w") as result_file:
-      result_file.write(file_content)
-   
-  """ if prog == "orca":
+  rendered_content = eval("renderer." + prog + "_render")(locals())  # Dictionary containing the text of all the rendered files in the form of <filename>: <rendered_content>
   
-    # Rendering the jinja template for the ORCA job manifest
-  
-    print("\nRendering the jinja template for the ORCA job manifest")
-  
-    render_vars = {
-        "mol_name" : mol_name,
-        "user_email" : config['general']['user-email'],
-        "mail_type" : config['general']['mail-type'],
-        "job_duration" : job_time,
-        "job_cores" : job_cores,
-        "partition" : job_partition,
-        "set_env" : clusters_cfg[cluster_name]['progs'][prog]['set_env'],
-        "command" : clusters_cfg[cluster_name]['progs'][prog]['command'],
-        "output_folder" : config['orca']['output-folder'],
-        "results_folder" : config['general']['results-folder'],
-        "codes_folder" : code_dir,
-        "check_script" : check_script,
-        "job_manifest" : rnd_manifest,
-        "config_file" : config_filename
-        }
-    
-    jinja_render(path_tpl_dir, tpl_manifest, mol_dir, rnd_manifest, render_vars)
-   
-    # Rendering the jinja template for the ORCA input file
-  
-    print("\nRendering the jinja template for the ORCA input file")
-    
-    render_vars = {
-        "method" : config[prog]['method'],
-        "basis_set" : config[prog]['basis-set'],
-        "aux_basis_set" : config[prog]['aux-basis-set'],
-        "job_type" : config[prog]['job-type'],
-        "other" : config[prog]['other'],
-        "job_cores" : job_cores,
-        "charge" : config['general']['charge'],
-        "multiplicity" : config['general']['multiplicity'],
-        "coordinates" : file_data['atom_coordinates']
-        }
-    
-    rnd_input = mol_name + ".inp"
-  
-    jinja_render(path_tpl_dir, tpl_inp, mol_dir, rnd_input, render_vars)
-  
-  elif prog == "qchem":
-  
-    # Rendering the jinja template for the Q-CHEM job manifest
-  
-    print("\nRendering the jinja template for the Q-CHEM job manifest")
-  
-    render_vars = {
-        "mol_name" : mol_name,
-        "user_email" : config['general']['user-email'],
-        "mail_type" : clusters_cfg[cluster_name]['mail-type'],
-        "job_duration" : job_time,
-        "job_cores" : job_cores,
-        "set_env" : clusters_cfg[cluster_name]['progs'][prog]['set_env'],
-        "command" : clusters_cfg[cluster_name]['progs'][prog]['command'],
-        "output_folder" : config['qchem']['output-folder'],
-        "results_folder" : config['general']['results-folder'],
-        "codes_folder" : code_dir,
-        "check_script" : check_script
-        }
-    
-    jinja_render(path_tpl_dir, tpl_manifest, mol_dir, rnd_manifest, render_vars)
-   
-    # Rendering the jinja template for the Q-CHEM input file
-  
-    print("\nRendering the jinja template for the Q-CHEM input file")
-    
-    render_vars = {
-        "job_type" : config[prog]['job-type'],
-        "exchange" : config[prog]['exchange'],
-        "basis_set" : config[prog]['basis-set'],
-        "cis_n_roots" : config[prog]['cis-n-roots'],
-        "charge" : config['general']['charge'],
-        "multiplicity" : config['general']['multiplicity'],
-        "coordinates" : file_data['atom_coordinates']
-        }
-    
-    rnd_input = mol_name + ".in"
-  
-    jinja_render(path_tpl_dir, tpl_inp, mol_dir, rnd_input, render_vars) """
-      
   # =========================================================
   # The end step
   # =========================================================
@@ -567,20 +413,44 @@ for mol_filename in mol_inp_list:
   print(section_title.center(len(section_title)+10))
   print(''.center(len(section_title)+10, '-'))
 
+  # Creating the molecule subfolder where the job will be launched and creating all the relevant files in it.
+ 
+  mol_dir = os.path.join(out_dir,mol_name)
+
+  if os.path.exists(mol_dir):
+    shutil.rmtree(mol_dir)
+
+  os.makedirs(mol_dir)
+
+  print("\nThe %s subfolder has been created at %s" % (mol_name, out_dir))
+  
+  # Copying the config file and the molecule file into the molecule subfolder
+  
+  shutil.copy(os.path.join(mol_inp_path,mol_filename), mol_dir)
+  shutil.copy(config_file, mol_dir)
+
+  print("\nThe files %s and %s have been successfully copied into the subfolder." % (config_filename, mol_filename))
+  print("")
+
+  # Writing the content of each rendered file into its own file with the corresponding filename
+
+  for filename, file_content in rendered_content.items():
+    rendered_file_path = os.path.join(mol_dir, filename)
+    with open(rendered_file_path, "w") as result_file:
+      result_file.write(file_content)
+    print("The %s file has been created into the subfolder" % filename)
+
   # Launch the job
   
-  print("\nLaunching the job ...", end='')
+  print("\nLaunching the job ...")
   os.chdir(mol_dir)
   subcommand = clusters_cfg[cluster_name]['subcommand']
-  launch_command = subcommand + " " + config[prog]['manifest_name']
+  launch_command = subcommand + " " + config[prog]['rendered_files']['manifest']
   retcode = os.system(launch_command)
   if retcode != 0 :
     print("Job submit encountered an issue")
     print("Aborting ...")
     exit(5)
-    #TODO: quoi faire en cas de submit fail ??
-
-  print('%20s' % "[ DONE ]")
 
   # Archive the molecule file in launched_dir
   
@@ -589,6 +459,8 @@ for mol_filename in mol_inp_list:
   if os.path.exists(os.path.join(launched_dir,mol_filename)):
     os.remove(os.path.join(launched_dir,mol_filename))
   shutil.move(os.path.join(mol_inp_path,mol_filename), launched_dir)
-  print("\nMolecule file archived to %s" % launched_dir)
+  print("\nMolecule original structure file archived to %s" % launched_dir)
+
+  print("\nEnd of procedure for the molecule %s" % mol_name)
   
   #print('%20s' % "[ DONE ]")

@@ -33,7 +33,7 @@ echo "==========================================================================
 {# Quality control (was there any problem with Q-CHEM?) #}
 cd $PBS_O_WORKDIR
 source {{  codes_folder  }}/load_modules.sh
-python {{  codes_folder  }}/{{  check_script  }} $output  || exit $?
+python {{  codes_folder  }}/qchem_check.py $output  || exit $?
 
 {# Job instructions for sending the qchem output to the qchem output folder for use in the next step. #}
 echo "Copying optimized geometry to ~/Q-CHEM/qchem_out_queue."

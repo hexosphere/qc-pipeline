@@ -49,7 +49,7 @@ rm -rf $SCRATCH || exit $?
 {# Quality control (was there any problem with ORCA?) #}
 cd $SLURM_SUBMIT_DIR
 source {{  codes_folder  }}/load_modules.sh
-python {{  codes_folder  }}/{{  check_script  }} {{  mol_name  }}.out  || exit $?
+python {{  codes_folder  }}/orca_check.py {{  mol_name  }}.out  || exit $?
 
 {# Job instructions for sending the optimized geometry to the orca output folder for use in the next step. #}
 echo -e "\nCopying optimized geometry to {{  output_folder  }}.\n"
