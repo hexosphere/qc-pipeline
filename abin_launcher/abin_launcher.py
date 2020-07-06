@@ -15,9 +15,10 @@ import os
 import re
 import shutil
 import sys
+from collections import OrderedDict
 from inspect import getsourcefile
 
-import jinja2     # Only needed in the renderer subscript, it is loaded here to check if your python installation does support jinja2
+import jinja2  # Only needed in the renderer subscript, it is loaded here to check if your python installation does support jinja2
 import yaml
 
 import get_bigindex
@@ -253,6 +254,36 @@ if os.path.isfile(mol_inp) and os.path.splitext(mol_inp)[-1].lower() != ("." + m
 mol_inp = os.path.abspath(mol_inp)
 
 # =========================================================
+# Establishing the different job scales
+# =========================================================
+
+# Gather all the different job scales from the clusters configuration file in a temporary dictionary
+
+job_scales_tmp = clusters_cfg[cluster_name]['progs'][prog]['job_scales']
+
+# Initialize the final dictionary where the job scales will be sorted by their upper limit
+
+job_scales = {}
+
+# Sort the different job scales by their upper limit and store them in the job_scales dictionary
+
+for scale in job_scales_tmp:
+  scale_limit = scale['scale_limit']
+  del scale['scale_limit']
+  job_scales[int(scale_limit)] = scale
+
+print("\nJob scales for %s:" % cluster_name)
+job_scales = OrderedDict(sorted(job_scales.items()))
+
+print("")
+print(''.center(85, '-'))
+print ("{:<15} {:<20} {:<20} {:<20} {:<10}".format('scale_limit','Label','Partition_name','Time','Cores'))
+print(''.center(85, '-'))
+for scale_limit, scale in job_scales.items():
+  print ("{:<15} {:<20} {:<20} {:<20} {:<10}".format(scale_limit, scale['label'], scale['partition_name'], scale['time'], scale['cores']))
+print(''.center(85, '-'))
+
+# =========================================================
 # Looking for the molecule files
 # =========================================================
 
@@ -334,19 +365,24 @@ for mol_filename in mol_inp_list:
   
   # Job scale category definition
 
-  #TODO: Make this part dynamic (what if the user made more partitions like very small, small, medium, big, very big, giant...)
-  if bigindex < clusters_cfg['dummy']['partition']['tiny']['bigindex_limit']:
-    jobscale = "tiny"
-  elif bigindex >= clusters_cfg['dummy']['partition']['tiny']['bigindex_limit'] \
-    and bigindex < clusters_cfg[cluster_name]['progs'][prog]['partition']['medium']['bigindex_limit']:
-    jobscale = "small"
-  elif bigindex >= clusters_cfg[cluster_name]['progs'][prog]['partition']['medium']['bigindex_limit'] \
-    and bigindex < clusters_cfg[cluster_name]['progs'][prog]['partition']['big']['bigindex_limit']:
-    jobscale = "medium"
-  elif bigindex >= bigindex < clusters_cfg[cluster_name]['progs'][prog]['partition']['big']['bigindex_limit']:
-    jobscale = "big"
+  jobscale = None
 
-  print("    => Job scale category: ", jobscale)
+  if bigindex < clusters_cfg['dummy_cluster']['dummy_program']['tiny_scale']['scale_limit']:
+    jobscale = "tiny_scale"
+  else:
+    for scale_limit in job_scales:
+      if bigindex > scale_limit:
+        continue
+      else:
+        jobscale = job_scales[scale_limit]
+        break
+
+  if not jobscale:
+    print("\n\nERROR: This molecule job scale is too big for this cluster (%s). Please change cluster." % cluster_name)
+    print("Skipping this molecule...")
+    continue
+
+  print("    => Job scale category: ", jobscale["label"])
   
   # =========================================================
   # Determining the ressources needed for the job
@@ -364,23 +400,19 @@ for mol_filename in mol_inp_list:
   
   print("\nThis script is running on the %s cluster." % cluster_name)
   
-  if jobscale == "tiny":
-    job_time = clusters_cfg['dummy']['partition'][jobscale]['time']
-    job_cores = clusters_cfg['dummy']['partition'][jobscale]['cores']
+  if jobscale == "tiny_scale":
+    job_time = clusters_cfg['dummy_cluster']['dummy_program'][jobscale]['time']
+    job_cores = clusters_cfg['dummy_cluster']['dummy_program'][jobscale]['cores']
     job_partition = "default"
-  elif jobscale not in clusters_cfg[cluster_name]['progs'][prog]['partition']:
-    print("\n\nERROR: Requested job scale (%s) is too big for this cluster (%s). Please change cluster." % (jobscale, cluster_name))
-    print("Skipping this molecule...")
-    continue
   else:
-    job_time = clusters_cfg[cluster_name]['progs'][prog]['partition'][jobscale]['time']
-    job_cores = clusters_cfg[cluster_name]['progs'][prog]['partition'][jobscale]['cores']
-    job_partition = clusters_cfg[cluster_name]['progs'][prog]['partition'][jobscale]['name']
+    job_time = jobscale['time']
+    job_cores = jobscale['cores']
+    job_partition = jobscale['partition_name']
   
   print("    => Job partition:   ", job_partition)
   print("    => Number of cores: ", job_cores)
   print("    => Job duration:    ", job_time)
-    
+
   # =========================================================
   # Rendering the needed input files
   # =========================================================

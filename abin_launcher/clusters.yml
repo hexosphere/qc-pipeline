@@ -12,19 +12,20 @@ dragon1:
         - module --force purge
         - module load orca/4.0.1.2 
       command: /usr/local/orca/orca_4_0_1_2_linux_x86-64_openmpi202/orca
-      partition:                # needed to define the different calculation requirements depending on the size of the molecule, use the "sinfo" command on the cluster to see all partitions
-        small:
-          name: Def
+      job_scales:
+        - label: small
+          scale_limit: 1000
+          partition_name: Def
           time: 5-00:00:00
           cores: 8
-        medium:
-          bigindex_limit: 1000
-          name: Def
+        - label: medium
+          scale_limit: 1500
+          partition_name: Def
           time: 5-00:00:00
           cores: 16
-        big:
-          bigindex_limit: 1500
-          name: Long
+        - label: big
+          scale_limit: 100000
+          partition_name: Long
           time: 15-00:00:00
           cores: 32  
 
@@ -38,21 +39,22 @@ dragon2:
       set_env:
         - module load ORCA/4.0.1-OpenMPI-2.0.2 
       command: /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.0.1-OpenMPI-2.0.2/orca
-      partition:
-        small:
-          name: batch
+      job_scales:
+        - label: small
+          scale_limit: 1000
+          partition_name: batch
           time: 5-00:00:00
           cores: 8
-        medium:
-          bigindex_limit: 1000
-          name: batch
+        - label: medium
+          scale_limit: 1500
+          partition_name: batch
           time: 5-00:00:00
           cores: 16
-        big:
-          bigindex_limit: 1500
-          name: long
+        - label: big
+          scale_limit: 100000
+          partition_name: long
           time: 15-00:00:00
-          cores: 32
+          cores: 32  
 
 lemaitre3:
   name: lemaitre3
@@ -64,13 +66,12 @@ lemaitre3:
       set_env: 
         - module load ORCA/4.1.0-OpenMPI-3.1.3
       command: /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.1.0-OpenMPI-3.1.3/orca
-      partition:
-        small:
-          name: batch
+      job_scales:
+        - label: small
+          scale_limit: 1000
+          partition_name: batch
           time: 2-00:00:00
           cores: 16
-        medium:
-          bigindex_limit: 1000
 
 vega:
   name: vega
@@ -83,15 +84,16 @@ vega:
         - module purge
         - module load ORCA/4.0.0.2-OpenMPI-2.0.2
       command: /apps/brussel/interlagos/software/ORCA/4.0.0.2-OpenMPI-2.0.2/orca
-      partition:
-        small:
-          name: defq
+      job_scales:
+        - label: small
+          scale_limit: 1000
+          partition_name: defq
           time: 5-00:00:00
           cores: 8
-        medium:
-          bigindex_limit: 1000
-          name: defq
-          time: 14-00:00:00
+        - label: medium
+          scale_limit: 1500
+          partition_name: defq
+          time: 10-00:00:00
           cores: 16
 
 #Careful, not member of the CECI and uses Torque instead of SLURM
@@ -106,19 +108,22 @@ hydra:
       set_env: 
         - module load Q-Chem/5.2.1-intel-2019a-mpich3
       command: qchem -nt
-      partition:
-        small:
+      job_scales:
+        - label: small
+          scale_limit: 500
+          partition_name: dummy
           time: 120:00:00
           cores: 8
-        medium:
-          bigindex_limit: 500
+        - label: medium
+          scale_limit: 1000
+          partition_name: dummy
           time: 120:00:00
           cores: 16
 
-# Exception: for tiny jobs, the cluster doesn't matter, we just need to specify how much time and how many cores we want.
-dummy:
-  partition:
-    tiny:
-      bigindex_limit: 50     
+# Exception: for tiny jobs, the cluster and program don't matter
+dummy_cluster:
+  dummy_program:
+    tiny_scale:
+      scale_limit: 50
       time: 00:05:00
-      cores: 2
+      cores: 2  
