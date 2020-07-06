@@ -367,15 +367,12 @@ for mol_filename in mol_inp_list:
 
   jobscale = None
 
-  if bigindex < clusters_cfg['dummy_cluster']['dummy_program']['tiny_scale']['scale_limit']:
-    jobscale = "tiny_scale"
-  else:
-    for scale_limit in job_scales:
-      if bigindex > scale_limit:
-        continue
-      else:
-        jobscale = job_scales[scale_limit]
-        break
+  for scale_limit in job_scales:
+    if bigindex > scale_limit:
+      continue
+    else:
+      jobscale = job_scales[scale_limit]
+      break
 
   if not jobscale:
     print("\n\nERROR: This molecule job scale is too big for this cluster (%s). Please change cluster." % cluster_name)
@@ -400,18 +397,14 @@ for mol_filename in mol_inp_list:
   
   print("\nThis script is running on the %s cluster." % cluster_name)
   
-  if jobscale == "tiny_scale":
-    job_time = clusters_cfg['dummy_cluster']['dummy_program'][jobscale]['time']
-    job_cores = clusters_cfg['dummy_cluster']['dummy_program'][jobscale]['cores']
-    job_partition = "default"
-  else:
-    job_time = jobscale['time']
-    job_cores = jobscale['cores']
-    job_partition = jobscale['partition_name']
-  
+  job_partition = jobscale['partition_name']
   print("    => Job partition:   ", job_partition)
-  print("    => Number of cores: ", job_cores)
+
+  job_time = jobscale['time']
   print("    => Job duration:    ", job_time)
+
+  job_cores = jobscale['cores']
+  print("    => Number of cores: ", job_cores)
 
   # =========================================================
   # Rendering the needed input files

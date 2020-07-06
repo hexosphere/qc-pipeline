@@ -1,6 +1,16 @@
 # CECI Clusters relevant informations, see http://www.ceci-hpc.be/clusters.html for more details 
 # This is a YAML database, see https://yaml.org/ for more informations
 
+# Those keys are shared between the clusters, they will be used for tiny (or debug) jobs for which the cluster and program don't matter
+shared: &tiny
+  label: tiny
+  scale_limit: 50
+  partition_name: default
+  time: 00:05:00
+  cores: 2 
+
+# Below are all the useful informations specific to each cluster and each program you wish to run on this cluster.
+
 dragon1:
   name: dragon1
   host: UMons
@@ -12,7 +22,8 @@ dragon1:
         - module --force purge
         - module load orca/4.0.1.2 
       command: /usr/local/orca/orca_4_0_1_2_linux_x86-64_openmpi202/orca
-      job_scales:
+      job_scales: 
+        - <<: *tiny     
         - label: small
           scale_limit: 1000
           partition_name: Def
@@ -40,6 +51,8 @@ dragon2:
         - module load ORCA/4.0.1-OpenMPI-2.0.2 
       command: /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.0.1-OpenMPI-2.0.2/orca
       job_scales:
+        - <<: *tiny
+          partition_name: debug  
         - label: small
           scale_limit: 1000
           partition_name: batch
@@ -67,6 +80,7 @@ lemaitre3:
         - module load ORCA/4.1.0-OpenMPI-3.1.3
       command: /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.1.0-OpenMPI-3.1.3/orca
       job_scales:
+        - <<: *tiny  
         - label: small
           scale_limit: 1000
           partition_name: batch
@@ -85,6 +99,7 @@ vega:
         - module load ORCA/4.0.0.2-OpenMPI-2.0.2
       command: /apps/brussel/interlagos/software/ORCA/4.0.0.2-OpenMPI-2.0.2/orca
       job_scales:
+        - <<: *tiny  
         - label: small
           scale_limit: 1000
           partition_name: defq
@@ -109,6 +124,7 @@ hydra:
         - module load Q-Chem/5.2.1-intel-2019a-mpich3
       command: qchem -nt
       job_scales:
+        - <<: *tiny  
         - label: small
           scale_limit: 500
           partition_name: dummy
@@ -119,11 +135,4 @@ hydra:
           partition_name: dummy
           time: 120:00:00
           cores: 16
-
-# Exception: for tiny jobs, the cluster and program don't matter
-dummy_cluster:
-  dummy_program:
-    tiny_scale:
-      scale_limit: 50
-      time: 00:05:00
-      cores: 2  
+  
