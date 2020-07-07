@@ -6,6 +6,7 @@
 
 import os
 import jinja2
+from pathlib import Path
 
 def jinja_render(path_tpl_dir, tpl, render_vars):
     """Renders a file based on its jinja template
@@ -65,7 +66,12 @@ def orca_render(vars):
 
     # Initialize our dictionary that will content all the text of the rendered files
 
-    rendered_content = {}                                    
+    rendered_content = {}
+
+    # Get the path to the chains folder and the check_scripts folder because the job manifest needs to execute check_orca.py and source load_modules.sh
+
+    chains_path = Path(vars['code_dir']).parent       # Get the parent folder from the codes_dir (which is the abin_launcher folder)                         
+    check_script_path = os.path.join(chains_path,"check_scripts")
 
     # Rendering the jinja template for the orca job manifest
   
@@ -82,7 +88,8 @@ def orca_render(vars):
         "command" : vars['clusters_cfg'][vars['cluster_name']]['progs'][vars['prog']]['command'],
         "output_folder" : vars['config'][vars['prog']]['output-folder'],
         "results_folder" : vars['config']['general']['results-folder'],
-        "codes_folder" : vars['code_dir'],
+        "chains_folder" : chains_path,
+        "check_folder" : check_script_path,
         "job_manifest" : rnd_manifest,
         "config_file" : vars['config_filename']
         }
@@ -144,6 +151,11 @@ def qchem_render(vars):
 
     rendered_content = {}   
 
+    # Get the path to the chains folder and the check_scripts folder because the job manifest needs to execute check_qchem.py and source load_modules.sh
+
+    chains_path = Path(vars['code_dir']).parent       # Get the parent folder from the codes_dir (which is the abin_launcher folder)                         
+    check_script_path = os.path.join(chains_path,"check_scripts")
+
     # Rendering the jinja template for the qchem job manifest
   
     print("\nRendering the jinja template for the qchem job manifest ...", end="")
@@ -158,6 +170,8 @@ def qchem_render(vars):
         "command" : vars['clusters_cfg'][vars['cluster_name']]['progs'][vars['prog']]['command'],
         "output_folder" : vars['config'][vars['prog']]['output-folder'],
         "results_folder" : vars['config']['general']['results-folder'],
+        "chains_folder" : chains_path,
+        "check_folder" : check_script_path,
         "codes_folder" : vars['code_dir']
         }
     
