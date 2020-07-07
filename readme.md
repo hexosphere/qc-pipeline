@@ -52,9 +52,10 @@ CECIHOME
 CHAINS
 └── abin_launcher/
       └── Templates/
-            ├── jinja-template1
-            ├── jinja-template2
-            └── etc.
+            ├── orca_job.sh.jinja
+            ├── orca.inp.jinja
+            ├── qchem_job.sh.jinja
+            └── qchem.in.jinja
       ├── abin_launcher.py
       ├── mol_scan.py
       ├── scaling_fcts.py

@@ -353,9 +353,9 @@ for mol_filename in mol_inp_list:
 
   print("")
   print("")
-  print(''.center(len(section_title)+10, '-'))
+  print(''.center(len(section_title)+10, '*'))
   print(section_title.center(len(section_title)+10))
-  print(''.center(len(section_title)+10, '-'))
+  print(''.center(len(section_title)+10, '*'))
   
   # scale_index determination
   
@@ -388,9 +388,9 @@ for mol_filename in mol_inp_list:
 
   print("")
   print("")
-  print(''.center(len(section_title)+10, '-'))
+  print(''.center(len(section_title)+10, '*'))
   print(section_title.center(len(section_title)+10))
-  print(''.center(len(section_title)+10, '-'))
+  print(''.center(len(section_title)+10, '*'))
   
   # Determining which cluster we're running on and obtaining the related informations
   
@@ -418,9 +418,9 @@ for mol_filename in mol_inp_list:
 
   print("")
   print("")
-  print(''.center(len(section_title)+10, '-'))
+  print(''.center(len(section_title)+10, '*'))
   print(section_title.center(len(section_title)+10))
-  print(''.center(len(section_title)+10, '-'))
+  print(''.center(len(section_title)+10, '*'))
   
   # Get the path to jinja templates folder (a folder named "Templates" in the samed folder as this script)
 
@@ -438,9 +438,9 @@ for mol_filename in mol_inp_list:
 
   print("")
   print("")
-  print(''.center(len(section_title)+10, '-'))
+  print(''.center(len(section_title)+10, '*'))
   print(section_title.center(len(section_title)+10))
-  print(''.center(len(section_title)+10, '-'))
+  print(''.center(len(section_title)+10, '*'))
 
   # Creating the molecule subfolder where the job will be launched and creating all the relevant files in it.
  

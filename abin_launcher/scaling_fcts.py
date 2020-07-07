@@ -82,7 +82,8 @@ def elec_power_scaling(elements:dict, config_prog_scaling_function:dict, file_da
 
     power = config_prog_scaling_function["power"]
 
-    print ('\nThe scale index will be defined as the %sth power of the total number of electrons' % power)
+    exp_str_arr={1:"st", 2:"nd", 3:"rd"}
+    print ('\nThe scale index will be defined as the %s%s power of the total number of electrons' % (power, ("nd" if not power in exp_str_arr else exp_str_arr[power])))
 
     scale_index = (total_nb_elec(elements,file_data)**power)
 
