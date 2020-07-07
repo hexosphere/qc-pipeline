@@ -3,7 +3,7 @@
     <img src="https://www.tronntech.com/wp-content/uploads/2019/06/Quantum_Physics_featured.jpg" alt="Logo" width=160 height=107>
   </a>
 
-  <h3 align="center">QC-Pipeline</h3>
+  <h3 align="center">CHAINS</h3>
 
   <p align="center">
     Short description
@@ -46,20 +46,41 @@ CECIHOME
     ├── etc.
 ```
 
-## ABIN LAUNCHER CONTENT
+## EXPECTED FINAL ABORESCENCE OF CHAINS
 
 ```text
-abin_launcher.py
-  ├── mol_scan.py
-  ├── scaling_fcts.py
-        └── elements.yml
-  ├── renderer.py
-  ├── config.yml
-  ├── clusters.yml
-  └── Templates/
-        ├── jinja-template1
-        ├── jinja-template2
-        ├── etc.
+CHAINS
+└── abin_launcher/
+      └── Templates/
+            ├── jinja-template1
+            ├── jinja-template2
+            └── etc.
+      ├── abin_launcher.py
+      ├── mol_scan.py
+      ├── scaling_fcts.py
+      ├── renderer.py
+      ├── elements.yml
+      ├── config.yml
+      └── clusters.yml
+└── control_launcher/
+      └── Templates/
+            ├── jinja-template1
+            ├── jinja-template2
+            └── etc.
+      ├── qchem_parser.py
+      └── control_launcher.py
+└── results_treatment/
+      ├── some jinja LaTeX templates for the tables
+      └── some gnuplots scripts for the graphs
+└── crontab_scripts/
+      ├── orca2qchem.sh
+      ├── qchem2control.sh
+      └── control2results.sh
+└── check_scripts/
+      ├── orca_check.py
+      └── qchem_check.py
+└── load_modules.sh
+└── readme.md
 ```
 
 ## External resources
