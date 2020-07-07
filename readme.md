@@ -79,7 +79,7 @@ CHAINS
 └── check_scripts/
       ├── orca_check.py
       └── qchem_check.py
-└── load_modules.sh
+├── load_modules.sh
 └── readme.md
 ```
 
