@@ -6,6 +6,12 @@
 
 import re
 
+#! ATTENTION: All the functions defined below need to:
+#! - be called fmt_scan, where fmt is the name of the format of the molecule file as it will be given in the command line (stored in the mol_fmt variable in abin_launcher.py) 
+#! - receive a list (mol_content) and a dictionary (model_file_data) as arguments
+#! - return a dictionary (file_data), following the pattern from model_file_data
+#! Otherwise, you will need to modify abin_launcher.py accordingly.
+
 def xyz_scan(mol_content:list,model_file_data:dict):
     """Scan the content of an xyz file and extract the chemical formula and atomic coordinates of the molecule
 

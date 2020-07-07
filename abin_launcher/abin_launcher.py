@@ -21,9 +21,9 @@ from inspect import getsourcefile
 import jinja2  # Only needed in the renderer subscript, it is loaded here to check if your python installation does support jinja2
 import yaml
 
-import get_bigindex
-import renderer
 import mol_scan
+import renderer
+import scaling_fcts
 
 """
 # SERVERHOME for repl.it
@@ -153,6 +153,26 @@ with open(clusters_file, 'r') as f_clusters:
   clusters_cfg = yaml.load(f_clusters, Loader=yaml.FullLoader)
 print('%20s' % "[ DONE ]")
 
+# Loading AlexGustafsson's Mendeleev Table (found at https://github.com/AlexGustafsson/molecular-data) which will be used for the scaling functions.
+
+print("\nLoading AlexGustafsson's Mendeleev Table ...", end="")
+with open(os.path.join(code_dir,'elements.yml'), 'r') as f_elements:
+  elements = yaml.load(f_elements, Loader=yaml.FullLoader)
+print('%18s' % "[ DONE ]")
+
+# =========================================================
+# Define the name of our subfunctions
+# =========================================================
+
+# Name of the scanning function that will extract informations about the molecule from the molecule file (depends on the file format) - defined in mol_scan.py
+scan_fct = mol_fmt + "_scan"
+
+# Name of the scaling function that will determine the scale_index of the molecule (necessary for determining the job scale) - defined in scaling_fcts.py
+scaling_fct = config[prog]["scaling_function"]["name"]
+
+# Name of the render function that will render the job manifest and the input file (depends on the program)  - defined in renderer.py
+render_fct = prog + "_render"
+
 # =========================================================
 # Check arguments
 # =========================================================
@@ -174,7 +194,7 @@ if prog not in clusters_cfg[cluster_name]["progs"]:
   print("Aborting...")
   exit(3) 
 
-if (prog + "_render") not in dir(renderer) or not callable(getattr(renderer, prog + "_render")):
+if (render_fct) not in dir(renderer) or not callable(getattr(renderer, render_fct)):
   print("\nERROR: There is no function defined for the %s program in renderer.py." % prog)
   print("Aborting...")
   exit(3) 
@@ -219,8 +239,15 @@ mol_inp = os.path.abspath(mol_inp)
 
 # Check if a scanning function has been defined for the given format of the molecule file(s)
 
-if (mol_fmt + "_scan") not in dir(mol_scan) or not callable(getattr(mol_scan, mol_fmt + "_scan")):
+if (scan_fct) not in dir(mol_scan) or not callable(getattr(mol_scan, scan_fct)):
   print("\nERROR: There is no function defined for the %s format in mol_scan.py." % mol_fmt)
+  print("Aborting...")
+  exit(3) 
+
+# Check if the chosen scaling function has been defined in scaling_fcts.py
+
+if (scaling_fct) not in dir(scaling_fcts) or not callable(getattr(scaling_fcts, scaling_fct)):
+  print("\nERROR: There is no scaling function named %s defined in scaling_fcts.py." % scaling_fct)
   print("Aborting...")
   exit(3) 
 
@@ -241,7 +268,7 @@ job_scales = {}
 for scale in job_scales_tmp:
   scale_limit = scale['scale_limit']
   del scale['scale_limit']
-  job_scales[int(scale_limit)] = scale
+  job_scales[float(scale_limit)] = scale
 
 print("\nJob scales for %s:" % cluster_name)
 job_scales = OrderedDict(sorted(job_scales.items()))
@@ -251,7 +278,7 @@ print(''.center(85, '-'))
 print ("{:<15} {:<20} {:<20} {:<20} {:<10}".format('scale_limit','Label','Partition_name','Time','Cores'))
 print(''.center(85, '-'))
 for scale_limit, scale in job_scales.items():
-  print ("{:<15} {:<20} {:<20} {:<20} {:<10}".format(scale_limit, scale['label'], scale['partition_name'], scale['time'], scale['cores']))
+  print ("{:<15} {:<20} {:<20} {:<20} {:<10}".format("{:.2e}".format(scale_limit), scale['label'], scale['partition_name'], scale['time'], scale['cores']))
 print(''.center(85, '-'))
 
 # =========================================================
@@ -311,7 +338,7 @@ for mol_filename in mol_inp_list:
 
   model_file_data = {'nb_atoms': 0, 'chemical_formula':{}, 'atomic_coordinates':[]}  # The data extracted from the molecule file through the "mol_fmt"_scan function must follow this pattern as it will be used later on by the other subscripts.
 
-  file_data = eval("mol_scan." + mol_fmt + "_scan")(mol_content,model_file_data)
+  file_data = eval("mol_scan." + scan_fct)(mol_content,model_file_data)
 
   if not file_data:
     continue
@@ -319,10 +346,10 @@ for mol_filename in mol_inp_list:
   print('%20s' % "[ DONE ]")
    
   # =========================================================
-  # Determining the jobscale category (through bigindex)
+  # Determining the scale_index
   # =========================================================
   
-  section_title = "1. Job scale determination"
+  section_title = "1. Scale index determination"
 
   print("")
   print("")
@@ -330,29 +357,28 @@ for mol_filename in mol_inp_list:
   print(section_title.center(len(section_title)+10))
   print(''.center(len(section_title)+10, '-'))
   
-  # Big Index determination
+  # scale_index determination
   
-  bigindex = get_bigindex.total_nb_elec(code_dir,file_data)
+  scale_index = eval("scaling_fcts." + scaling_fct)(elements, config[prog]["scaling_function"], file_data)
 
-  print("\nBigindex: ", bigindex)
+  print("\nScale index: ", "{:.2e}".format(scale_index))
   
   # Job scale category definition
 
   jobscale = None
 
   for scale_limit in job_scales:
-    if bigindex > scale_limit:
+    if scale_index > scale_limit:
       continue
     else:
       jobscale = job_scales[scale_limit]
+      jobscale_limit = scale_limit
       break
 
   if not jobscale:
     print("\n\nERROR: This molecule job scale is too big for this cluster (%s). Please change cluster." % cluster_name)
     print("Skipping this molecule...")
     continue
-
-  print("    => Job scale category: ", jobscale["label"])
   
   # =========================================================
   # Determining the ressources needed for the job
@@ -368,16 +394,21 @@ for mol_filename in mol_inp_list:
   
   # Determining which cluster we're running on and obtaining the related informations
   
-  print("\nThis script is running on the %s cluster." % cluster_name)
-  
   job_partition = jobscale['partition_name']
-  print("    => Job partition:   ", job_partition)
-
   job_time = jobscale['time']
-  print("    => Job duration:    ", job_time)
-
   job_cores = jobscale['cores']
-  print("    => Number of cores: ", job_cores)
+
+  print("")
+  print(''.center(50, '-'))
+  print("{:<20} {:<30}".format("Scale index: ", "{:.2e}".format(scale_index)))
+  print(''.center(50, '-'))
+  print("{:<20} {:<30}".format("Cluster: ", cluster_name))
+  print("{:<20} {:<30}".format("Job scale: ", jobscale["label"]))
+  print("{:<20} {:<30}".format("Job scale limit: ", "{:.2e}".format(jobscale_limit)))
+  print(''.center(50, '-'))
+  print("{:<20} {:<30}".format("Job partition: ", job_partition))
+  print("{:<20} {:<30}".format("Job duration: ", job_time))
+  print("{:<20} {:<30}".format("Number of cores: ", job_cores))
 
   # =========================================================
   # Rendering the needed input files
@@ -397,7 +428,7 @@ for mol_filename in mol_inp_list:
 
   # Dynamically call the inputs render function for the given program
 
-  rendered_content = eval("renderer." + prog + "_render")(locals())  # Dictionary containing the text of all the rendered files in the form of <filename>: <rendered_content>
+  rendered_content = eval("renderer." + render_fct)(locals())  # Dictionary containing the text of all the rendered files in the form of <filename>: <rendered_content>
   
   # =========================================================
   # The end step

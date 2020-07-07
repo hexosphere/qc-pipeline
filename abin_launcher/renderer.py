@@ -30,6 +30,12 @@ def jinja_render(path_tpl_dir, tpl, render_vars):
     
     return output_text
 
+#! ATTENTION: All the functions defined below need to:
+#! - be called prog_render, where prog is the name of the program as it appears in the YAML clusters and config file (and as it will be given in the command line) 
+#! - receive the locals() or vars() dictionaries from abin_launcher.py as arguments
+#! - return a dictionary (rendered_content) containing the text of all the rendered files in the form of <filename>: <rendered_content>
+#! Otherwise, you will need to modify abin_launcher.py accordingly.
+
 def orca_render(vars):
     """Renders the job manifest and the input file associated with the program orca
 
@@ -98,7 +104,7 @@ def orca_render(vars):
         "job_cores" : vars['job_cores'],
         "charge" : vars['config']['general']['charge'],
         "multiplicity" : vars['config']['general']['multiplicity'],
-        "coordinates" : vars['file_data']['atom_coordinates']
+        "coordinates" : vars['file_data']['atomic_coordinates']
         }
       
     rendered_content[rnd_input] = jinja_render(vars['path_tpl_dir'], tpl_inp, render_vars)
@@ -170,7 +176,7 @@ def qchem_render(vars):
         "cis_n_roots" : vars['config'][vars['prog']]['cis-n-roots'],
         "charge" : vars['config']['general']['charge'],
         "multiplicity" : vars['config']['general']['multiplicity'],
-        "coordinates" : vars['file_data']['atom_coordinates']
+        "coordinates" : vars['file_data']['atomic_coordinates']
         }
       
     rendered_content[rnd_input] = jinja_render(vars['path_tpl_dir'], tpl_inp, render_vars)

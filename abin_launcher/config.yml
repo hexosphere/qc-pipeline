@@ -17,6 +17,10 @@ orca:
     input: orca.inp.jinja
   rendered_files:
     manifest: orca_job.sh
+# Define here all the relevant informations for your scaling function
+  scaling_function:
+    name: elec_power_scaling
+    power: 3
 # The keywords you provide here are the keywords that will be used "as-is" in the keyword line of the ORCA input file, be sure that ORCA knows them! (see ORCA's manual for more informations)
   job-type: Opt
   method: B3LYP
@@ -33,6 +37,10 @@ qchem:
     input: qchem.in.jinja
   rendered_files:
     manifest: qchem_job.sh
+# Define here all the relevant informations for your scaling function
+  scaling_function:
+    name: elec_power_scaling
+    power: 3
 # The keywords you provide here are the keywords that will be used "as-is" in the Q-CHEM input file, be sure that Q-CHEM knows them! (see Q-CHEM's manual for more informations)
   job-type: sp
   exchange: b3lyp

@@ -46,6 +46,21 @@ CECIHOME
     ├── etc.
 ```
 
+## ABIN LAUNCHER CONTENT
+
+```text
+abin_launcher.py
+  ├── mol_scan.py
+  ├── scaling_fcts.py
+        └── elements.yml
+  ├── renderer.py
+  ├── config.yml
+  ├── clusters.yml
+  └── Templates/
+        ├── jinja-template1
+        ├── jinja-template2
+        ├── etc.
+```
 
 ## External resources
 
