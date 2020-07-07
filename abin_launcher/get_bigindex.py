@@ -33,13 +33,13 @@ def total_nb_elec(code_dir,file_data:dict):
     print(''.center(68, '-'))
     print ("{:<12} {:<16} {:<18} {:<22}".format('Atom Type','Atomic Number','Number of atoms','Number of electrons'))
     print(''.center(68, '-'))
-    for atom,nb_atom in file_data['elm_list'].items():
+    for atom,nb_atom in file_data['chemical_formula'].items():
       atomic_number = getNbElecFromMdlvTbl(atom,elements)
       subtotal_elec = nb_atom * atomic_number
       print ("{:<12} {:<16} {:<18} {:<22}".format(atom, atomic_number, nb_atom, subtotal_elec))
       total_elec += subtotal_elec
     print(''.center(68, '-'))
-    print ("{:<29} {:<18} {:<22}".format('Total',file_data['#atoms'],total_elec))
+    print ("{:<29} {:<18} {:<22}".format('Total',file_data['nb_atoms'],total_elec))
     print(''.center(68, '-'))
 
     bigindex = total_elec

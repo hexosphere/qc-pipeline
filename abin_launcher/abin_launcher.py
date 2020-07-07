@@ -23,6 +23,7 @@ import yaml
 
 import get_bigindex
 import renderer
+import mol_scan
 
 """
 # SERVERHOME for repl.it
@@ -62,10 +63,10 @@ overwrite = args.overwrite               # Flag for overwriting the files
 config_file = args.config                # Main configuration file
 clusters_file = args.clusters            # YAML file containing all informations about the clusters
 
-# Other important variables that could become arguments
+# Other important variables that could become arguments if the need arises
 
-mol_fmt = "xyz"                          # Format of the molecule files we want to treat
-mol_ext = ".xyz"                         # Extension of the molecule files we're looking for
+mol_fmt = "xyz"                                 # Format of the molecule files we want to treat
+mol_ext = "." + mol_fmt                         # Extension of the molecule files we're looking for
 
 """ 
 prog = "ORCA"
@@ -78,43 +79,6 @@ out_dir = _ROOT_+"/ORCA"
 #                           PREPARATION STEP
 # ===================================================================
 # ===================================================================
-
-# Define the function that will scan our xyz files to interpret the data
-
-def xyz_scan(mol_content:list,model_file_data:dict):
-
-  file_data = model_file_data
-  
-  # Scanning the content of the XYZ file to determine the chemical formula of the molecule
-  
-  file_data['#atoms'] = mol_content[0]
-    
-  lines_rx = {
-      # Pattern for finding lines looking like 'Si        -0.31438        1.89081        0.00000' (this is a regex, for more information, see https://docs.python.org/3/library/re.html)
-      'atomLine': re.compile(
-          r'^\s{0,4}(?P<atomSymbol>[a-zA-Z]{0,3})\s+[-]?\d+\.\d+\s+[-]?\d+\.\d+\s+[-]?\d+\.\d+$')
-  }
-  
-  checksum_nlines = 0                                        # This variable will be used to check if the number of coordinate lines matches the number of atoms of the molecule 
-  
-  for line in mol_content[2:]:                               # We only start at the 3rd line because the first two won't contain any coordinates
-    m = lines_rx['atomLine'].match(line)
-    if m is not None:                                        # We only care if the line looks like an atom coordinates
-      checksum_nlines += 1
-      file_data['atom_coordinates'].append(line)             # All coordinates will be stored in this variable to be rendered in the input file later on
-      if m.group("atomSymbol") not in file_data['elm_list']:
-        file_data['elm_list'][m.group("atomSymbol")] = 1
-      else:
-        file_data['elm_list'][m.group("atomSymbol")] += 1
-              
-  # Check if the number of lines matches the number of atoms defined in the first line of the .xyz file
-  
-  if checksum_nlines != int(file_data['#atoms']):
-    print("\n\nERROR: Number of atoms lines (%s) doesn't match the number of atoms mentioned in the first line of the .xyz file (%s) !" % (checksum_nlines, int(file_data['#atoms'])))
-    print("Skipping this molecule...")
-    file_data = None
-
-  return file_data
 
 # Get the size of the terminal in order to have a prettier output, if you need something more robust, go check http://granitosaurus.rocks/getting-terminal-size.html
 
@@ -248,10 +212,17 @@ if not os.path.isdir(mol_inp) and not os.path.isfile(mol_inp):
   print("Aborting ...")
   exit(4)
 
-if os.path.isfile(mol_inp) and os.path.splitext(mol_inp)[-1].lower() != ("." + mol_fmt):
+if os.path.isfile(mol_inp) and os.path.splitext(mol_inp)[-1].lower() != (mol_ext):
   print("  ^ ERROR: This is not an %s file." % mol_fmt)
 
 mol_inp = os.path.abspath(mol_inp)
+
+# Check if a scanning function has been defined for the given format of the molecule file(s)
+
+if (mol_fmt + "_scan") not in dir(mol_scan) or not callable(getattr(mol_scan, mol_fmt + "_scan")):
+  print("\nERROR: There is no function defined for the %s format in mol_scan.py." % mol_fmt)
+  print("Aborting...")
+  exit(3) 
 
 # =========================================================
 # Establishing the different job scales
@@ -289,14 +260,14 @@ print(''.center(85, '-'))
 
 # If the argument mol_inp is a folder, we need to look for every molecule file with the given format in that folder.
 if os.path.isdir(mol_inp):
-  print("\nLooking for every %s molecule file in %s ..." % ("." + mol_fmt,mol_inp))
+  print("\nLooking for every %s molecule file in %s ..." % (mol_ext,mol_inp))
   mol_inp_path = mol_inp
   # Define which type of file we are looking for in a case-insensitive way (see https://gist.github.com/techtonik/5694830)
   rule = re.compile(fnmatch.translate("*." + mol_fmt), re.IGNORECASE)
   # Find all matching files in mol_inp folder
   mol_inp_list = [mol for mol in os.listdir(mol_inp) if rule.match(mol)]
   if mol_inp_list == []:
-    print("\nERROR: Can't find any molecule of the %s format in %s" % ("." + mol_fmt,mol_inp_path))
+    print("\nERROR: Can't find any molecule of the %s format in %s" % (mol_ext,mol_inp_path))
 else:
   mol_inp_path = os.path.dirname(mol_inp)
   mol_inp_file = os.path.basename(mol_inp)
@@ -336,9 +307,11 @@ for mol_filename in mol_inp_list:
   with open(os.path.join(mol_inp_path,mol_filename), 'r') as mol_file:
     mol_content = mol_file.read().splitlines()
 
-  model_file_data = {'#atoms': 0, 'elm_list':{}, 'atom_coordinates':[]}
+  # Scanning the content of the file and extracting the relevant informations
 
-  file_data = xyz_scan(mol_content,model_file_data)
+  model_file_data = {'nb_atoms': 0, 'chemical_formula':{}, 'atomic_coordinates':[]}  # The data extracted from the molecule file through the "mol_fmt"_scan function must follow this pattern as it will be used later on by the other subscripts.
+
+  file_data = eval("mol_scan." + mol_fmt + "_scan")(mol_content,model_file_data)
 
   if not file_data:
     continue
