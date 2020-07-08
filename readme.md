@@ -28,7 +28,7 @@
 
 <p align="center">
   <a href="">
-    <img src="Documentation\chains_workflow.png" alt="workflow_image" width=775 height=559>
+    <img src="Documentation\chains_workflow.png" alt="workflow_image" width=1120 height=928>
   </a>
 </p>
 
