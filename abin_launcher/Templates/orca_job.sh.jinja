@@ -22,8 +22,8 @@ See https://support.ceci-hpc.be/doc/_contents/SubmittingJobs/SlurmFAQ.html#q11-h
 SCRATCH=$LOCALSCRATCH/$SLURM_JOB_ID
 
 echo -e "Creating temporary folder $SCRATCH for handling temporary files.\n"
-mkdir -p $SCRATCH || exit $?
-cp $SLURM_SUBMIT_DIR/{{  mol_name  }}.inp $SCRATCH/ || exit $?
+srun mkdir -p $SCRATCH || exit $?
+srun cp $SLURM_SUBMIT_DIR/{{  mol_name  }}.inp $SCRATCH/ || exit $?
 
 cd $SCRATCH
 
@@ -41,10 +41,10 @@ echo -e "=========================  ORCA execution ends now  ===================
 echo -e "=============================================================================\n"
 
 echo -e "Copying ORCA output files to the submit folder.\n"
-cp -r $SCRATCH/* $SLURM_SUBMIT_DIR/ || exit $?
+srun cp -r $SCRATCH/* $SLURM_SUBMIT_DIR/ || exit $?
 
 echo -e "Removing $SCRATCH folder.\n"
-rm -rf $SCRATCH || exit $?
+srun rm -rf $SCRATCH || exit $?
 
 {# Quality control (was there any problem with ORCA?) #}
 cd $SLURM_SUBMIT_DIR
@@ -69,5 +69,16 @@ cp {{  results_folder  }}/{{  mol_name  }}/{{  mol_name  }}_config.yml {{  outpu
 echo -e "Archiving output files to {{  results_folder  }}/{{  mol_name  }}/ORCA.\n"
 mkdir -p {{  results_folder  }}/{{  mol_name  }}/ORCA
 cp {{  mol_name  }}.inp {{  mol_name  }}.out {{  mol_name  }}.xyz {{  mol_name  }}_ori.xyz {{  job_manifest  }} slurm_output.log {{  results_folder  }}/{{  mol_name  }}/ORCA/
+
+{# Job instructions for compiling data about the job for benchmarking. #}
+{% if benchmark %}
+echo -e "Compiling data for benchmarking in {{  codes_folder  }}/benchmark.csv.\n"
+
+# Compiling data in the form of "Program, Cluster, Job Name, Scaling Function, Power Scale, Scale Index, Partition, Cores, Walltime, Duration, Duration (s), Submit Date, Eligible Date, Start Date"
+
+sact=$(sacct --format=Partition,ReqCPUS,Timelimit,Elapsed,ElapsedRaw,Submit,Eligible,Start -n -j $SLURM_JOB_ID | head -n 1 | tr -s ' ' ,)
+infos="{{  prog  }},${CLUSTER_NAME},{{  mol_name  }},{{  scaling_function  }},{{  power_scaling  }},{{  scale_index  }}${sact}"
+echo $infos >> {{  codes_folder  }}/benchmark.csv
+{% endif %}
 
 echo -e "End of the job."

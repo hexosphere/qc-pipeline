@@ -8,16 +8,16 @@ shared:
   progs:
     orca: &tiny_orca
       label: tiny
-      scale_limit: 125000
+      scale_limit: 50
       partition_name: default
       time: 00:05:00
-      cores: 2 
+      cores: 8 
     qchem: &tiny_qchem
       label: tiny
-      scale_limit: 125000
+      scale_limit: 50
       partition_name: default
       time: 00:05:00
-      cores: 2 
+      cores: 8 
 
 # Below are all the useful informations specific to each cluster and each program you wish to run on this cluster.
 
@@ -43,12 +43,12 @@ dragon1:
           scale_limit: 1500
           partition_name: Def
           time: 5-00:00:00
-          cores: 16
+          cores: 8
         - label: big
-          scale_limit: 100000
+          scale_limit: 2000
           partition_name: Long
           time: 15-00:00:00
-          cores: 32  
+          cores: 8  
 
 dragon2:
   name: dragon2
@@ -58,26 +58,28 @@ dragon2:
   progs:
     orca:
       set_env:
-        - module load ORCA/4.0.1-OpenMPI-2.0.2 
-      command: /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.0.1-OpenMPI-2.0.2/orca
+        - module --force purge
+        - module load releases/2019b
+        - module load ORCA/4.2.1-gompi-2019b 
+      command: /opt/cecisw/arch/easybuild/2019b/software/ORCA/4.2.1-gompi-2019b/orca
       job_scales:
         - <<: *tiny_orca
           partition_name: debug  
         - label: small
           scale_limit: 1000
           partition_name: batch
-          time: 5-00:00:00
+          time: 2-00:00:00
           cores: 8
         - label: medium
           scale_limit: 1500
           partition_name: batch
           time: 5-00:00:00
-          cores: 16
+          cores: 8
         - label: big
-          scale_limit: 100000
+          scale_limit: 2000
           partition_name: long
           time: 15-00:00:00
-          cores: 32  
+          cores: 8  
 
 lemaitre3:
   name: lemaitre3
@@ -95,7 +97,7 @@ lemaitre3:
           scale_limit: 1000
           partition_name: batch
           time: 2-00:00:00
-          cores: 16
+          cores: 8
 
 vega:
   name: vega
@@ -111,15 +113,15 @@ vega:
       job_scales:
         - <<: *tiny_orca  
         - label: small
-          scale_limit: 1e9
+          scale_limit: 1e3
           partition_name: defq
           time: 5-00:00:00
           cores: 8
         - label: medium
-          scale_limit: 3.3750E+09
+          scale_limit: 1.5e3
           partition_name: defq
           time: 10-00:00:00
-          cores: 16
+          cores: 8
 
 #Careful, not member of the CECI and uses Torque instead of SLURM
 hydra:

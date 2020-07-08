@@ -12,7 +12,7 @@ with open(sys.argv[1], 'r') as output:
 
 print("Checking Q-CHEM output file...")
 
-# Check if the second to last line corresponds to what we should have
+# Check if the thank you message is present
 if "Thank you very much for using Q-Chem.  Have a nice day." not in output_content[-5]:
   print("\nERROR: The Q-CHEM output file does not mention having terminated normally. Check the output file content before proceeding further.")
   print("Aborting ...")

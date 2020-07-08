@@ -71,7 +71,7 @@ def orca_render(vars):
     # Get the path to the chains folder and the check_scripts folder because the job manifest needs to execute check_orca.py and source load_modules.sh
 
     chains_path = Path(vars['code_dir']).parent       # Get the parent folder from the codes_dir (which is the abin_launcher folder)                         
-    check_script_path = os.path.join(chains_path,"check_scripts")
+    check_script_path = os.path.join(str(chains_path),"check_scripts")
 
     # Rendering the jinja template for the orca job manifest
   
@@ -91,7 +91,13 @@ def orca_render(vars):
         "chains_folder" : chains_path,
         "check_folder" : check_script_path,
         "job_manifest" : rnd_manifest,
-        "config_file" : vars['config_filename']
+        "config_file" : vars['config_filename'],
+        "benchmark" : vars['config']['general']['benchmark'],
+        "prog" : vars['prog'],
+        "scaling_function" : vars['scaling_fct'],
+        "power_scaling" : vars['config'][vars['prog']]["scaling_function"]["power"],
+        "scale_index" : vars['scale_index'],
+        "codes_folder" : vars['code_dir']
         }
     
     rendered_content[rnd_manifest] = jinja_render(vars['path_tpl_dir'], tpl_manifest, render_vars)
@@ -154,7 +160,7 @@ def qchem_render(vars):
     # Get the path to the chains folder and the check_scripts folder because the job manifest needs to execute check_qchem.py and source load_modules.sh
 
     chains_path = Path(vars['code_dir']).parent       # Get the parent folder from the codes_dir (which is the abin_launcher folder)                         
-    check_script_path = os.path.join(chains_path,"check_scripts")
+    check_script_path = os.path.join(str(chains_path),"check_scripts")
 
     # Rendering the jinja template for the qchem job manifest
   

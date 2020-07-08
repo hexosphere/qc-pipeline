@@ -7,6 +7,7 @@ general:
   multiplicity: 1
   user-email: niacobel@ulb.ac.be
   mail-type: FAIL
+  benchmark: True
 # Folder where all the results of this molecule will be sent (a subfolder with the name of the molecule will be created)
   results-folder: /CECI/home/ulb/cqp/niacobel/FINAL
 
@@ -20,7 +21,7 @@ orca:
 # Define here all the relevant informations for your scaling function
   scaling_function:
     name: elec_power_scaling
-    power: 3
+    power: 1
 # The keywords you provide here are the keywords that will be used "as-is" in the keyword line of the ORCA input file, be sure that ORCA knows them! (see ORCA's manual for more informations)
   job-type: Opt
   method: B3LYP
@@ -40,7 +41,7 @@ qchem:
 # Define here all the relevant informations for your scaling function
   scaling_function:
     name: elec_power_scaling
-    power: 3
+    power: 1
 # The keywords you provide here are the keywords that will be used "as-is" in the Q-CHEM input file, be sure that Q-CHEM knows them! (see Q-CHEM's manual for more informations)
   job-type: sp
   exchange: b3lyp
