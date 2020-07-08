@@ -24,11 +24,12 @@
 
 ## Quick start
 
-### Workflow
+### Workflow 
+Right-click > "View Image" to zoom in
 
 <p align="center">
   <a href="">
-    <img src="Documentation\chains_workflow.png" alt="workflow_image" width=1120 height=928>
+    <img src="Documentation\chains_workflow.png" alt="workflow_image" width=840 height=696>
   </a>
 </p>
 
