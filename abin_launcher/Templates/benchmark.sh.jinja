@@ -1,0 +1,50 @@
+{# Job instructions for compiling data about the job for benchmarking. #}
+################################################
+############# Benchmarking Section #############
+################################################
+
+echo -e "Compiling data for benchmarking in $CECIHOME/BENCHMARK/benchmark_{{  prog  }}_${CLUSTER_NAME}.csv.\n"
+
+# Compiling data in the form of "Program; Cluster; Partition; Cores; Walltime; Mol Name; Scaling Function; Power Scale; Scale Index; Submit Date; Eligible Date; Start Date; Current Date; Max Nodes; Nodes List"
+
+# Define the name of the folder where the benchmark files will be created
+benchmark_dir="$CECIHOME/BENCHMARK"
+
+# Define the name of the file where data will be stored
+filename="benchmark_{{  prog  }}_${CLUSTER_NAME}.csv"
+
+# Create the directory where the file will be created, if needed
+mkdir -p ${benchmark_dir}
+
+# If the file doesn't already exist, create it with a header as first line
+if [ ! -f "${benchmark_dir}/${filename}" ]; then
+    echo "Program;Cluster;Partition;Cores;Walltime;Mol Name;Scaling Function;Power Scale;Scale Index;Submit Date;Eligible Date;Start Date;Current Date;Max Nodes;Nodes List" >> ${benchmark_dir}/${filename}
+fi
+
+# Format SLURM dates to be (almost) readable through Excel
+export SLURM_TIME_FORMAT="%Y-%m-%d_%H:%M:%S"
+
+# On lemaitre3, the output has a useless first line, so we need to take it into account
+if   [ "$CLUSTER_NAME" = "lemaitre3" ]; then out_line=2 ; else out_line=1 ; fi
+
+# Get the name of the partition and the number of CPUs requested
+req=$(\squeue --Format=Partition,MaxCPUs --noheader --job=$SLURM_JOB_ID | awk "NR==$out_line" | tr -s ' ' , | sed 's/,/;/g')
+
+# Get the dates in an (almost) readable format through Excel
+dates_brut=$(\squeue --Format=SubmitTime,EligibleTime,StartTime --noheader --job=$SLURM_JOB_ID | awk "NR==$out_line" | tr -s ' ' , | sed 's/,/;/g')
+
+# Get the actual date (to calculate time used by the job)
+end_time=$(date +"%Y-%m-%d_%H:%M:%S")
+
+# Replace the underscores with a space to allow Excel to read the dates
+dates=$(echo "${dates_brut}${end_time}" | tr -s _ " ")
+
+# Get the number and list of nodes
+maxnodes=$(\squeue --Format=MaxNodes --noheader --job=$SLURM_JOB_ID | awk "NR==$out_line")
+nodelist=$(\squeue --Format=NodeList --noheader --job=$SLURM_JOB_ID | awk "NR==$out_line")
+
+# Compile everything into a variable
+infos="{{  prog  }};${CLUSTER_NAME};${req}{{  job_walltime  }};{{  mol_name  }};{{  scaling_function  }};{{  power_scaling  }};{{  scale_index  }};${dates};${maxnodes};${nodelist}"
+
+# Add line to file
+echo ${infos} >> ${benchmark_dir}/${filename}

@@ -12,8 +12,8 @@ log_msg () {
 }
 
 
-# ! FINAL content is   folders   !
-RESULTS_FILEPATH="/sulb2/niacobel/FINAL"
+# ! RESULTS content is   folders   !
+RESULTS_FILEPATH="/sulb2/niacobel/RESULTS"
 OUTPUT_FILEPATH="/sulb2/niacobel/Q-CHEM/qchem_out_queue/"
 WARNING=$false
 
@@ -46,14 +46,14 @@ else
     log_msg "WARNING - It seems there's an inconsistency in your folders. Please verify those molecules: $inconsistent_molnames"
   fi
 
-  # Send $RESULTS_FILEPATH/* to vega:/CECI/home/ulb/cqp/niacobel/FINAL
-  rsync -q -a --remove-source-files $RESULTS_FILEPATH/* vega:/CECI/home/ulb/cqp/niacobel/FINAL
+  # Send $RESULTS_FILEPATH/* to vega:/CECI/home/ulb/cqp/niacobel/RESULTS
+  rsync -q -a --remove-source-files $RESULTS_FILEPATH/* vega:/CECI/home/ulb/cqp/niacobel/RESULTS
   # rsync doesn't remove sent files/directories with option "remove-source-files"   --   we force it by another way
   find $RESULTS_FILEPATH -depth -type d -empty -not -path $RESULTS_FILEPATH -delete || (log_msg "WARNING - Cleaning of $RESULTS_FILEPATH didn't run correctly. Possibility of remaining empty folders...")
-  rsync -q -a --remove-source-files $OUTPUT_FILEPATH/*.out vega:/CECI/home/ulb/cqp/niacobel/Q-CHEM
-  #log_msg "DEBUG - It will move  files to FINAL_sent instead of removing it from FINAL"
-  #rsync -q -a $RESULTS_FILEPATH/* vega:/CECI/home/ulb/cqp/niacobel/FINAL
-  #mkdir -p /sulb2/niacobel/FINAL_sent ; mv /sulb2/niacobel/FINAL/* /sulb2/niacobel/FINAL_sent
+  rsync -q -a --remove-source-files $OUTPUT_FILEPATH/*.out vega:/CECI/home/ulb/cqp/niacobel/Q-CHEM_OUT
+  #log_msg "DEBUG - It will move  files to RESULTS_sent instead of removing it from RESULTS"
+  #rsync -q -a $RESULTS_FILEPATH/* vega:/CECI/home/ulb/cqp/niacobel/RESULTS
+  #mkdir -p /sulb2/niacobel/RESULTS_sent ; mv /sulb2/niacobel/RESULTS/* /sulb2/niacobel/RESULTS_sent
  
   log_msg "INFO - Successfully processed:\n$mol_list"
 

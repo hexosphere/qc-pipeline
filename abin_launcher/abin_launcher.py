@@ -395,7 +395,7 @@ for mol_filename in mol_inp_list:
   # Determining which cluster we're running on and obtaining the related informations
   
   job_partition = jobscale['partition_name']
-  job_time = jobscale['time']
+  job_walltime = jobscale['time']
   job_cores = jobscale['cores']
 
   print("")
@@ -407,7 +407,7 @@ for mol_filename in mol_inp_list:
   print("{:<20} {:<30}".format("Job scale limit: ", "{:.2e}".format(jobscale_limit)))
   print(''.center(50, '-'))
   print("{:<20} {:<30}".format("Job partition: ", job_partition))
-  print("{:<20} {:<30}".format("Job duration: ", job_time))
+  print("{:<20} {:<30}".format("Job walltime: ", job_walltime))
   print("{:<20} {:<30}".format("Number of cores: ", job_cores))
 
   # =========================================================
@@ -493,3 +493,10 @@ for mol_filename in mol_inp_list:
   print("\nEnd of procedure for the molecule %s" % mol_name)
   
   #print('%20s' % "[ DONE ]")
+
+print("")
+print("".center(columns,"*"))
+print("")
+print("END OF EXECUTION".center(columns))
+print("")
+print("".center(columns,"*"))

@@ -81,7 +81,7 @@ def orca_render(vars):
         "mol_name" : vars['mol_name'],
         "user_email" : vars['config']['general']['user-email'],
         "mail_type" : vars['config']['general']['mail-type'],
-        "job_duration" : vars['job_time'],
+        "job_walltime" : vars['job_walltime'],
         "job_cores" : vars['job_cores'],
         "partition" : vars['job_partition'],     
         "set_env" : vars['clusters_cfg'][vars['cluster_name']]['progs'][vars['prog']]['set_env'],       
@@ -96,8 +96,7 @@ def orca_render(vars):
         "prog" : vars['prog'],
         "scaling_function" : vars['scaling_fct'],
         "power_scaling" : vars['config'][vars['prog']]["scaling_function"]["power"],
-        "scale_index" : vars['scale_index'],
-        "codes_folder" : vars['code_dir']
+        "scale_index" : vars['scale_index']
         }
     
     rendered_content[rnd_manifest] = jinja_render(vars['path_tpl_dir'], tpl_manifest, render_vars)
@@ -170,7 +169,7 @@ def qchem_render(vars):
         "mol_name" : vars['mol_name'],
         "user_email" : vars['config']['general']['user-email'],
         "mail_type" : vars['clusters_cfg'][vars['cluster_name']]['mail-type'],
-        "job_duration" : vars['job_time'],
+        "job_walltime" : vars['job_walltime'],
         "job_cores" : vars['job_cores'],
         "set_env" : vars['clusters_cfg'][vars['cluster_name']]['progs'][vars['prog']]['set_env'],       
         "command" : vars['clusters_cfg'][vars['cluster_name']]['progs'][vars['prog']]['command'],

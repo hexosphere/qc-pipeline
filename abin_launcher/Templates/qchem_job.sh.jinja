@@ -5,7 +5,7 @@
 #PBS -M {{  user_email  }}
 #PBS -m {{  mail_type  }}
 #PBS -l nodes=1:ppn={{  job_cores  }}
-#PBS -l walltime={{  job_duration  }}
+#PBS -l walltime={{  job_walltime  }}
 
 {# Job instructions for loading and running Q-CHEM, and defining the Q-CHEM input and output files. #}
 
@@ -41,6 +41,6 @@ mkdir -p ~/Q-CHEM/qchem_out_queue
 cp $output ~/Q-CHEM/qchem_out_queue/
 
 {# Job instructions for archiving the results into the temporary results folder on Hydra. #}
-echo "Archiving output files to ~/FINAL/${PBS_JOBNAME}/Q-CHEM."
-mkdir -p ~/FINAL/${PBS_JOBNAME}/Q-CHEM
-cp ./* ~/FINAL/${PBS_JOBNAME}/Q-CHEM
+echo "Archiving output files to ~/RESULTS/${PBS_JOBNAME}/Q-CHEM."
+mkdir -p ~/RESULTS/${PBS_JOBNAME}/Q-CHEM
+cp ./* ~/RESULTS/${PBS_JOBNAME}/Q-CHEM

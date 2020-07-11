@@ -9,7 +9,7 @@ general:
   mail-type: FAIL
   benchmark: True
 # Folder where all the results of this molecule will be sent (a subfolder with the name of the molecule will be created)
-  results-folder: /CECI/home/ulb/cqp/niacobel/FINAL
+  results-folder: /CECI/home/ulb/cqp/niacobel/RESULTS
 
 orca:
 # Define here the jinja template names, as well as the name of the files created by abin_launcher. The jinja templates must be put in the Templates folder.
@@ -29,7 +29,7 @@ orca:
   aux-basis-set: def2/J
   other: RIJCOSX TightSCF
 # Folder where the orca output files needed for the next step will be sent.
-  output-folder: /CECI/home/ulb/cqp/niacobel/ORCA               
+  output-folder: /CECI/home/ulb/cqp/niacobel/ORCA_OUT               
 
 qchem:
 # Define here the jinja template names, as well as the name of the files created by abin_launcher. The jinja templates must be put in the Templates folder.
@@ -48,7 +48,7 @@ qchem:
   basis-set: def2-tzvp
   cis-n-roots: 4
 # Folder where the q-chem output files needed for the next step will be sent.
-  output-folder: /CECI/home/ulb/cqp/niacobel/Q-CHEM             
+  output-folder: /CECI/home/ulb/cqp/niacobel/Q-CHEM_OUT             
 
 qoct-ra:
-  output-folder: /CECI/home/ulb/cqp/niacobel/QOCT-RA            # Folder where the qoct-ra output files will be sent for data treatment and final results presentation.
+  output-folder: /CECI/home/ulb/cqp/niacobel/CONTROL_OUT            # Folder where the qoct-ra output files will be sent for data treatment and final results presentation.

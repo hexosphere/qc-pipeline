@@ -90,7 +90,7 @@ Right-click > "View Image" to zoom in
      ├── molecule1/
      ├── molecule2/
      └── etc.
-└── FINAL
+└── RESULTS
      └── molecule1/
             ├── ORCA
             ├── Q-CHEM
