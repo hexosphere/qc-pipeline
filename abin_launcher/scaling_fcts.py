@@ -6,6 +6,17 @@
 
 import os
 
+#! ATTENTION: All the functions defined below need to:
+#! - receive two dictionaries (elements and file_data) as arguments
+#! - return an integer or a float (that will act as the scale_index)
+#! Otherwise, you will need to modify abin_launcher.py accordingly.
+#! Additionnaly, their name will be called as is in the YAML config file, pertaining to the "scaling_function" key (total_nb_elec, total_nb_atoms, etc)
+
+"""  
+file_data is considered to follow the following pattern: {'nb_atoms': int; 'chemical_formula':{dict}; 'atomic_coordinates':[list]} (as it should have been given by the mol_scan functions)
+If this is not the case, the functions below will need to be modified accordingly.
+"""
+
 def total_nb_elec(elements:dict,file_data:dict):
     """Calculates the total number of electrons in a molecule
 
@@ -51,40 +62,29 @@ def total_nb_elec(elements:dict,file_data:dict):
     print(''.center(68, '-'))
 
     return total_elec
-    
-#! ATTENTION: All the functions defined below need to:
-#! - receive three dictionaries (elements, config_prog_scaling_function and file_data) as arguments
-#! - return an integer or a float (scale_index)
-#! Otherwise, you will need to modify abin_launcher.py accordingly.
-#! Additionnaly, their name will be called as is in the YAML config file, pertaining to the "scaling_function" key
 
-def elec_power_scaling(elements:dict, config_prog_scaling_function:dict, file_data:dict):
-    """Offers a power scaling option for the scale index, based on the total number of electrons in the molecule
+def total_nb_atoms(elements:dict,file_data:dict):
+    """Returns the total number of atoms in a molecule
 
     Parameters
     ----------
     elements : dict
         Content of AlexGustafsson's Mendeleev Table YAML file (found at https://github.com/AlexGustafsson/molecular-data).
-    config_prog_scaling_function : dict
-        Content of the "scaling_function" key, pertaining to the program key in the YAML main configuration file
+        Unused for this particular function.
     file_data : dict
         The extracted informations of the molecule file
 
     Returns
     -------
-    scale_index : int
-        Total number of electrons of the molecule
-    
-    Advice
-    -------
-    This function will look for an additional key called "power" in the YAML config file, pertaining to the "scaling_function" key in the corresponding program
+    total_atoms : int
+        Total number of atoms in the molecule    
     """
 
-    power = config_prog_scaling_function["power"]
+    # Returns the total number of atoms in the molecule
 
-    exp_str_arr={1:"st", 2:"nd", 3:"rd"}
-    print ('\nThe scale index will be defined as the %s%s power of the total number of electrons' % (power, ("th" if not power in exp_str_arr else exp_str_arr[power])))
+    total_atoms = file_data['nb_atoms']
 
-    scale_index = (total_nb_elec(elements,file_data)**power)
+    print("")
+    print("Total number of atoms in the molecule : ",total_atoms)
 
-    return scale_index
+    return total_atoms

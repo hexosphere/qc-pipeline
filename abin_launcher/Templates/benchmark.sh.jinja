@@ -18,7 +18,7 @@ mkdir -p ${benchmark_dir}
 
 # If the file doesn't already exist, create it with a header as first line
 if [ ! -f "${benchmark_dir}/${filename}" ]; then
-    echo "Program;Cluster;Partition;Cores;Walltime;Mol Name;Scaling Function;Power Scale;Scale Index;Submit Date;Eligible Date;Start Date;Current Date;Max Nodes;Nodes List" >> ${benchmark_dir}/${filename}
+    echo "Program;Cluster;Partition;Cores;Walltime;Job ID;Mol Name;Scaling Function;Scale Index;Submit Date;Eligible Date;Start Date;Current Date;Max Nodes;Nodes List" >> ${benchmark_dir}/${filename}
 fi
 
 # Format SLURM dates to be (almost) readable through Excel
@@ -44,7 +44,7 @@ maxnodes=$(\squeue --Format=MaxNodes --noheader --job=$SLURM_JOB_ID | awk "NR==$
 nodelist=$(\squeue --Format=NodeList --noheader --job=$SLURM_JOB_ID | awk "NR==$out_line")
 
 # Compile everything into a variable
-infos="{{  prog  }};${CLUSTER_NAME};${req}{{  job_walltime  }};{{  mol_name  }};{{  scaling_function  }};{{  power_scaling  }};{{  scale_index  }};${dates};${maxnodes};${nodelist}"
+infos="{{  prog  }};${CLUSTER_NAME};${req}{{  job_walltime  }};$SLURM_JOB_ID;{{  mol_name  }};{{  scaling_function  }};{{  scale_index  }};${dates};${maxnodes};${nodelist}"
 
 # Add line to file
 echo ${infos} >> ${benchmark_dir}/${filename}

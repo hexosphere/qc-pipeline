@@ -95,7 +95,6 @@ def orca_render(vars):
         "benchmark" : vars['config']['general']['benchmark'],
         "prog" : vars['prog'],
         "scaling_function" : vars['scaling_fct'],
-        "power_scaling" : vars['config'][vars['prog']]["scaling_function"]["power"],
         "scale_index" : vars['scale_index']
         }
     

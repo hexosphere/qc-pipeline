@@ -168,7 +168,7 @@ print('%18s' % "[ DONE ]")
 scan_fct = mol_fmt + "_scan"
 
 # Name of the scaling function that will determine the scale_index of the molecule (necessary for determining the job scale) - defined in scaling_fcts.py
-scaling_fct = config[prog]["scaling_function"]["name"]
+scaling_fct = config[prog]["scaling_function"]
 
 # Name of the render function that will render the job manifest and the input file (depends on the program)  - defined in renderer.py
 render_fct = prog + "_render"
@@ -359,7 +359,7 @@ for mol_filename in mol_inp_list:
   
   # scale_index determination
   
-  scale_index = eval("scaling_fcts." + scaling_fct)(elements, config[prog]["scaling_function"], file_data)
+  scale_index = eval("scaling_fcts." + scaling_fct)(elements, file_data)
 
   print("\nScale index: ", "{:.2e}".format(scale_index))
   

@@ -10,13 +10,13 @@ shared:
       label: tiny
       scale_limit: 50
       partition_name: default
-      time: 00:05:00
+      time: 0-00:10:00
       cores: 8 
     qchem: &tiny_qchem
       label: tiny
       scale_limit: 50
       partition_name: default
-      time: 00:05:00
+      time: 0-00:10:00
       cores: 8 
 
 # Below are all the useful informations specific to each cluster and each program you wish to run on this cluster.
