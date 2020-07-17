@@ -1,35 +1,54 @@
 # This is the main configuration file, this file will contain every information you need to provide to the different scripts and programs your molecule will run through.
 # This is a YAML database, see https://yaml.org/ for more informations
 
-general:
+# This block contains all the informations that is not specific to any program in particular.
+general: 
   charge: 0
   multiplicity: 1
   user-email: niacobel@ulb.ac.be
   mail-type: FAIL
-  molecule-folder: /CECI/home/ulb/cqp/niacobel/INIT             # Folder where the .xyz file of the molecule is present
-  results-folder: /CECI/home/ulb/cqp/niacobel/FINAL             # Folder where all the results of this molecule will be sent (a subfolder with the name of the molecule will be created)
+# Benchmarking options
+  benchmark: True
+  benchmark-folder: $CECIHOME/BENCHMARK
+# Folder where all the results of this molecule will be sent (a subfolder with the name of the molecule will be created)
+  results-folder: $CECIHOME/RESULTS
 
+# This block contains all the informations specific to orca.
 orca:
-  output-folder: /CECI/home/ulb/cqp/niacobel/ORCA               # Folder where the orca output files needed for the next step will be sent.
-  manifest_name: orca_job.sh
+# Define here the jinja template names, as well as the name of the files created by abin_launcher. The jinja templates must be put in the Templates folder.
+  jinja_templates:
+    manifest: orca_job.sh.jinja
+    input: orca.inp.jinja
+  rendered_files:
+    manifest: orca_job.sh
+# Define here the name of your scaling function
+  scaling_function: total_nb_elec
 # The keywords you provide here are the keywords that will be used "as-is" in the keyword line of the ORCA input file, be sure that ORCA knows them! (see ORCA's manual for more informations)
   job-type: Opt
   method: B3LYP
   basis-set: def2-TZVP
   aux-basis-set: def2/J
-  other: RIJCOSX TightSCF
-  # add jinja files names
-  j2-templates:
-      - 
+  other: RIJCOSX
+# Folder where the orca output files needed for the next step will be sent.
+  output-folder: $CECIHOME/ORCA_OUT               
 
+# This block contains all the informations specific to qchem.
 qchem:
-  output-folder: /CECI/home/ulb/cqp/niacobel/Q-CHEM             # Folder where the q-chem output files needed for the next step will be sent.
-  manifest_name: qchem_job.sh
+# Define here the jinja template names, as well as the name of the files created by abin_launcher. The jinja templates must be put in the Templates folder.
+  jinja_templates:
+    manifest: qchem_job.sh.jinja
+    input: qchem.in.jinja
+  rendered_files:
+    manifest: qchem_job.sh
+# Define here the name of your scaling function
+  scaling_function: total_nb_elec
 # The keywords you provide here are the keywords that will be used "as-is" in the Q-CHEM input file, be sure that Q-CHEM knows them! (see Q-CHEM's manual for more informations)
   job-type: sp
   exchange: b3lyp
   basis-set: def2-tzvp
   cis-n-roots: 4
+# Folder where the q-chem output files needed for the next step will be sent.
+  output-folder: $CECIHOME/Q-CHEM_OUT             
 
 qoct-ra:
-  output-folder: /CECI/home/ulb/cqp/niacobel/QOCT-RA            # Folder where the qoct-ra output files will be sent for data treatment and final results presentation.
+  output-folder: $CECIHOME/CONTROL_OUT            # Folder where the qoct-ra output files will be sent for data treatment and final results presentation.
