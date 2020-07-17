@@ -83,6 +83,7 @@ def orca_render(vars):
         "mail_type" : vars['config']['general']['mail-type'],
         "job_walltime" : vars['job_walltime'],
         "job_cores" : vars['job_cores'],
+        "job_mem_per_cpu" : vars['job_mem_per_cpu'], # in MB
         "partition" : vars['job_partition'],     
         "set_env" : vars['clusters_cfg'][vars['cluster_name']]['progs'][vars['prog']]['set_env'],       
         "command" : vars['clusters_cfg'][vars['cluster_name']]['progs'][vars['prog']]['command'],
@@ -93,7 +94,9 @@ def orca_render(vars):
         "job_manifest" : rnd_manifest,
         "config_file" : vars['config_filename'],
         "benchmark" : vars['config']['general']['benchmark'],
+        "benchmark_folder" : vars['config']['general']['benchmark-folder'],
         "prog" : vars['prog'],
+        "jobscale_label" : vars['jobscale']['label'],
         "scaling_function" : vars['scaling_fct'],
         "scale_index" : vars['scale_index']
         }
@@ -105,6 +108,8 @@ def orca_render(vars):
     # Rendering the jinja template for the orca input file
   
     print("\nRendering the jinja template for the orca input file ...  ", end="")
+
+    orca_mem_per_cpu = int(0.75 * vars['job_mem_per_cpu']) # in MB
     
     render_vars = {
         "method" : vars['config'][vars['prog']]['method'],
@@ -113,6 +118,7 @@ def orca_render(vars):
         "job_type" : vars['config'][vars['prog']]['job-type'],
         "other" : vars['config'][vars['prog']]['other'],
         "job_cores" : vars['job_cores'],
+        "orca_mem_per_cpu" : orca_mem_per_cpu,
         "charge" : vars['config']['general']['charge'],
         "multiplicity" : vars['config']['general']['multiplicity'],
         "coordinates" : vars['file_data']['atomic_coordinates']

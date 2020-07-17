@@ -1,14 +1,12 @@
 {# Job instructions for compiling data about the job for benchmarking. #}
-################################################
-############# Benchmarking Section #############
-################################################
+echo -e "\n===================================================================="
+echo -e "=====================   Benchmarking Section   ====================="
+echo -e "===================================================================="
 
-echo -e "Compiling data for benchmarking in $CECIHOME/BENCHMARK/benchmark_{{  prog  }}_${CLUSTER_NAME}.csv.\n"
-
-# Compiling data in the form of "Program; Cluster; Partition; Cores; Walltime; Mol Name; Scaling Function; Power Scale; Scale Index; Submit Date; Eligible Date; Start Date; Current Date; Max Nodes; Nodes List"
+echo -e "\nCompiling data for benchmarking in {{  benchmark_folder  }}/benchmark_{{  prog  }}_${CLUSTER_NAME}.csv."
 
 # Define the name of the folder where the benchmark files will be created
-benchmark_dir="$CECIHOME/BENCHMARK"
+benchmark_dir="{{  benchmark_folder  }}"
 
 # Define the name of the file where data will be stored
 filename="benchmark_{{  prog  }}_${CLUSTER_NAME}.csv"
@@ -17,9 +15,13 @@ filename="benchmark_{{  prog  }}_${CLUSTER_NAME}.csv"
 mkdir -p ${benchmark_dir}
 
 # If the file doesn't already exist, create it with a header as first line
+header="Program;Cluster;Jobscale;Partition;Cores;MB/CPU;Walltime;Job ID;Mol Name;Scaling Function;Scale Index;Submit Date;Eligible Date;Start Date;Current Date;Nodes;Nodes List"
 if [ ! -f "${benchmark_dir}/${filename}" ]; then
-    echo "Program;Cluster;Partition;Cores;Walltime;Job ID;Mol Name;Scaling Function;Scale Index;Submit Date;Eligible Date;Start Date;Current Date;Max Nodes;Nodes List" >> ${benchmark_dir}/${filename}
+    echo -e "\nFile ${filename} does not exist in ${benchmark_dir}, a new one will be created."
+    echo ${header} >> ${benchmark_dir}/${filename}
 fi
+echo -e "\nFormat:"
+echo -e "${header}"
 
 # Format SLURM dates to be (almost) readable through Excel
 export SLURM_TIME_FORMAT="%Y-%m-%d_%H:%M:%S"
@@ -39,12 +41,10 @@ end_time=$(date +"%Y-%m-%d_%H:%M:%S")
 # Replace the underscores with a space to allow Excel to read the dates
 dates=$(echo "${dates_brut}${end_time}" | tr -s _ " ")
 
-# Get the number and list of nodes
-maxnodes=$(\squeue --Format=MaxNodes --noheader --job=$SLURM_JOB_ID | awk "NR==$out_line")
-nodelist=$(\squeue --Format=NodeList --noheader --job=$SLURM_JOB_ID | awk "NR==$out_line")
-
-# Compile everything into a variable
-infos="{{  prog  }};${CLUSTER_NAME};${req}{{  job_walltime  }};$SLURM_JOB_ID;{{  mol_name  }};{{  scaling_function  }};{{  scale_index  }};${dates};${maxnodes};${nodelist}"
+# Store everything into a variable
+infos="{{  prog  }};${CLUSTER_NAME};{{  jobscale_label  }};${req}{{  job_mem_per_cpu  }};{{  job_walltime  }};$SLURM_JOB_ID;{{  mol_name  }};{{  scaling_function  }};{{  scale_index  }};${dates};$SLURM_NNODES;$SLURM_NODELIST"
+echo -e "\nContent:"
+echo -e "${infos}"
 
 # Add line to file
 echo ${infos} >> ${benchmark_dir}/${filename}

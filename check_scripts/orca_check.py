@@ -10,7 +10,7 @@ import sys
 with open(sys.argv[1], 'r') as output:
   output_content = output.read().splitlines()
 
-print("Checking ORCA output file...")
+print("\nChecking ORCA output file...")
 
 # Check if the second to last line corresponds to what we should have
 if "****ORCA TERMINATED NORMALLY****" not in output_content[-2]:

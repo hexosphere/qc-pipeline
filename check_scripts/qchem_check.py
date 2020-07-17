@@ -10,7 +10,7 @@ import sys
 with open(sys.argv[1], 'r') as output:
   output_content = output.read().splitlines()
 
-print("Checking Q-CHEM output file...")
+print("\nChecking Q-CHEM output file...")
 
 # Check if the thank you message is present
 if "Thank you very much for using Q-Chem.  Have a nice day." not in output_content[-5]:

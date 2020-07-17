@@ -12,12 +12,16 @@ shared:
       partition_name: default
       time: 0-00:10:00
       cores: 8 
+      mem_per_cpu: 200 # in MB
+      delay_command:
     qchem: &tiny_qchem
       label: tiny
       scale_limit: 50
       partition_name: default
       time: 0-00:10:00
       cores: 8 
+      mem_per_cpu: 200 # in MB
+      delay_command:
 
 # Below are all the useful informations specific to each cluster and each program you wish to run on this cluster.
 
@@ -39,16 +43,22 @@ dragon1:
           partition_name: Def
           time: 5-00:00:00
           cores: 8
+          mem_per_cpu: 1000 # in MB
+          delay_command:
         - label: medium
           scale_limit: 1500
           partition_name: Def
           time: 5-00:00:00
           cores: 8
+          mem_per_cpu: 2000 # in MB
+          delay_command: --begin=now+60
         - label: big
           scale_limit: 2000
           partition_name: Long
           time: 15-00:00:00
-          cores: 8  
+          cores: 8
+          mem_per_cpu: 4000 # in MB  
+          delay_command: --begin=now+120
 
 dragon2:
   name: dragon2
@@ -70,16 +80,22 @@ dragon2:
           partition_name: batch
           time: 2-00:00:00
           cores: 8
+          mem_per_cpu: 1000 # in MB
+          delay_command: 
         - label: medium
           scale_limit: 1500
           partition_name: batch
           time: 5-00:00:00
           cores: 8
+          mem_per_cpu: 2000 # in MB
+          delay_command: --begin=now+60
         - label: big
           scale_limit: 2000
           partition_name: long
           time: 15-00:00:00
           cores: 8  
+          mem_per_cpu: 4000 # in MB
+          delay_command: --begin=now+120
 
 lemaitre3:
   name: lemaitre3
@@ -98,6 +114,22 @@ lemaitre3:
           partition_name: batch
           time: 2-00:00:00
           cores: 8
+          mem_per_cpu: 1000 # in MB
+          delay_command:
+        - label: medium
+          scale_limit: 1500
+          partition_name: batch
+          time: 2-00:00:00
+          cores: 8
+          mem_per_cpu: 2000 # in MB
+          delay_command: --begin=now+60
+        - label: big
+          scale_limit: 2000
+          partition_name: batch
+          time: 2-00:00:00
+          cores: 8
+          mem_per_cpu: 4000 # in MB
+          delay_command: --begin=now+120
 
 vega:
   name: vega
@@ -117,11 +149,15 @@ vega:
           partition_name: defq
           time: 5-00:00:00
           cores: 8
+          mem_per_cpu: 1000 # in MB
+          delay_command: --begin=now+60
         - label: medium
           scale_limit: 1.5e3
           partition_name: defq
           time: 10-00:00:00
           cores: 8
+          mem_per_cpu: 2000 # in MB
+          delay_command: --begin=now+120
 
 #Careful, not member of the CECI and uses Torque instead of SLURM
 hydra:

@@ -7,75 +7,80 @@
 #SBATCH --mail-type={{  mail_type  }}
 #SBATCH --time={{  job_walltime  }}
 #SBATCH --ntasks={{  job_cores  }}
+#SBATCH --mem-per-cpu={{  job_mem_per_cpu  }}
 {% if partition != "default" %}
 #SBATCH --partition={{  partition  }}
 {% endif %}
 
-echo -e "Renaming the original .xyz file to avoid overwriting it.\n"
+echo -e "******************************************************************************"
+echo -e "**************************   Beginning of the job   **************************"
+echo -e "******************************************************************************\n"
+
+echo -e "===================================================================="
+echo -e "=========================   Running ORCA   ========================="
+echo -e "===================================================================="
+
+echo -e "\nRenaming the original .xyz file to avoid overwriting it."
 cd $SLURM_SUBMIT_DIR
 mv {{  mol_name  }}.xyz {{  mol_name  }}_ori.xyz
 
-{# Job instructions for loading and running ORCA, and defining the ORCA input and output files. 
-A temporary directory (SCRATCH) is created on the node where the job is running, for handling temporary files. 
-See https://support.ceci-hpc.be/doc/_contents/SubmittingJobs/SlurmFAQ.html#q11-how-do-i-use-the-local-scratch-space for more details. #}
+# A temporary directory (SCRATCH) is created on the node where the job is running, for handling temporary files. 
+# See https://support.ceci-hpc.be/doc/_contents/SubmittingJobs/SlurmFAQ.html#q11-how-do-i-use-the-local-scratch-space for more details.
 
 SCRATCH=$LOCALSCRATCH/$SLURM_JOB_ID
 
-echo -e "Creating temporary folder $SCRATCH for handling temporary files.\n"
+echo -e "\nCreating temporary folder $SCRATCH for handling temporary files."
 srun mkdir -p $SCRATCH || exit $?
 srun -n $SLURM_NNODES --ntasks-per-node=1 cp -rf $SLURM_SUBMIT_DIR/{{  mol_name  }}.inp $SCRATCH/ || exit $?
 
 cd $SCRATCH
 
-echo -e "============================================================================="
-echo -e "========================= ORCA execution begins now ========================="
-echo -e "=============================================================================\n"
+echo -e "\n================= ORCA execution begins now =================="
 
 {% for set_env_line in set_env -%}
 {{  set_env_line  }}
 {% endfor -%}
 {{  command  }} {{  mol_name  }}.inp > $SLURM_SUBMIT_DIR/{{  mol_name  }}.out  || (srun rm -rf $SCRATCH ; exit $?)
 
-echo -e "============================================================================="
-echo -e "=========================  ORCA execution ends now  ========================="
-echo -e "=============================================================================\n"
+echo -e "\n=================  ORCA execution ends now  =================="
 
-###############################################################
-############# Post-calculation files manipulation #############
-###############################################################
-
-echo -e "Copying ORCA output files to the submit folder.\n"
+echo -e "\nCopying ORCA output files to the submit folder."
 #srun -n $SLURM_NNODES --ntasks-per-node=1 "echo -e \"This is on: $(hostname)\n\"; for file in $(ls $SCRATCH/*); do cp -rf $file $SLURM_SUBMIT_DIR/; done" || exit $?
 cp -r  $SCRATCH/* $SLURM_SUBMIT_DIR/  || exit $?
 
-echo -e "Removing $SCRATCH folder.\n"
-srun rm -rf $SCRATCH || echo "A problem might have occurred when trying to remove temporary files."
+echo -e "\nRemoving $SCRATCH folder."
+srun -n $SLURM_NNODES --ntasks-per-node=1 rm -rf $SCRATCH || echo "A problem might have occurred when trying to remove temporary files."
 
-{# Quality control (was there any problem with ORCA?) #}
+echo -e "\n===================================================================="
+echo -e "==============   Post-calculation files manipulation   ============="
+echo -e "===================================================================="
+
+# Quality control (was there any problem with ORCA?)
 cd $SLURM_SUBMIT_DIR
 source {{  chains_folder  }}/load_modules.sh
 python {{  check_folder  }}/orca_check.py {{  mol_name  }}.out  || exit $?
 
-{# Job instructions for sending the optimized geometry to the orca output folder for use in the next step. #}
-echo -e "\nCopying optimized geometry to {{  output_folder  }}.\n"
+# Copying important files
+
+echo -e "\nCopying optimized geometry to {{  output_folder  }}."
 mkdir -p {{  output_folder  }}
 cp {{  mol_name  }}.xyz {{  output_folder  }}/
 
-{# Job instructions for copying and renaming the configuration file to the results folder. #}
-echo -e "Copying and renaming main configuration file to {{  results_folder  }}/{{  mol_name  }}."
+echo -e "\nCopying and renaming main configuration file to {{  results_folder  }}/{{  mol_name  }}."
 mkdir -p {{  results_folder  }}/{{  mol_name  }}
 cp {{ config_file  }} {{  results_folder  }}/{{  mol_name  }}/
 mv {{  results_folder  }}/{{  mol_name  }}/{{ config_file  }} {{  results_folder  }}/{{  mol_name  }}/{{  mol_name  }}_config.yml
 
-echo -e "   => Hydra specific: copying the main configuration file to {{  output_folder  }} so that the crontab can pick it up with the output.\n"
+echo -e "   => Hydra specific: copying the main configuration file to {{  output_folder  }} so that the crontab can pick it up with the output."
 cp {{  results_folder  }}/{{  mol_name  }}/{{  mol_name  }}_config.yml {{  output_folder  }}/
 
-{# Job instructions for archiving the results into the results folder. #}
-echo -e "Archiving output files to {{  results_folder  }}/{{  mol_name  }}/ORCA.\n"
+echo -e "\nCopying output files to {{  results_folder  }}/{{  mol_name  }}/ORCA."
 mkdir -p {{  results_folder  }}/{{  mol_name  }}/ORCA
 cp {{  mol_name  }}.inp {{  mol_name  }}.out {{  mol_name  }}.xyz {{  mol_name  }}_ori.xyz {{  job_manifest  }} slurm_output.log {{  results_folder  }}/{{  mol_name  }}/ORCA/
 
 {# Job instructions for compiling data about the job for benchmarking. #}
 {% include "benchmark.sh.jinja" if benchmark %}
 
-echo -e "End of the job."
+echo -e "\n******************************************************************************"
+echo -e "*****************************   End of the job   *****************************"
+echo -e "******************************************************************************"

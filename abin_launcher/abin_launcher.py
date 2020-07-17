@@ -48,6 +48,7 @@ required.add_argument("-o","--out_dir", type=str, help="Path to the directory wh
 optional = parser.add_argument_group('Optional arguments')
 optional.add_argument('-h','--help',action='help',default=argparse.SUPPRESS,help='Show this help message and exit')
 optional.add_argument("-ow","--overwrite",action="store_true",help="Overwrite files if they already exists")
+optional.add_argument("-k","--keep",action="store_true",help="Do not archive launched molecule files and leave them where they are")
 optional.add_argument('-cfg', '--config', type=str, help="Path to the YAML config file, default is this_script_directory/config.yml.")
 optional.add_argument('-cl', '--clusters', type=str, help="Path to the YAML clusters file, default is this_script_directory/clusters.yml.")
 
@@ -60,6 +61,7 @@ mol_inp = args.mol_inp                   # Molecule file or folder containing th
 out_dir = args.out_dir                   # Folder where all jobs subfolders will be created
 
 overwrite = args.overwrite               # Flag for overwriting the files
+keep = args.keep                         # Flag for keeping the molecule files where they are
 config_file = args.config                # Main configuration file
 clusters_file = args.clusters            # YAML file containing all informations about the clusters
 
@@ -278,7 +280,7 @@ print(''.center(85, '-'))
 print ("{:<15} {:<20} {:<20} {:<20} {:<10}".format('scale_limit','Label','Partition_name','Time','Cores'))
 print(''.center(85, '-'))
 for scale_limit, scale in job_scales.items():
-  print ("{:<15} {:<20} {:<20} {:<20} {:<10}".format("{:.2e}".format(scale_limit), scale['label'], scale['partition_name'], scale['time'], scale['cores']))
+  print ("{:<15} {:<20} {:<20} {:<20} {:<10}".format(scale_limit, scale['label'], scale['partition_name'], scale['time'], scale['cores']))
 print(''.center(85, '-'))
 
 # =========================================================
@@ -318,16 +320,17 @@ for mol_filename in mol_inp_list:
   # Getting rid of the format extension to get the name of the molecule
   
   mol_name = str(mol_filename.split('.')[0])
-  print("")
-  print("".center(columns,"-"))
-  print("Molecule %s".center(columns) % mol_name)
-  print("".center(columns,"-"))
 
+  print("")
+  print("".center(80,"-"))
+  print("Molecule %s".center(80) % mol_name)
+  print("".center(80,"-"))
+ 
   if os.path.exists(os.path.join(out_dir,mol_name)) and not overwrite:
       print("\n\nERROR: A folder for the %s molecule already exists in %s !" % (mol_name, out_dir))
       print("Skipping this molecule...")
       continue
-  
+
   # Reading the content of the molecule file
   
   print("\nScanning %s file ..." % mol_filename, end="")
@@ -361,7 +364,7 @@ for mol_filename in mol_inp_list:
   
   scale_index = eval("scaling_fcts." + scaling_fct)(elements, file_data)
 
-  print("\nScale index: ", "{:.2e}".format(scale_index))
+  print("\nScale index: ", scale_index)
   
   # Job scale category definition
 
@@ -397,18 +400,20 @@ for mol_filename in mol_inp_list:
   job_partition = jobscale['partition_name']
   job_walltime = jobscale['time']
   job_cores = jobscale['cores']
+  job_mem_per_cpu = jobscale['mem_per_cpu']
 
   print("")
   print(''.center(50, '-'))
-  print("{:<20} {:<30}".format("Scale index: ", "{:.2e}".format(scale_index)))
+  print("{:<20} {:<30}".format("Scale index: ", scale_index))
   print(''.center(50, '-'))
   print("{:<20} {:<30}".format("Cluster: ", cluster_name))
   print("{:<20} {:<30}".format("Job scale: ", jobscale["label"]))
-  print("{:<20} {:<30}".format("Job scale limit: ", "{:.2e}".format(jobscale_limit)))
+  print("{:<20} {:<30}".format("Job scale limit: ", jobscale_limit))
   print(''.center(50, '-'))
   print("{:<20} {:<30}".format("Job partition: ", job_partition))
   print("{:<20} {:<30}".format("Job walltime: ", job_walltime))
   print("{:<20} {:<30}".format("Number of cores: ", job_cores))
+  print("{:<20} {:<30}".format("Mem per CPU (MB): ", job_mem_per_cpu))
 
   # =========================================================
   # Rendering the needed input files
@@ -474,21 +479,24 @@ for mol_filename in mol_inp_list:
   print("\nLaunching the job ...")
   os.chdir(mol_dir)
   subcommand = clusters_cfg[cluster_name]['subcommand']
-  launch_command = subcommand + " " + config[prog]['rendered_files']['manifest']
+  delay_command = str(jobscale["delay_command"] or '')
+  manifest = config[prog]['rendered_files']['manifest']
+  launch_command = subcommand + " " + delay_command + " " + manifest
   retcode = os.system(launch_command)
   if retcode != 0 :
     print("Job submit encountered an issue")
     print("Aborting ...")
     exit(5)
 
-  # Archive the molecule file in launched_dir
+  # Archive the molecule file in launched_dir if keep has not been set
   
-  launched_dir = os.path.join(mol_inp_path,"Launched")                             # Folder where the molecule files will be put after having been treated by this script, path is relative to the directory where are all the molecule files.
-  os.makedirs(launched_dir, exist_ok=True)
-  if os.path.exists(os.path.join(launched_dir,mol_filename)):
-    os.remove(os.path.join(launched_dir,mol_filename))
-  shutil.move(os.path.join(mol_inp_path,mol_filename), launched_dir)
-  print("\nMolecule original structure file archived to %s" % launched_dir)
+  if not keep:
+    launched_dir = os.path.join(mol_inp_path,"Launched")                             # Folder where the molecule files will be put after having been treated by this script, path is relative to the directory where are all the molecule files.
+    os.makedirs(launched_dir, exist_ok=True)
+    if os.path.exists(os.path.join(launched_dir,mol_filename)):
+      os.remove(os.path.join(launched_dir,mol_filename))
+    shutil.move(os.path.join(mol_inp_path,mol_filename), launched_dir)
+    print("\nMolecule original structure file archived to %s" % launched_dir)
 
   print("\nEnd of procedure for the molecule %s" % mol_name)
   
