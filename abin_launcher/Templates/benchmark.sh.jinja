@@ -7,9 +7,9 @@ echo -e "===================================================================="
 benchmark_dir="{{  benchmark_folder  }}"
 
 # Define the name of the file where data will be stored
-filename="benchmark_{{  prog  }}_${CLUSTER_NAME}_running.csv"
+filename="benchmark_{{  prog  }}_${CLUSTER_NAME}_tmp.csv"
 
-echo -e "\nCompiling data for benchmarking in {{  benchmark_dir  }}/{{  filename  }}."
+echo -e "\nCompiling data for benchmarking in ${benchmark_dir}/${filename}."
 
 # Create the directory where the file will be created, if needed
 mkdir -p ${benchmark_dir}
