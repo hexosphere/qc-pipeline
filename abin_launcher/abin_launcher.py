@@ -25,11 +25,6 @@ import mol_scan
 import renderer
 import scaling_fcts
 
-"""
-# SERVERHOME for repl.it
-_ROOT_ = os.getcwd()
-print("ROOT dir = " + os.getcwd())
-"""
 # ===================================================================
 # ===================================================================
 # Command line arguments
@@ -69,12 +64,6 @@ clusters_file = args.clusters            # YAML file containing all informations
 
 mol_fmt = "xyz"                                 # Format of the molecule files we want to treat
 mol_ext = "." + mol_fmt                         # Extension of the molecule files we're looking for
-
-""" 
-prog = "ORCA"
-mol_inp = _ROOT_+"/INIT"
-out_dir = _ROOT_+"/ORCA"
-"""
 
 # ===================================================================
 # ===================================================================
