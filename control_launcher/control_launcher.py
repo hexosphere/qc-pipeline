@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 
-################################################################################################################################################
-##                                                    QOCT-RA Input Builder & Job Launcher                                                    ##
-##                                                                                                                                            ##
-##                                This script prepares the input files needed to run the QOCT-RA program by extracting                        ##
-##                              information from a given source file and launches the corresponding jobs on the cluster.                      ##
-##                                                                                                                                            ##
-##   /!\ In order to run, this script requires Python 3.5+ as well as YAML and Jinja2. Ask your cluster(s) administrator(s) if needed. /!\    ##
-################################################################################################################################################
+##################################################################################################################################################
+##                                                     QOCT-RA Input Builder & Job Launcher                                                     ##
+##                                                                                                                                              ##
+##                                 This script prepares the input files needed to run the QOCT-RA program by extracting                         ##
+##                               information from a given source file and launches the corresponding jobs on the cluster.                       ##
+##                                                                                                                                              ##
+## /!\ In order to run, this script requires Python 3.5+ as well as NumPy, YAML and Jinja2. Ask your cluster(s) administrator(s) if needed. /!\ ##
+##################################################################################################################################################
 
 import argparse
+import importlib
 import os
 import shutil
 import sys
@@ -17,6 +18,7 @@ from collections import OrderedDict
 from inspect import getsourcefile
 
 import jinja2  # Only needed in the renderer subscript, it is loaded here to check if your python installation does support jinja2
+import numpy as np
 import yaml
 
 # ===================================================================
@@ -220,6 +222,11 @@ print(''.center(len(section_title)+10, '*'))
 print(section_title.center(len(section_title)+10))
 print(''.center(len(section_title)+10, '*'))
 
+# Define and import the parser module that wil be used to parse the source file
+
+print("\nSource file format: ", config['qoct-ra']['source_file_format'])
+source_parser = importlib.import_module(config['qoct-ra']['source_file_format'] + "_parser")
+
 # =========================================================
 # Reading the file
 # =========================================================
@@ -228,4 +235,236 @@ print("\nScanning %s file ..." % source_filename, end="")
 with open(source, 'r') as source_file:
   source_content = source_file.read().splitlines()
 print('%20s' % "[ DONE ]")
+
+# Cleaning up the source file from surrounding spaces and blank lines
+
+source_content = list(map(str.strip, source_content))   # removes leading & trailing blank/spaces
+source_content = list(filter(None, source_content))     # removes blank lines/no char
+
+# =========================================================
+# Get the list of states and their multiplicity
+# =========================================================
+
+print("\nExtracting the list of states and their multiplicity ...", end="")
+states_list = source_parser.get_states_list(source_content)
+#TODO : define get_states_list in qchem_parser.py
+print('%20s' % "[ DONE ]")
+
+# =========================================================
+# Get the list of spin-orbit couplings (SOC)
+# =========================================================
+
+print("\nExtracting the list of spin-orbit couplings ...", end="")
+soc_list = source_parser.get_soc_list(source_content, states_list)
+#TODO : define get_soc_list in qchem_parser.py
+print('%20s' % "[ DONE ]")
+
+# =========================================================
+# Get the list of transition dipole moments
+# =========================================================
+
+print("\nExtracting the list of transition dipole moments ...", end="")
+momdip_list = source_parser.get_momdip_list(source_content)
+#TODO : define get_momdip_list in qchem_parser.py
+print('%20s' % "[ DONE ]")
+
+print("\nThe source file has been succesfully parsed.")
+
+# ===================================================================
+# ===================================================================
+#                       MIME DIAGONALIZATION
+# ===================================================================
+# ===================================================================
+
+section_title = "2. MIME diagonalization"
+
+print("")
+print("")
+print(''.center(len(section_title)+10, '*'))
+print(section_title.center(len(section_title)+10))
+print(''.center(len(section_title)+10, '*'))
+
+# =========================================================
+# Creation of the MIME matrix containing the SOC
+# =========================================================
+   
+mime = np.zeros((len(states_list), len(states_list)))  # Quick init of a zero-filled matrix
+
+for soc in soc_list:
+  k1 = soc[0] - 1 #TODO: Apply that minus 1 in the get_soc_list function instead (since it's specific to Q-CHEM)
+  k2 = soc[1] - 1 #TODO: Apply that minus 1 in the get_soc_list function instead (since it's specific to Q-CHEM)
+  val = soc[2]
+  mime[k1][k2] = val
+
+print("\nMIME (cm-1)")
+print('')
+for row in mime:
+  for val in row:
+    print (np.format_float_scientific(val,precision=7,unique=False,pad_left=2), end = " ")
+  print ('')
+
+# =========================================================
+# MIME diagonalization
+# =========================================================
+
+print("\nDiagonalizing the MIME ...", end="")   
+diag_mime = np.linalg.eig(mime)
+print('%20s' % "[ DONE ]")
+
+eigenvalues = diag_mime[0]
+eigenvectors = diag_mime[1]
+transpose = np.transpose(eigenvectors)
+
+# =========================================================
+# Eigenvalues
+# =========================================================
+
+# Converting the eigenvalues from cm-1 to ua, nm and eV
+eigenvalues_ua=eigenvalues/219474.6313705
+eigenvalues_nm=10000000/eigenvalues
+eigenvalues_ev=eigenvalues/8065.6
+
+print("\nEigenvalues (cm-1 | ua | eV | nm)")
+for val in range(len(eigenvalues)):
+	print ("% 12.5f || % 1.8e || % 10.6f || % 8.7f" % (eigenvalues[val],eigenvalues_ua[val],eigenvalues_ev[val],eigenvalues_nm[val]))
+
+np.savetxt('energies_cm-1',eigenvalues,fmt='%1.10e')
+np.savetxt('energies_ua',eigenvalues_ua,fmt='%1.10e',footer='comment',comments='#')
+np.savetxt('energies_nm',eigenvalues_nm,fmt='%1.10e')
+np.savetxt('energies_ev',eigenvalues_ev,fmt='%1.10e')
+
+# =========================================================
+# Eigenvectors matrix
+# =========================================================
+
+print("\nEigenvectors matrix")
+print ('')
+for vector in eigenvectors:
+  for val in vector:
+    print (np.format_float_scientific(val,precision=7,unique=False,pad_left=2), end = " ")
+  print ('')
+np.savetxt('mat_pto',eigenvectors,fmt='% 18.10e')
+
+# =========================================================
+# Eigenvectors transpose
+# =========================================================
+
+print("\nEigenvectors transpose")
+print ('')
+for vector in transpose:
+  for val in vector:
+    print (np.format_float_scientific(val,precision=10,unique=False,pad_left=2), end = " ")
+  print ('')
+np.savetxt('mat_otp',transpose,fmt='% 18.10e')
+
+# ===================================================================
+# ===================================================================
+#                       DIPOLE MOMENTS MATRIX
+# ===================================================================
+# ===================================================================
+
+section_title = "3. Dipole moments matrix"
+
+print("")
+print("")
+print(''.center(len(section_title)+10, '*'))
+print(section_title.center(len(section_title)+10))
+print(''.center(len(section_title)+10, '*'))
+
+# =========================================================
+# Creation of the dipole moments matrix
+# =========================================================
+   
+momdip_mtx = np.zeros((len(states_list), len(states_list)), dtype=float)  # Quick init of a zero-filled matrix
+
+for momdip in momdip_list:
+  k1 = int(momdip[0])
+  k2 = int(momdip[1])
+  val = float(momdip[2])
+  momdip_mtx[k1][k2] = val
+
+print("\nDipole moments matrix in the zero order basis set (ua)")
+print('')
+for row in momdip_mtx:
+  for val in row:
+    print (np.format_float_scientific(val,precision=7,unique=False,pad_left=2), end = " ")
+  print ('')
+np.savetxt('momdip_0',momdip_mtx,fmt='% 18.10e')
+
+# =========================================================
+# Conversion in the eigenstates basis set
+# =========================================================
+
+momdip_ev_mtx = np.dot(transpose,momdip_mtx)
+
+for row in range(len(momdip_ev_mtx)):
+	for val in range(row):
+		momdip_ev_mtx[val,row] = momdip_ev_mtx[row,val]
+		
+print("\nDipole moments matrix in the eigenstates basis set (ua)")
+print('')
+for row in momdip_ev_mtx:
+  for val in row:
+    print (np.format_float_scientific(val,precision=10,unique=False,pad_left=2), end = " ")
+  print ('')
+np.savetxt('momdip_p',momdip_ev_mtx,fmt='% 18.10e')	
+
+# ===================================================================
+# ===================================================================
+#                       DENSITY MATRICES
+# ===================================================================
+# ===================================================================
+
+section_title = "3. Density matrices"
+
+print("")
+print("")
+print(''.center(len(section_title)+10, '*'))
+print(section_title.center(len(section_title)+10))
+print(''.center(len(section_title)+10, '*'))
+
+# =========================================================
+# Initial density matrix
+# =========================================================
+
+print("\nCreating starting population file (ground state, eigenstates basis set)")
+
+dim = len(eigenvalues_ua)
+init_pop = np.zeros((dim,dim),dtype=complex)
+init_pop[0,0] = 1+0j
+
+f = open("fondamental_1","w+")
+for line in init_pop:
+  for val in line:
+    print ('( {0.real:.2f} , {0.imag:.2f} )'.format(val), end = " ", file = f)
+  print ('', file = f)
+f.close()
+
+# =========================================================
+# Projectors
+# =========================================================
+
+#TODO: This section needs to be reworked to not depend on external files
+
+print("\nCreating the projectors files")
+print ('')
+with open('etats') as file:
+  tcount = 0
+  for line in file:
+    parts = line.split()
+    if parts[1] == 'T':
+      state = int(parts[0])
+      print ("The ", state, " state is a triplet. The corresponding projector will be prepared.") 
+      P = np.zeros((dim,dim),dtype=complex)
+      P[state-1,state-1]=1+0j
+      tcount = tcount + 1
+      name = "projectorT" + str(tcount) + "_1"
+      g = open(name,"w+")
+      for i in P:
+        for j in i:
+          print ('( {0.real:.2f} , {0.imag:.2f} )'.format(j), end = " ", file = g)
+        print ('', file = g)
+      g.close()
+print(' ')
+print("All the projectors files have been created")
 

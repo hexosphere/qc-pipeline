@@ -52,3 +52,4 @@ qchem:
 
 qoct-ra:
   output-folder: $CECIHOME/CONTROL_OUT            # Folder where the qoct-ra output files will be sent for data treatment and final results presentation.
+  source_file_format: qchem

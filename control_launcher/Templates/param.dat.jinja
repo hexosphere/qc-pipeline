@@ -1,0 +1,84 @@
+####################################################### 
+###           Fichiers des paramètres                 #
+#######################################################
+# ------------------ Nom du Calcul --------------------
+Si12Ge5H36_test1_T1
+# ------------------ Commentaires ---------------------
+Premier test avec champ au pif sur le triplet T1
+# -------------------- Analyse ------------------------
+
+#######################################################
+#Nature du système ($dossier_data/$système = $pdata)
+Si12Ge5H36
+#Environnement (HILBERT ou LIOUVILLE)
+LIOUVILLE
+#Nom du fichier contenant la base d'état ($pdata/Basis/...)
+etats
+#Nom du fichier des énergies en u.a.E. ($pdata/Energies/...)
+energies_ua
+#Nom du fichier des moments dipolaires en u.a.MD. ($pdata/MomDip/...)
+momdip_p
+#Nom du fichier de l'état initial [H] ($pdata/Fct_onde/...$nep), [L] ($pdata/Md/...$nep)*
+fondamental_
+#Nom du fichier de l'état final [H] ($pdata/Fct_onde/...$nep) , [L] ($pdata/Md/...$nep)*
+final_
+#Projector instead of specific final state ($pdata/Md/...$nep)
+projectorT1_
+#Nombre de pas de temps (nstep)
+20000
+#Durée d'un pas de temps (dt en u.a.t.)
+7.d0
+#Nature de l'opération ([PREPA...] si Préparation d'un état ou [*] si Calcul Quantique avec une porte(*))
+PREPA
+#Nombre de voies de contrôle (nep)
+1
+#Phase dynamique pour l'état final - [1] oui [0] non
+1
+#Nature du processus : [OPC] Contrôle optimal, [OPM] Contrôle a contraintes multiples ; [PCP] Post-contrôle avec pulse [PCL] Post-contrôle libre
+OPM
+#Reprise d'un champ (OPC, PCP) ou lecture d'états init (PCL). Res/$système/$operation/...  (PCP: $nomcalcul/Pulse/$nomfichierpulse -- PCL: [H] Psii_RI$n , [L] chif$n !ne pas mettre le $n)
+
+####################################
+#     CONTROLE OPTIMAL [OPC]       #
+####################################
+#Fonctionelle (AF ou NF) pour les cas multicible (nep>1)
+NF
+#Iteration de depart ([0] demarage, [/=0] redemarage), nombre d'iterations
+0,300
+#Seuil de recouvrement pour le contrôle
+0.9999d0
+#Contrainte sur l'amplitude du champ (alpha0, nulle si =1)
+250.0d0
+#Contrainte d'aire nulle (wAire<0)
+0
+#Contrainte sur l'intensité totale du champ (0<f0<1)
+0
+#Correction dans le calcul du champ (ikrotov)
+1
+#Nombre d'iterations avant ecriture du champ 
+1
+#Nom du champ d'essai if OPC ($pdata/Ch_essai/...), parameters of the shaped pulse if OPCFREQ ($pdata/Shaped_pulse/...)
+champ1
+######################################################
+#       POST-CONTROLE = PROPAGATION  [PCP ou PCL]    #
+######################################################
+# Nombre de pas avant analyse des populations, phases, positions et energies (suivant nstep*dt)
+50
+# Matrice changement de base (es --> zos) ($pdata/Mat_cb/...)
+mat_pto
+#####################################
+#           LIOUVILLE               #
+#####################################
+# Dissipation - Nom du fichier des paramètres de Lindblad - [$pdata/Diss/...] oui [non] non
+non
+#####################################
+#      Options      [1] oui [0] non #
+#####################################
+#Activer les commentaires
+1
+#Activer l'écriture des champs ([2] à chaque itération)
+2
+#Activer les fichiers de vérification
+1
+#Activer l'impression des matrices (routine sqrtm) ([2] désactiver le calcul de la fidélité de Uhlmann) 
+0
