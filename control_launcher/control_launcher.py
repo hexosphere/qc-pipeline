@@ -291,8 +291,8 @@ print(''.center(len(section_title)+10, '*'))
 mime = np.zeros((len(states_list), len(states_list)))  # Quick init of a zero-filled matrix
 
 for soc in soc_list:
-  k1 = soc[0] - 1 #TODO: Apply that minus 1 in the get_soc_list function instead (since it's specific to Q-CHEM)
-  k2 = soc[1] - 1 #TODO: Apply that minus 1 in the get_soc_list function instead (since it's specific to Q-CHEM)
+  k1 = soc[0] - 1
+  k2 = soc[1] - 1
   val = soc[2]
   mime[k1][k2] = val
 
@@ -300,8 +300,8 @@ print("\nMIME (cm-1)")
 print('')
 for row in mime:
   for val in row:
-    print (np.format_float_scientific(val,precision=7,unique=False,pad_left=2), end = " ")
-  print ('')
+    print(np.format_float_scientific(val,precision=7,unique=False,pad_left=2), end = " ")
+  print('')
 
 # =========================================================
 # MIME diagonalization
@@ -324,38 +324,37 @@ eigenvalues_ua=eigenvalues/219474.6313705
 eigenvalues_nm=10000000/eigenvalues
 eigenvalues_ev=eigenvalues/8065.6
 
-print("\nEigenvalues (cm-1 | ua | eV | nm)")
+print("")
+print(''.center(40, '-'))
+print('Eigenvalues'.center(40, ' '))
+print(''.center(40, '-'))
+print("{:<10} {:<10} {:<10} {:<10}".format('cm-1','ua','eV','nm'))
+print(''.center(40, '-'))
 for val in range(len(eigenvalues)):
-	print ("% 12.5f || % 1.8e || % 10.6f || % 8.7f" % (eigenvalues[val],eigenvalues_ua[val],eigenvalues_ev[val],eigenvalues_nm[val]))
-
-np.savetxt('energies_cm-1',eigenvalues,fmt='%1.10e')
-np.savetxt('energies_ua',eigenvalues_ua,fmt='%1.10e',footer='comment',comments='#')
-np.savetxt('energies_nm',eigenvalues_nm,fmt='%1.10e')
-np.savetxt('energies_ev',eigenvalues_ev,fmt='%1.10e')
+  print("{:<9.2f} {:<1.4e} {:<8.4f} {:<8.4f}".format(eigenvalues[val],eigenvalues_ua[val],eigenvalues_ev[val],eigenvalues_nm[val]))
+print(''.center(40, '-'))
 
 # =========================================================
 # Eigenvectors matrix
 # =========================================================
 
 print("\nEigenvectors matrix")
-print ('')
+print('')
 for vector in eigenvectors:
   for val in vector:
-    print (np.format_float_scientific(val,precision=7,unique=False,pad_left=2), end = " ")
-  print ('')
-np.savetxt('mat_pto',eigenvectors,fmt='% 18.10e')
+    print(np.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
+  print('')
 
 # =========================================================
-# Eigenvectors transpose
+# Eigenvectors transpose matrix
 # =========================================================
 
-print("\nEigenvectors transpose")
-print ('')
+print("\nEigenvectors transpose matrix")
+print('')
 for vector in transpose:
   for val in vector:
-    print (np.format_float_scientific(val,precision=10,unique=False,pad_left=2), end = " ")
-  print ('')
-np.savetxt('mat_otp',transpose,fmt='% 18.10e')
+    print(np.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
+  print('')
 
 # ===================================================================
 # ===================================================================
@@ -387,35 +386,33 @@ print("\nDipole moments matrix in the zero order basis set (ua)")
 print('')
 for row in momdip_mtx:
   for val in row:
-    print (np.format_float_scientific(val,precision=7,unique=False,pad_left=2), end = " ")
-  print ('')
-np.savetxt('momdip_0',momdip_mtx,fmt='% 18.10e')
+    print(np.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
+  print('')
 
 # =========================================================
 # Conversion in the eigenstates basis set
 # =========================================================
 
-momdip_ev_mtx = np.dot(transpose,momdip_mtx)
+momdip_es_mtx = np.dot(transpose,momdip_mtx)
 
-for row in range(len(momdip_ev_mtx)):
+for row in range(len(momdip_es_mtx)):
 	for val in range(row):
-		momdip_ev_mtx[val,row] = momdip_ev_mtx[row,val]
+		momdip_es_mtx[val,row] = momdip_es_mtx[row,val] #TODO: Why?
 		
 print("\nDipole moments matrix in the eigenstates basis set (ua)")
 print('')
-for row in momdip_ev_mtx:
+for row in momdip_es_mtx:
   for val in row:
-    print (np.format_float_scientific(val,precision=10,unique=False,pad_left=2), end = " ")
-  print ('')
-np.savetxt('momdip_p',momdip_ev_mtx,fmt='% 18.10e')	
+    print(np.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
+  print('')
 
 # ===================================================================
 # ===================================================================
-#                       DENSITY MATRICES
+#                       FILES CREATION
 # ===================================================================
 # ===================================================================
 
-section_title = "3. Density matrices"
+section_title = "3. Files creation"
 
 print("")
 print("")
@@ -424,47 +421,134 @@ print(section_title.center(len(section_title)+10))
 print(''.center(len(section_title)+10, '*'))
 
 # =========================================================
-# Initial density matrix
+# Creating the subfolder in the "Dat" folder of QOCT-RA
 # =========================================================
 
-print("\nCreating starting population file (ground state, eigenstates basis set)")
+mol_dir = os.path.join(qoct_ra_dir,"Dat",mol_name)
 
-dim = len(eigenvalues_ua)
-init_pop = np.zeros((dim,dim),dtype=complex)
-init_pop[0,0] = 1+0j
+if os.path.exists(mol_dir):
+  shutil.rmtree(mol_dir)
 
-f = open("fondamental_1","w+")
+os.makedirs(mol_dir)
+
+print("\nThe %s subfolder has been created at %s" % (mol_name, os.path.join(qoct_ra_dir,"Dat")))
+
+# =========================================================
+# Writing already calculated values to files
+# =========================================================
+
+print("\nWriting already calculated values to files (states list, mime, eigenvalues, eigenvectors, dipole moments matrix) ...", end="") 
+
+# MIME
+
+np.savetxt(os.path.join(mol_dir,"mime"),mime,fmt='% 18.10e')
+
+# States List
+
+basis_dir = os.path.join(mol_dir,"Basis")
+
+os.makedirs(basis_dir)
+
+states_file = open(os.path.join(basis_dir,"states"),"w")
+
+for state in states_list:
+  print("%d %s" % (state[0], state[1]), file=states_file)
+print("#comment", file = states_file)
+#TODO : Save the whole states_list with np.savetxt ? Will it still works with QOCT-RA ?
+
+states_file.close()
+
+# Energies
+
+energies_dir = os.path.join(mol_dir,"Energies")
+
+os.makedirs(energies_dir)
+
+np.savetxt(os.path.join(energies_dir,'energies_cm-1'),eigenvalues,fmt='%1.10e')
+np.savetxt(os.path.join(energies_dir,'energies_ua'),eigenvalues_ua,fmt='%1.10e',footer='comment',comments='#')
+np.savetxt(os.path.join(energies_dir,'energies_nm'),eigenvalues_nm,fmt='%1.10e')
+np.savetxt(os.path.join(energies_dir,'energies_ev'),eigenvalues_ev,fmt='%1.10e')
+
+# Eigenvectors matrix and eigenvectors transpose matrix
+
+mat_dir = os.path.join(mol_dir,"Mat_cb")
+
+os.makedirs(mat_dir)
+
+np.savetxt(os.path.join(mat_dir,'mat_pto'),eigenvectors,fmt='% 18.10e')
+np.savetxt(os.path.join(mat_dir,'mat_otp'),transpose,fmt='% 18.10e')
+
+# Dipole moments matrix
+
+mom_dir = os.path.join(mol_dir,"MomDip")
+
+os.makedirs(mom_dir)
+
+np.savetxt(os.path.join(mom_dir,'momdip_0'),momdip_mtx,fmt='% 18.10e')
+np.savetxt(os.path.join(mom_dir,'momdip_p'),momdip_es_mtx,fmt='% 18.10e')	
+
+print('%20s' % "[ DONE ]")
+
+# =========================================================
+# Density matrices
+# =========================================================
+
+md_dir = os.path.join(mol_dir,"Md")
+
+os.makedirs(md_dir)
+
+# Initial population
+
+print("\nCreating initial population file (ground state in the eigenstates basis set) ...", end="") 
+
+init_pop = np.zeros((len(states_list), len(states_list)),dtype=complex)  # Quick init of a zero-filled matrix
+init_pop[0,0] = 1+0j # All the population is in the ground state at the beginning
+
+pop_file = open(os.path.join(md_dir,"fondamental_1"),"w")
 for line in init_pop:
   for val in line:
-    print ('( {0.real:.2f} , {0.imag:.2f} )'.format(val), end = " ", file = f)
-  print ('', file = f)
-f.close()
+    print('( {0.real:.2f} , {0.imag:.2f} )'.format(val), end = " ", file = pop_file)
+  print('', file = pop_file)
+pop_file.close()
 
-# =========================================================
+print('%20s' % "[ DONE ]")
+
+# Final population (dummy file but still needed by QOCT-RA)
+
+print("\nCreating dummy final population file (copy of the initial population file) ...", end="") 
+
+shutil.copy(os.path.join(md_dir,"fondamental_1"), os.path.join(md_dir,"final_1"))
+
+print('%20s' % "[ DONE ]")
+
 # Projectors
+
+print("\nCreating the projectors files ...")
+print('')
+
+for state in states_list:
+  if state[1] == "T":
+    print("Creating the projector file for state %s ..." % state[3])
+    proj = np.zeros((len(states_list),len(states_list)),dtype=complex)
+    proj[state[0]-1,state[0]-1] = 1+0j
+    proj_file = open(os.path.join(md_dir,"projector" + state[3] + "_1"),"w")
+    for line in proj:
+      for val in line:
+        print('( {0.real:.2f} , {0.imag:.2f} )'.format(val), end = " ", file = proj_file)
+      print('', file = proj_file)
+    proj_file.close()
+    print('%20s' % "[ DONE ]")
+
+print("\nAll the projectors files have been created")
+
+# =========================================================
+# Shaped Pulses
 # =========================================================
 
-#TODO: This section needs to be reworked to not depend on external files
+pulse_dir = os.path.join(mol_dir,"Shaped_pulse")
 
-print("\nCreating the projectors files")
-print ('')
-with open('etats') as file:
-  tcount = 0
-  for line in file:
-    parts = line.split()
-    if parts[1] == 'T':
-      state = int(parts[0])
-      print ("The ", state, " state is a triplet. The corresponding projector will be prepared.") 
-      P = np.zeros((dim,dim),dtype=complex)
-      P[state-1,state-1]=1+0j
-      tcount = tcount + 1
-      name = "projectorT" + str(tcount) + "_1"
-      g = open(name,"w+")
-      for i in P:
-        for j in i:
-          print ('( {0.real:.2f} , {0.imag:.2f} )'.format(j), end = " ", file = g)
-        print ('', file = g)
-      g.close()
-print(' ')
-print("All the projectors files have been created")
+os.makedirs(pulse_dir)
+
+print("\nCreating shaped pulse file ...")
+
 

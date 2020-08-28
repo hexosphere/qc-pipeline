@@ -8,7 +8,7 @@ control_launcher
 
 1) Créer dans Dat le dossier mol_name et y placer le fichier mol_name.out
 2) Exécuter qchem_parser sur mol_name.out pour créer les fichiers base, energies, matrices de changement de base, matrices des moments dipolaires, etat fondamental et projecteur.
-3) Créer les sous-dossiers Basis Energies Mat_cb MomDip Md et y placer les fichiers correspondants.
+3) Créer les sous-dossiers Basis Energies Mat_cb MomDip Md et y placer les fichiers correspondants. Créer les fichiers champs
 4) Editer le fichier param.dat dans le dossier Controle/QOCT-RA en accordance 
 5) Exécuter QOCT-RA
 6) Répéter les étapes 4 et 5 pour chaque projecteur
