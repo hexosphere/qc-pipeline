@@ -58,6 +58,8 @@ qoct-ra:
   jinja_templates:
     shaped_pulse: pulse.jinja
     parameters_file: param.dat.jinja
+  rendered_files:
+    parameters_file: param.dat
 # Define here the names of the files that will be created in the Dat folder of the QOCT-RA directory (in a subfolder with the name of the molecule)
   created_files: 
     mime_file: mime
@@ -66,22 +68,29 @@ qoct-ra:
     energies_folder:
       energies_file: energies
     mat_cb_folder:
-      eigen_to_zero: mat_pto                      # corresponds to the eigenvectors matrix of the MIME diagonalization
-      zero_to_eigen: mat_otp                      # corresponds to the eigenvectors transpose matrix of the MIME diagonalization
+      eigen_to_zero: mat_et0                      # corresponds to the eigenvectors matrix of the MIME diagonalization
+      zero_to_eigen: mat_0te                      # corresponds to the eigenvectors transpose matrix of the MIME diagonalization
     momdip_folder:
       momdip_zero: momdip_0
-      momdip_eigen: momdip_p
+      momdip_eigen: momdip_e
     md_folder:
-      initial: fondamental_1
-      final: final_1                              # dummy file
+      initial: initial                           # will be followed by "_1"
+      final: final                               # dummy file, will be followed by "_1"
       projectors: projector                       # will be followed by the state label and "_1" (ex: projectorT2_1)
     shaped_pulse_folder:
       pulse_file: pulse
-# Define here the parameters for the shaped pulse that will be applied
+# Define here the parameters for the initial shaped pulse that will be applied
   pulse_parameters:
     shape: 0                                      # Type of shape (in terms of bits, there are 2^number of increments for phase and amplitude) If set to 0 then it is not used
     nb_pixels: 128                                # Number of pixels (pixel width = 2 / total time)
     energy: 900                                   # Total energy of the input pulse in the shaper (in micro Joules per cm squared)
     fwhm: 1000.0                                  # Full Width at Half Maximum of the input pulse (in cm-1)
+# Define here the parameters for QOCT-RA itself (defined in param.dat)
+  main_parameters:
+    nstep: 20000                                  # Number of time steps
+    dt: 7.d0                                      # Duration of a time step (a.u. of time)
+    niter: 300                                    # Number of iterations
+    threshold: 0.9999d0                           # Convergence threshold for the fidelity
+    alpha0: 250.0d0                               # Constraint on the field amplitude
 # Folder where the qoct-ra output files will be sent for data treatment and final results presentation.
   output-folder: $CECIHOME/CONTROL_OUT   

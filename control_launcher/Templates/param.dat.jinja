@@ -2,32 +2,32 @@
 ###           Fichiers des paramètres                 #
 #######################################################
 # ------------------ Nom du Calcul --------------------
-Si12Ge5H36_test1_T1
+{{  mol_name  }}_{{  target  }}
 # ------------------ Commentaires ---------------------
-Premier test avec champ au pif sur le triplet T1
+
 # -------------------- Analyse ------------------------
 
 #######################################################
 #Nature du système ($dossier_data/$système = $pdata)
-Si12Ge5H36
+{{  mol_name  }}
 #Environnement (HILBERT ou LIOUVILLE)
 LIOUVILLE
 #Nom du fichier contenant la base d'état ($pdata/Basis/...)
-etats
+{{  basis  }}
 #Nom du fichier des énergies en u.a.E. ($pdata/Energies/...)
-energies_ua
+{{  energies_ua  }}
 #Nom du fichier des moments dipolaires en u.a.MD. ($pdata/MomDip/...)
-momdip_p
+{{  momdip_e  }}
 #Nom du fichier de l'état initial [H] ($pdata/Fct_onde/...$nep), [L] ($pdata/Md/...$nep)*
-fondamental_
+{{  initial  }}_
 #Nom du fichier de l'état final [H] ($pdata/Fct_onde/...$nep) , [L] ($pdata/Md/...$nep)*
-final_
+{{  final  }}_
 #Projector instead of specific final state ($pdata/Md/...$nep)
-projectorT1_
+{{  projector  }}{{ target  }}_
 #Nombre de pas de temps (nstep)
-20000
+{{  nstep  }}
 #Durée d'un pas de temps (dt en u.a.t.)
-7.d0
+{{  dt  }}
 #Nature de l'opération ([PREPA...] si Préparation d'un état ou [*] si Calcul Quantique avec une porte(*))
 PREPA
 #Nombre de voies de contrôle (nep)
@@ -44,11 +44,11 @@ OPM
 #Fonctionelle (AF ou NF) pour les cas multicible (nep>1)
 NF
 #Iteration de depart ([0] demarage, [/=0] redemarage), nombre d'iterations
-0,300
+0,{{  niter  }}
 #Seuil de recouvrement pour le contrôle
-0.9999d0
+{{  threshold  }}
 #Contrainte sur l'amplitude du champ (alpha0, nulle si =1)
-250.0d0
+{{  alpha0  }}
 #Contrainte d'aire nulle (wAire<0)
 0
 #Contrainte sur l'intensité totale du champ (0<f0<1)
@@ -58,14 +58,14 @@ NF
 #Nombre d'iterations avant ecriture du champ 
 1
 #Nom du champ d'essai if OPC ($pdata/Ch_essai/...), parameters of the shaped pulse if OPCFREQ ($pdata/Shaped_pulse/...)
-champ1
+{{  pulse  }}
 ######################################################
 #       POST-CONTROLE = PROPAGATION  [PCP ou PCL]    #
 ######################################################
 # Nombre de pas avant analyse des populations, phases, positions et energies (suivant nstep*dt)
 50
 # Matrice changement de base (es --> zos) ($pdata/Mat_cb/...)
-mat_pto
+{{  mat_et0  }}
 #####################################
 #           LIOUVILLE               #
 #####################################

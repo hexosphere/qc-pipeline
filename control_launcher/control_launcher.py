@@ -504,11 +504,11 @@ np.savetxt(os.path.join(energies_dir,energies_file + '_ev'),eigenvalues_ev,fmt='
 mat_dir = os.path.join(mol_dir,"Mat_cb")
 os.makedirs(mat_dir)
 
-mat_eto = config['qoct-ra']['created_files']['mat_cb_folder']['eigen_to_zero']
-np.savetxt(os.path.join(mat_dir,mat_eto),eigenvectors,fmt='% 18.10e')
+mat_et0 = config['qoct-ra']['created_files']['mat_cb_folder']['eigen_to_zero']
+np.savetxt(os.path.join(mat_dir,mat_et0),eigenvectors,fmt='% 18.10e')
 
-mat_ote = config['qoct-ra']['created_files']['mat_cb_folder']['zero_to_eigen']
-np.savetxt(os.path.join(mat_dir,mat_ote),transpose,fmt='% 18.10e')
+mat_0te = config['qoct-ra']['created_files']['mat_cb_folder']['zero_to_eigen']
+np.savetxt(os.path.join(mat_dir,mat_0te),transpose,fmt='% 18.10e')
 
 # Dipole moments matrix
 
@@ -537,7 +537,7 @@ print("\nCreating initial population file (ground state in the eigenstates basis
 init_pop = np.zeros((len(states_list), len(states_list)),dtype=complex)  # Quick init of a zero-filled matrix
 init_pop[0,0] = 1+0j # All the population is in the ground state at the beginning
 
-init_file = config['qoct-ra']['created_files']['md_folder']['initial']
+init_file = config['qoct-ra']['created_files']['md_folder']['initial'] + "_1"
 
 with open(os.path.join(md_dir, init_file), "w") as f:
   for line in init_pop:
@@ -551,7 +551,7 @@ print('%20s' % "[ DONE ]")
 
 print("\nCreating dummy final population file (copy of the initial population file) ...", end="") 
 
-final_file = config['qoct-ra']['created_files']['md_folder']['final']
+final_file = config['qoct-ra']['created_files']['md_folder']['final'] + "_1"
 shutil.copy(os.path.join(md_dir,init_file), os.path.join(md_dir,final_file))
 
 print('%20s' % "[ DONE ]")
@@ -614,6 +614,51 @@ with open(os.path.join(pulse_dir, rnd_pulse), "w") as pulse_file:
 
 print('%12s' % "[ DONE ]")
 
-#TODO: Jinja template and rendering of param.dat
-#TODO: Run the jobs
+# ===================================================================
+# ===================================================================
+#         RENDERING OF THE PARAMETERS FILE AND JOBS LAUNCHING
+# ===================================================================
+# ===================================================================
+
+section_title = "4. Rendering of the parameters file and jobs launching"
+
+print("")
+print("")
+print(''.center(len(section_title)+10, '*'))
+print(section_title.center(len(section_title)+10))
+print(''.center(len(section_title)+10, '*'))
+
+# Define the names of the template and rendered file, given in the main configuration YAML file.
+
+tpl_param = config['qoct-ra']['jinja_templates']['parameters_file']                           # Jinja template file for the parameters file
+rnd_param = config['qoct-ra']['rendered_files']['parameters_file']                            # Name of the rendered parameters file
+
+# Definition of the variables present in the jinja template
+
+render_vars = {
+  "mol_name" : mol_name,
+  "basis" : config['qoct-ra']['created_files']['basis_folder']['states_file'],
+  "energies_ua" : energies_file + '_ua',
+  "momdip_e" : momdip_e,
+  "initial" : init_file,
+  "final" : final_file,
+  "projector" : config['qoct-ra']['created_files']['md_folder']['projectors'],
+  "nstep" : config['qoct-ra']['main_parameters']['nstep'],
+  "dt" : config['qoct-ra']['main_parameters']['dt'],
+  "niter" : config['qoct-ra']['main_parameters']['niter'],
+  "threshold" : config['qoct-ra']['main_parameters']['threshold'],
+  "alpha0" : config['qoct-ra']['main_parameters']['alpha0'],
+  "pulse" : rnd_pulse,
+  "mat_et0" : mat_et0
+}
+
+# For each projector, render the parameters file and run the corresponding job
+
+for state in states_list:
+  if state[1] == "T":
+    render_vars["target"] = state[3]
+    param_content = jinja_render(os.path.join(code_dir,"Templates"), tpl_param, render_vars)
+    with open(os.path.join(qoct_ra_dir,"QOCT-RA", rnd_param), "w") as param_file:
+      param_file.write(param_content)
+    #TODO: Run the job
 
