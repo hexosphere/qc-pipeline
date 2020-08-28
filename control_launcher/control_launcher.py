@@ -17,9 +17,38 @@ import sys
 from collections import OrderedDict
 from inspect import getsourcefile
 
-import jinja2  # Only needed in the renderer subscript, it is loaded here to check if your python installation does support jinja2
+import jinja2
 import numpy as np
 import yaml
+
+# ===================================================================
+# ===================================================================
+# Function definitions
+# ===================================================================
+# ===================================================================
+
+def jinja_render(path_tpl_dir, tpl, render_vars):
+    """Renders a file based on its jinja template
+
+    Parameters
+    ----------
+    path_tpl_dir : str
+        The path towards the directory where the jinja template is located
+    tpl : str
+        The name of the jinja template file
+    render_vars : dict
+        Dictionary containing the definitions of all the variables present in the jinja template
+
+    Returns
+    -------
+    output_text : str
+        Content of the rendered file
+    """
+   
+    environment = jinja2.Environment(loader=jinja2.FileSystemLoader(path_tpl_dir))
+    output_text = environment.get_template(tpl).render(render_vars)
+    
+    return output_text
 
 # ===================================================================
 # ===================================================================
@@ -441,51 +470,56 @@ print("\nWriting already calculated values to files (states list, mime, eigenval
 
 # MIME
 
-np.savetxt(os.path.join(mol_dir,"mime"),mime,fmt='% 18.10e')
+mime_file = config['qoct-ra']['created_files']['mime_file']
+np.savetxt(os.path.join(mol_dir,mime_file),mime,fmt='% 18.10e')
 
 # States List
 
 basis_dir = os.path.join(mol_dir,"Basis")
-
 os.makedirs(basis_dir)
 
-states_file = open(os.path.join(basis_dir,"states"),"w")
+states_file = config['qoct-ra']['created_files']['basis_folder']['states_file']
 
-for state in states_list:
-  print("%d %s" % (state[0], state[1]), file=states_file)
-print("#comment", file = states_file)
+with open(os.path.join(basis_dir, states_file), "w") as f:
+  for state in states_list:
+    f.write("%d %s" % (state[0], state[1]))
+  f.write("#comment")
+
 #TODO : Save the whole states_list with np.savetxt ? Will it still works with QOCT-RA ?
-
-states_file.close()
 
 # Energies
 
 energies_dir = os.path.join(mol_dir,"Energies")
-
 os.makedirs(energies_dir)
 
-np.savetxt(os.path.join(energies_dir,'energies_cm-1'),eigenvalues,fmt='%1.10e')
-np.savetxt(os.path.join(energies_dir,'energies_ua'),eigenvalues_ua,fmt='%1.10e',footer='comment',comments='#')
-np.savetxt(os.path.join(energies_dir,'energies_nm'),eigenvalues_nm,fmt='%1.10e')
-np.savetxt(os.path.join(energies_dir,'energies_ev'),eigenvalues_ev,fmt='%1.10e')
+energies_file = config['qoct-ra']['created_files']['energies_folder']['energies_file']
+
+np.savetxt(os.path.join(energies_dir,energies_file + '_cm-1'),eigenvalues,fmt='%1.10e')
+np.savetxt(os.path.join(energies_dir,energies_file + '_ua'),eigenvalues_ua,fmt='%1.10e',footer='comment',comments='#')
+np.savetxt(os.path.join(energies_dir,energies_file + '_nm'),eigenvalues_nm,fmt='%1.10e')
+np.savetxt(os.path.join(energies_dir,energies_file + '_ev'),eigenvalues_ev,fmt='%1.10e')
 
 # Eigenvectors matrix and eigenvectors transpose matrix
 
 mat_dir = os.path.join(mol_dir,"Mat_cb")
-
 os.makedirs(mat_dir)
 
-np.savetxt(os.path.join(mat_dir,'mat_pto'),eigenvectors,fmt='% 18.10e')
-np.savetxt(os.path.join(mat_dir,'mat_otp'),transpose,fmt='% 18.10e')
+mat_eto = config['qoct-ra']['created_files']['mat_cb_folder']['eigen_to_zero']
+np.savetxt(os.path.join(mat_dir,mat_eto),eigenvectors,fmt='% 18.10e')
+
+mat_ote = config['qoct-ra']['created_files']['mat_cb_folder']['zero_to_eigen']
+np.savetxt(os.path.join(mat_dir,mat_ote),transpose,fmt='% 18.10e')
 
 # Dipole moments matrix
 
 mom_dir = os.path.join(mol_dir,"MomDip")
-
 os.makedirs(mom_dir)
 
-np.savetxt(os.path.join(mom_dir,'momdip_0'),momdip_mtx,fmt='% 18.10e')
-np.savetxt(os.path.join(mom_dir,'momdip_p'),momdip_es_mtx,fmt='% 18.10e')	
+momdip_0 = config['qoct-ra']['created_files']['momdip_folder']['momdip_zero']
+np.savetxt(os.path.join(mom_dir,momdip_0),momdip_mtx,fmt='% 18.10e')
+
+momdip_e = config['qoct-ra']['created_files']['momdip_folder']['momdip_eigen']
+np.savetxt(os.path.join(mom_dir,momdip_e),momdip_es_mtx,fmt='% 18.10e')	
 
 print('%20s' % "[ DONE ]")
 
@@ -494,7 +528,6 @@ print('%20s' % "[ DONE ]")
 # =========================================================
 
 md_dir = os.path.join(mol_dir,"Md")
-
 os.makedirs(md_dir)
 
 # Initial population
@@ -504,12 +537,13 @@ print("\nCreating initial population file (ground state in the eigenstates basis
 init_pop = np.zeros((len(states_list), len(states_list)),dtype=complex)  # Quick init of a zero-filled matrix
 init_pop[0,0] = 1+0j # All the population is in the ground state at the beginning
 
-pop_file = open(os.path.join(md_dir,"fondamental_1"),"w")
-for line in init_pop:
-  for val in line:
-    print('( {0.real:.2f} , {0.imag:.2f} )'.format(val), end = " ", file = pop_file)
-  print('', file = pop_file)
-pop_file.close()
+init_file = config['qoct-ra']['created_files']['md_folder']['initial']
+
+with open(os.path.join(md_dir, init_file), "w") as f:
+  for line in init_pop:
+    for val in line:
+      f.write('( {0.real:.2f} , {0.imag:.2f} )'.format(val), end = " ")
+    f.write('')
 
 print('%20s' % "[ DONE ]")
 
@@ -517,7 +551,8 @@ print('%20s' % "[ DONE ]")
 
 print("\nCreating dummy final population file (copy of the initial population file) ...", end="") 
 
-shutil.copy(os.path.join(md_dir,"fondamental_1"), os.path.join(md_dir,"final_1"))
+final_file = config['qoct-ra']['created_files']['md_folder']['final']
+shutil.copy(os.path.join(md_dir,init_file), os.path.join(md_dir,final_file))
 
 print('%20s' % "[ DONE ]")
 
@@ -531,24 +566,54 @@ for state in states_list:
     print("Creating the projector file for state %s ..." % state[3])
     proj = np.zeros((len(states_list),len(states_list)),dtype=complex)
     proj[state[0]-1,state[0]-1] = 1+0j
-    proj_file = open(os.path.join(md_dir,"projector" + state[3] + "_1"),"w")
-    for line in proj:
-      for val in line:
-        print('( {0.real:.2f} , {0.imag:.2f} )'.format(val), end = " ", file = proj_file)
-      print('', file = proj_file)
-    proj_file.close()
+    proj_file = config['qoct-ra']['created_files']['md_folder']['projectors'] + state[3] + "_1"
+    with open(os.path.join(md_dir, proj_file), "w") as f:
+      for line in proj:
+        for val in line:
+          f.write('( {0.real:.2f} , {0.imag:.2f} )'.format(val), end = " ")
+        f.write('')
     print('%20s' % "[ DONE ]")
 
 print("\nAll the projectors files have been created")
 
 # =========================================================
-# Shaped Pulses
+# Shaped Pulse
 # =========================================================
 
 pulse_dir = os.path.join(mol_dir,"Shaped_pulse")
-
 os.makedirs(pulse_dir)
 
-print("\nCreating shaped pulse file ...")
+print("\nRendering the jinja template for the shaped pulse file ...", end="")
 
+# Define the names of the template and rendered file, given in the main configuration YAML file.
+
+tpl_pulse = config['qoct-ra']['jinja_templates']['shaped_pulse']                           # Jinja template file for the shaped pulse file
+rnd_pulse = config['qoct-ra']['created_files']['shaped_pulse_folder']['pulse_file']        # Name of the rendered shaped pulse file
+
+# Determine the central frequency of the pulse in cm-1 (here defined as the average of the eigenvalues)
+
+central_frequency = np.mean(eigenvalues)
+
+# Definition of the variables present in the jinja template
+
+render_vars = {
+  "basis" : config['qoct-ra']['created_files']['basis_folder']['states_file'],
+  "shape" : config['qoct-ra']['pulse_parameters']['shape'],
+  "nb_pixels" : config['qoct-ra']['pulse_parameters']['nb_pixels'],
+  "energy" : config['qoct-ra']['pulse_parameters']['energy'],
+  "fwhm" : config['qoct-ra']['pulse_parameters']['fwhm'],
+  "frequency" : central_frequency
+}
+
+# Rendering the jinja template
+
+pulse_content = jinja_render(os.path.join(code_dir,"Templates"), tpl_pulse, render_vars)
+
+with open(os.path.join(pulse_dir, rnd_pulse), "w") as pulse_file:
+  pulse_file.write(pulse_content)
+
+print('%12s' % "[ DONE ]")
+
+#TODO: Jinja template and rendering of param.dat
+#TODO: Run the jobs
 

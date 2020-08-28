@@ -50,6 +50,38 @@ qchem:
 # Folder where the q-chem output files needed for the next step will be sent.
   output-folder: $CECIHOME/Q-CHEM_OUT             
 
+# This block contains all the informations specific to qoct-ra.
 qoct-ra:
-  output-folder: $CECIHOME/CONTROL_OUT            # Folder where the qoct-ra output files will be sent for data treatment and final results presentation.
+# Format of the source file that will be used to extract relevant informations for QOCT-RA
   source_file_format: qchem
+# Define here the jinja template names, they must be put in the Templates folder.
+  jinja_templates:
+    shaped_pulse: pulse.jinja
+    parameters_file: param.dat.jinja
+# Define here the names of the files that will be created in the Dat folder of the QOCT-RA directory (in a subfolder with the name of the molecule)
+  created_files: 
+    mime_file: mime
+    basis_folder:
+      states_file: states
+    energies_folder:
+      energies_file: energies
+    mat_cb_folder:
+      eigen_to_zero: mat_pto                      # corresponds to the eigenvectors matrix of the MIME diagonalization
+      zero_to_eigen: mat_otp                      # corresponds to the eigenvectors transpose matrix of the MIME diagonalization
+    momdip_folder:
+      momdip_zero: momdip_0
+      momdip_eigen: momdip_p
+    md_folder:
+      initial: fondamental_1
+      final: final_1                              # dummy file
+      projectors: projector                       # will be followed by the state label and "_1" (ex: projectorT2_1)
+    shaped_pulse_folder:
+      pulse_file: pulse
+# Define here the parameters for the shaped pulse that will be applied
+  pulse_parameters:
+    shape: 0                                      # Type of shape (in terms of bits, there are 2^number of increments for phase and amplitude) If set to 0 then it is not used
+    nb_pixels: 128                                # Number of pixels (pixel width = 2 / total time)
+    energy: 900                                   # Total energy of the input pulse in the shaper (in micro Joules per cm squared)
+    fwhm: 1000.0                                  # Full Width at Half Maximum of the input pulse (in cm-1)
+# Folder where the qoct-ra output files will be sent for data treatment and final results presentation.
+  output-folder: $CECIHOME/CONTROL_OUT   
