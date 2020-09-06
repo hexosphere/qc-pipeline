@@ -86,7 +86,7 @@ def slurm_time_to_seconds(time:str) -> int:
   # Get rid of the milliseconds and change the separator for day to hours from "-" to ":"
   time_tmp = (time.replace("-",":")).rsplit('.',1)[0]
   # Split each units of time (seconds, minutes, hours and days) and convert them into seconds before adding them together.
-  seconds=sum(x * int(t) for x, t in zip([1, 60, 3600, 86600], reversed(time_tmp.split(":"))))
+  seconds=sum(x * int(t) for x, t in zip([1, 60, 3600, 86400], reversed(time_tmp.split(":"))))
   return seconds
 
 # =========================================================
