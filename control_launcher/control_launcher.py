@@ -210,6 +210,7 @@ if os.path.exists(os.path.join(qoct_ra_dir,"Dat",mol_name)) and not overwrite:
 # =========================================================
 # Establishing the different job scales
 # =========================================================
+'''
 
 # Gather all the different job scales from the clusters configuration file in a temporary dictionary
 
@@ -236,6 +237,7 @@ print(''.center(85, '-'))
 for scale_limit, scale in job_scales.items():
   print ("{:<15} {:<20} {:<20} {:<20} {:<10}".format(scale_limit, scale['label'], scale['partition_name'], scale['time'], scale['cores']))
 print(''.center(85, '-'))
+'''
 
 # ===================================================================
 # ===================================================================
@@ -251,7 +253,7 @@ print(''.center(len(section_title)+10, '*'))
 print(section_title.center(len(section_title)+10))
 print(''.center(len(section_title)+10, '*'))
 
-# Define and import the parser module that wil be used to parse the source file
+# Define and import the parser module that will be used to parse the source file
 
 print("\nSource file format: ", config['qoct-ra']['source_file_format'])
 source_parser = importlib.import_module(config['qoct-ra']['source_file_format'] + "_parser")
@@ -284,7 +286,7 @@ print('%20s' % "[ DONE ]")
 # =========================================================
 
 print("\nExtracting the list of spin-orbit couplings ...", end="")
-soc_list = source_parser.get_soc_list(source_content, states_list)
+soc_list = source_parser.get_soc_list(source_content)
 #TODO : define get_soc_list in qchem_parser.py
 print('%20s' % "[ DONE ]")
 
@@ -319,11 +321,28 @@ print(''.center(len(section_title)+10, '*'))
    
 mime = np.zeros((len(states_list), len(states_list)))  # Quick init of a zero-filled matrix
 
+# Add state-to-itself SOC values (Diag.) to the tuple list
+for state in states_list:
+  # (prim_key, sub_key, value)
+  tpl = (state[3], state[3], state[2])
+  soc_list.append(tpl)
+
+# Rewrite in place soc_list with all state_label translated into their #state
+for idx, soc in enumerate(soc_list):
+    soc_list[idx] = (
+        #int(list(filter(lambda x: x[3] == soc[0], states_list))[0]),
+        #int(list(filter(lambda x: x[3] == soc[1], states_list))[0]),
+        int([ x for x in states_list if x[3] == soc[0] ][0][0]),
+        int([ x for x in states_list if x[3] == soc[1] ][0][0]),
+        soc[2]
+    )
+
 for soc in soc_list:
   k1 = soc[0] - 1
   k2 = soc[1] - 1
   val = soc[2]
   mime[k1][k2] = val
+  mime[k2][k1] = val    # store inverted couple of keys
 
 print("\nMIME (cm-1)")
 print('')
@@ -410,6 +429,7 @@ for momdip in momdip_list:
   k2 = int(momdip[1])
   val = float(momdip[2])
   momdip_mtx[k1][k2] = val
+  momdip_mtx[k2][k1] = val    # store inverted couple of keys
 
 print("\nDipole moments matrix in the zero order basis set (ua)")
 print('')
@@ -426,7 +446,7 @@ momdip_es_mtx = np.dot(transpose,momdip_mtx)
 
 for row in range(len(momdip_es_mtx)):
 	for val in range(row):
-		momdip_es_mtx[val,row] = momdip_es_mtx[row,val] #TODO: Why?
+		momdip_es_mtx[val,row] = momdip_es_mtx[row,val] #!: Why?
 		
 print("\nDipole moments matrix in the eigenstates basis set (ua)")
 print('')
@@ -542,8 +562,8 @@ init_file = config['qoct-ra']['created_files']['md_folder']['initial'] + "_1"
 with open(os.path.join(md_dir, init_file), "w") as f:
   for line in init_pop:
     for val in line:
-      f.write('( {0.real:.2f} , {0.imag:.2f} )'.format(val), end = " ")
-    f.write('')
+      print('( {0.real:.2f} , {0.imag:.2f} )'.format(val), end = " ", file = f)
+    print('', file = f)
 
 print('%20s' % "[ DONE ]")
 
@@ -570,8 +590,8 @@ for state in states_list:
     with open(os.path.join(md_dir, proj_file), "w") as f:
       for line in proj:
         for val in line:
-          f.write('( {0.real:.2f} , {0.imag:.2f} )'.format(val), end = " ")
-        f.write('')
+          print('( {0.real:.2f} , {0.imag:.2f} )'.format(val), end = " ", file = f)
+        print('', file = f)
     print('%20s' % "[ DONE ]")
 
 print("\nAll the projectors files have been created")
@@ -654,11 +674,13 @@ render_vars = {
 
 # For each projector, render the parameters file and run the corresponding job
 
+print("\nRendering the jinja template for the param.dat file ...")
+
 for state in states_list:
   if state[1] == "T":
     render_vars["target"] = state[3]
     param_content = jinja_render(os.path.join(code_dir,"Templates"), tpl_param, render_vars)
-    with open(os.path.join(qoct_ra_dir,"QOCT-RA", rnd_param), "w") as param_file:
+    with open(os.path.join(qoct_ra_dir, rnd_param), "w") as param_file:   #! join(qoct_ra_dir, "QOCTRA", rnd_param)   before modification
       param_file.write(param_content)
     #TODO: Run the job
 
