@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
-##################################################################################################################################################
-##                                                     QOCT-RA Input Builder & Job Launcher                                                     ##
-##                                                                                                                                              ##
-##                                 This script prepares the input files needed to run the QOCT-RA program by extracting                         ##
-##                               information from a given source file and launches the corresponding jobs on the cluster.                       ##
-##                                                                                                                                              ##
-## /!\ In order to run, this script requires Python 3.5+ as well as NumPy, YAML and Jinja2. Ask your cluster(s) administrator(s) if needed. /!\ ##
-##################################################################################################################################################
+########################################################################################################################################################
+##                                                        QOCT-RA Input Builder & Job Launcher                                                        ##
+##                                                                                                                                                    ##
+##                                    This script prepares the input files needed to run the QOCT-RA program by extracting                            ##
+##                                  information from a given source file and launches the corresponding jobs on the cluster.                          ##
+##                                                                                                                                                    ##
+## /!\ In order to run, this script requires Python 3.5+ as well as NumPy 1.14+, YAML and Jinja2. Ask your cluster(s) administrator(s) if needed. /!\ ##
+########################################################################################################################################################
 
 import argparse
 import importlib
@@ -26,6 +26,41 @@ import yaml
 # Function definitions
 # ===================================================================
 # ===================================================================
+
+def check_abspath(path,type="either"):
+    """Checks if a path towards a file or folder exists and make sure it's absolute
+
+    Parameters
+    ----------
+    path : str
+        The path towards the file or directory you want to test
+    type : str (optional)
+        The type of element for which you would like to test the path (file, folder or either)
+        By default, checks if the path leads to either a file or a folder (type = either)
+    
+    Returns
+    -------
+    abspath : str
+        Normalized absolutized version of the path
+    """
+
+    if type not in ["file","folder","either"]:
+      raise ValueError ("The specified type for which check_path function has been called is not one of 'file', 'folder or 'either'")
+    elif not os.path.exists(path):
+      raise IOError ("%s does not seem to exist." % path)
+    elif type == "file":
+      if not os.path.isfile(path):
+        raise ValueError ("%s is not a file" % path)
+    elif type == "folder":
+      if not os.path.isdir(path):
+        raise ValueError ("%s is not a directory" % path)
+    elif type =="either":
+      if not os.path.isdir(path) and not os.path.isfile(path):
+        raise ValueError ("%s is neither a file nor a directory" % path)
+    
+    abspath = os.path.abspath(path)
+
+    return abspath
 
 def jinja_render(path_tpl_dir, tpl, render_vars):
     """Renders a file based on its jinja template
@@ -101,6 +136,14 @@ print("EXECUTION OF THE QOCT-RA INPUT BUILDER & JOB LAUNCHER BEGINS NOW".center(
 print("")
 print("".center(columns,"*"))
 
+section_title = "0. Preparation step"
+
+print("")
+print("")
+print(''.center(len(section_title)+10, '*'))
+print(section_title.center(len(section_title)+10))
+print(''.center(len(section_title)+10, '*'))
+
 # =========================================================
 # Important folders
 # =========================================================
@@ -116,18 +159,7 @@ print("\nCodes directory:   ", code_dir)
 
 # Loading the config_file
 
-if not os.path.exists(config_file):
-  print(config_file)
-  print("  ^ ERROR: The path to the YAML main configuration file does not seem to exist.")
-  print("Aborting ...")
-  exit(4)
-elif not os.path.isfile(config_file):
-  print(config_file)
-  print("  ^ ERROR: This is not a file.")
-  print("Aborting ...")
-  exit(4)
-else:
-  config_file = os.path.abspath(config_file)
+config_file = check_abspath(config_file,"file")
 
 print("\nLoading the main configuration file %s ..." % config_file, end="")
 with open(config_file, 'r') as f_config:
@@ -136,18 +168,7 @@ print('%12s' % "[ DONE ]")
 
 # Loading the clusters_file for the informations about the clusters
 
-if not os.path.exists(clusters_file):
-  print(clusters_file)
-  print("  ^ ERROR: The path to the YAML clusters configuration file does not seem to exist.")
-  print("Aborting ...")
-  exit(4)
-elif not os.path.isfile(clusters_file):
-  print(clusters_file)
-  print("  ^ ERROR: This is not a file.")
-  print("Aborting ...")
-  exit(4)
-else:
-  clusters_file = os.path.abspath(clusters_file)
+clusters_file = check_abspath(clusters_file,"file")
 
 print("\nLoading the clusters file %s ..." % clusters_file, end="")
 with open(clusters_file, 'r') as f_clusters:
@@ -163,36 +184,14 @@ print("\nThis script is running on the %s cluster" % cluster_name)
 
 # Check if the path to the QOCT-RA directory exists and make sure it's absolute.
 
-if not os.path.exists(qoct_ra_dir):
-  print(qoct_ra_dir)
-  print("  ^ ERROR: The path to the QOCT-RA folder does not seem to exist.")
-  print("Aborting ...")
-  exit(4)
+qoct_ra_dir = check_abspath(qoct_ra_dir,"folder")
 
-if not os.path.isdir(qoct_ra_dir):
-  print(qoct_ra_dir)
-  print("  ^ ERROR: This is not a directory.")
-  print("Aborting ...")
-  exit(4)
-
-qoct_ra_dir = os.path.abspath(qoct_ra_dir)
 print("\nQOCT-RA directory: ", qoct_ra_dir)
 
 # Check if the path to the source file exists and make sure it's absolute.
 
-if not os.path.exists(source):
-  print(source)
-  print("  ^ ERROR: The path to the ab initio program output file does not seem to exist.")
-  print("Aborting ...")
-  exit(4)
+source = check_abspath(source,"file")
 
-if not os.path.isfile(source):
-  print(source)
-  print("  ^ ERROR: This is not a file.")
-  print("Aborting ...")
-  exit(4)
-
-source = os.path.abspath(source)
 print("\nSource file: ", source)
 
 source_path = os.path.dirname(source)
@@ -210,7 +209,16 @@ if os.path.exists(os.path.join(qoct_ra_dir,"Dat",mol_name)) and not overwrite:
 # =========================================================
 # Establishing the different job scales
 # =========================================================
-'''
+
+if "qoct-ra" not in config:
+  print("\nERROR: No information provided for qoct-ra in the YAML config file. Please add informations for qoct-ra before attempting to run this script.")
+  print("Aborting...")
+  exit(3)
+
+if "qoct-ra" not in clusters_cfg[cluster_name]["progs"]:
+  print("\nERROR: There is no information about qoct-ra on this cluster, please add informations to the YAML cluster file.")
+  print("Aborting...")
+  exit(3) 
 
 # Gather all the different job scales from the clusters configuration file in a temporary dictionary
 
@@ -225,19 +233,18 @@ job_scales = {}
 for scale in job_scales_tmp:
   scale_limit = scale['scale_limit']
   del scale['scale_limit']
-  job_scales[float(scale_limit)] = scale
+  job_scales[int(scale_limit)] = scale
 
 print("\nJob scales for %s:" % cluster_name)
 job_scales = OrderedDict(sorted(job_scales.items()))
 
 print("")
-print(''.center(85, '-'))
-print ("{:<15} {:<20} {:<20} {:<20} {:<10}".format('scale_limit','Label','Partition_name','Time','Cores'))
-print(''.center(85, '-'))
+print(''.center(95, '-'))
+print ("{:<15} {:<20} {:<20} {:<20} {:<20}".format('scale_limit','Label','Partition_name','Time','Mem per CPU (MB)'))
+print(''.center(95, '-'))
 for scale_limit, scale in job_scales.items():
-  print ("{:<15} {:<20} {:<20} {:<20} {:<10}".format(scale_limit, scale['label'], scale['partition_name'], scale['time'], scale['cores']))
-print(''.center(85, '-'))
-'''
+  print ("{:<15} {:<20} {:<20} {:<20} {:<20}".format(scale_limit, scale['label'], scale['partition_name'], scale['time'], scale['mem_per_cpu']))
+print(''.center(95, '-'))
 
 # ===================================================================
 # ===================================================================
@@ -256,13 +263,19 @@ print(''.center(len(section_title)+10, '*'))
 # Define and import the parser module that will be used to parse the source file
 
 print("\nSource file format: ", config['qoct-ra']['source_file_format'])
-source_parser = importlib.import_module(config['qoct-ra']['source_file_format'] + "_parser")
+
+try:
+  source_parser = importlib.import_module(config['qoct-ra']['source_file_format'] + "_parser")
+except ModuleNotFoundError:
+  print("Unable to find the %s.py file in %s" % (source_parser, code_dir))
+  exit(1)
+# For more informations on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
 
 # =========================================================
 # Reading the file
 # =========================================================
 
-print("\nScanning %s file ..." % source_filename, end="")
+print("\nScanning %s file ... " % source_filename, end="")
 with open(source, 'r') as source_file:
   source_content = source_file.read().splitlines()
 print('%20s' % "[ DONE ]")
@@ -273,22 +286,29 @@ source_content = list(map(str.strip, source_content))   # removes leading & trai
 source_content = list(filter(None, source_content))     # removes blank lines/no char
 
 # =========================================================
-# Get the list of states and their multiplicity
+# Get the list of states
 # =========================================================
 
-print("\nExtracting the list of states and their multiplicity ...", end="")
+print("\nExtracting the list of states ...                   ", end="")
 states_list = source_parser.get_states_list(source_content)
-#TODO : define get_states_list in qchem_parser.py
 print('%20s' % "[ DONE ]")
 
+#! The states_list variable is a list of lists of the form [[0, Multiplicity, Energy, Label], [1, Multiplicity, Energy, Label], [2, Multiplicity, Energy, Label], ...]
+#! The first element of each sublist is the state number, starting at 0
+#! Multipliciy corresponds to the first letter of the multiplicity of the state (ex : S for a singlet, T for a triplet)
+#! Energy is the energy of the state, in cm-1
+#! Label is the label of the state, in the form of multiplicity + number of that state of this multiplicity (ex : T1 for the first triplet, S3 for the third singlet)
+
 # =========================================================
-# Get the list of spin-orbit couplings (SOC)
+# Get the list of coupling values
 # =========================================================
 
-print("\nExtracting the list of spin-orbit couplings ...", end="")
-soc_list = source_parser.get_soc_list(source_content)
-#TODO : define get_soc_list in qchem_parser.py
+print("\nExtracting the list of states couplings ...         ", end="")
+coupling_list = source_parser.get_coupling_list(source_content)
 print('%20s' % "[ DONE ]")
+
+#! The coupling_list variable is a list of tuples of the form [[State0, State1, Coupling0-1], [State0, State2, Coupling0-2], [State1, State2, Coupling1-2], ...]
+#! The first two elements of each tuple are the number of the two states and the third one is the value of the coupling linking them (in cm-1)
 
 # =========================================================
 # Get the list of transition dipole moments
@@ -296,10 +316,65 @@ print('%20s' % "[ DONE ]")
 
 print("\nExtracting the list of transition dipole moments ...", end="")
 momdip_list = source_parser.get_momdip_list(source_content)
-#TODO : define get_momdip_list in qchem_parser.py
 print('%20s' % "[ DONE ]")
 
+#! The coupling_list variable is a list of tuples of the form [[State0, State1, MomDip0-1], [State0, State2, MomDip0-2], [State1, State2, MomDip1-2], ...]
+#! The first two elements of each tuple are the number of the two states and the third one is the value of the transition dipole moment associated with the transition between them (in atomic units)
+
 print("\nThe source file has been succesfully parsed.")
+
+# ===================================================================
+# ===================================================================
+#                     CALCULATION REQUIREMENTS
+# ===================================================================
+# ===================================================================
+
+section_title = "2. Calculation requirements"
+
+print("")
+print("")
+print(''.center(len(section_title)+10, '*'))
+print(section_title.center(len(section_title)+10))
+print(''.center(len(section_title)+10, '*'))
+
+# Use the number of states to determine the job scale
+
+scale_index = len(states_list)
+
+# Job scale category definition
+
+jobscale = None
+
+for scale_limit in job_scales:
+  if scale_index > scale_limit:
+    continue
+  else:
+    jobscale = job_scales[scale_limit]
+    jobscale_limit = scale_limit
+    break
+
+if not jobscale:
+  print("\n\nERROR: The number of states is too big for this cluster (%s). Please change cluster." % cluster_name)
+  exit(4)
+
+# Obtaining the informations associated to our job scale
+
+job_partition = jobscale['partition_name']
+job_walltime = jobscale['time']
+job_mem_per_cpu = jobscale['mem_per_cpu']
+
+print("")
+print(''.center(50, '-'))
+print("{:<20} {:<30}".format("Number of states: ", scale_index))
+print(''.center(50, '-'))
+print("{:<20} {:<30}".format("Cluster: ", cluster_name))
+print("{:<20} {:<30}".format("Job scale: ", jobscale["label"]))
+print("{:<20} {:<30}".format("Job scale limit: ", jobscale_limit))
+print(''.center(50, '-'))
+print("{:<20} {:<30}".format("Job partition: ", job_partition))
+print("{:<20} {:<30}".format("Job walltime: ", job_walltime))
+print("{:<20} {:<30}".format("Mem per CPU (MB): ", job_mem_per_cpu))
+print(''.center(50, '-'))
 
 # ===================================================================
 # ===================================================================
@@ -307,7 +382,7 @@ print("\nThe source file has been succesfully parsed.")
 # ===================================================================
 # ===================================================================
 
-section_title = "2. MIME diagonalization"
+section_title = "3. MIME diagonalization"
 
 print("")
 print("")
@@ -316,61 +391,55 @@ print(section_title.center(len(section_title)+10))
 print(''.center(len(section_title)+10, '*'))
 
 # =========================================================
-# Creation of the MIME matrix containing the SOC
+# Creation of the MIME containing the coupling elements
 # =========================================================
-   
+
+print("\nBuilding the MIME ...     ", end="")   
+
 mime = np.zeros((len(states_list), len(states_list)))  # Quick init of a zero-filled matrix
 
-# Add state-to-itself SOC values (Diag.) to the tuple list
+# Add energies (in cm-1) to the tuple list (those will be placed on the diagonal of the MIME)
 for state in states_list:
-  # (prim_key, sub_key, value)
-  tpl = (state[3], state[3], state[2])
-  soc_list.append(tpl)
+  tpl = (state[0], state[0], state[2])
+  # Reminder : state[0] is the state number and state[2] is the state energy
+  coupling_list.append(tpl)
 
-# Rewrite in place soc_list with all state_label translated into their #state
-for idx, soc in enumerate(soc_list):
-    soc_list[idx] = (
-        #int(list(filter(lambda x: x[3] == soc[0], states_list))[0]),
-        #int(list(filter(lambda x: x[3] == soc[1], states_list))[0]),
-        int([ x for x in states_list if x[3] == soc[0] ][0][0]),
-        int([ x for x in states_list if x[3] == soc[1] ][0][0]),
-        soc[2]
-    )
-
-for soc in soc_list:
-  k1 = soc[0] - 1
-  k2 = soc[1] - 1
-  val = soc[2]
+# Creation of the MIME
+for coupling in coupling_list:
+  k1 = coupling[0]
+  k2 = coupling[1]
+  val = coupling[2]
   mime[k1][k2] = val
-  mime[k2][k1] = val    # store inverted couple of keys
+  mime[k2][k1] = val    # For symetry purposes
+
+print('%20s' % "[ DONE ]")
 
 print("\nMIME (cm-1)")
 print('')
 for row in mime:
   for val in row:
-    print(np.format_float_scientific(val,precision=7,unique=False,pad_left=2), end = " ")
+    print(np.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
   print('')
 
 # =========================================================
 # MIME diagonalization
 # =========================================================
 
-print("\nDiagonalizing the MIME ...", end="")   
+print("\nDiagonalizing the MIME ...", end="")
+# Using NumPy to diagonalize the matrix (see https://numpy.org/doc/stable/reference/generated/numpy.linalg.eig.html for reference)   
 diag_mime = np.linalg.eig(mime)
 print('%20s' % "[ DONE ]")
-
-eigenvalues = diag_mime[0]
-eigenvectors = diag_mime[1]
-transpose = np.transpose(eigenvectors)
 
 # =========================================================
 # Eigenvalues
 # =========================================================
 
+eigenvalues = diag_mime[0]
+
 # Converting the eigenvalues from cm-1 to ua, nm and eV
-eigenvalues_ua=eigenvalues/219474.6313705
-eigenvalues_nm=10000000/eigenvalues
-eigenvalues_ev=eigenvalues/8065.6
+eigenvalues_ua = eigenvalues / 219474.6313705
+eigenvalues_nm = 10000000 / eigenvalues
+eigenvalues_ev = eigenvalues / 8065.6
 
 print("")
 print(''.center(40, '-'))
@@ -386,6 +455,8 @@ print(''.center(40, '-'))
 # Eigenvectors matrix
 # =========================================================
 
+eigenvectors = diag_mime[1]
+
 print("\nEigenvectors matrix")
 print('')
 for vector in eigenvectors:
@@ -396,6 +467,9 @@ for vector in eigenvectors:
 # =========================================================
 # Eigenvectors transpose matrix
 # =========================================================
+
+# Using NumPy to transpose the eigenvectors matrix (see https://numpy.org/doc/stable/reference/generated/numpy.transpose.html for reference)
+transpose = np.transpose(eigenvectors)
 
 print("\nEigenvectors transpose matrix")
 print('')
@@ -410,7 +484,7 @@ for vector in transpose:
 # ===================================================================
 # ===================================================================
 
-section_title = "3. Dipole moments matrix"
+section_title = "4. Dipole moments matrix"
 
 print("")
 print("")
@@ -429,7 +503,7 @@ for momdip in momdip_list:
   k2 = int(momdip[1])
   val = float(momdip[2])
   momdip_mtx[k1][k2] = val
-  momdip_mtx[k2][k1] = val    # store inverted couple of keys
+  momdip_mtx[k2][k1] = val    # For symetry purposes
 
 print("\nDipole moments matrix in the zero order basis set (ua)")
 print('')
@@ -442,7 +516,7 @@ for row in momdip_mtx:
 # Conversion in the eigenstates basis set
 # =========================================================
 
-momdip_es_mtx = np.dot(transpose,momdip_mtx)
+momdip_es_mtx = np.dot(transpose,momdip_mtx) #! TODO: check if it's correct
 
 for row in range(len(momdip_es_mtx)):
 	for val in range(row):
@@ -461,7 +535,7 @@ for row in momdip_es_mtx:
 # ===================================================================
 # ===================================================================
 
-section_title = "3. Files creation"
+section_title = "5. Data files creation"
 
 print("")
 print("")
@@ -578,12 +652,11 @@ print('%20s' % "[ DONE ]")
 
 # Projectors
 
-print("\nCreating the projectors files ...")
 print('')
 
 for state in states_list:
   if state[1] == "T":
-    print("Creating the projector file for state %s ..." % state[3])
+    print("Creating the projector file for state %s ..." % state[3], end="")
     proj = np.zeros((len(states_list),len(states_list)),dtype=complex)
     proj[state[0]-1,state[0]-1] = 1+0j
     proj_file = config['qoct-ra']['created_files']['md_folder']['projectors'] + state[3] + "_1"
@@ -593,8 +666,6 @@ for state in states_list:
           print('( {0.real:.2f} , {0.imag:.2f} )'.format(val), end = " ", file = f)
         print('', file = f)
     print('%20s' % "[ DONE ]")
-
-print("\nAll the projectors files have been created")
 
 # =========================================================
 # Shaped Pulse
@@ -640,7 +711,7 @@ print('%12s' % "[ DONE ]")
 # ===================================================================
 # ===================================================================
 
-section_title = "4. Rendering of the parameters file and jobs launching"
+section_title = "6. Rendering of the parameters file and jobs launching"
 
 print("")
 print("")

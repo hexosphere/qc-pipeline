@@ -3,7 +3,7 @@
 
 #! Keep in mind the definition of your scaling function when assigning values to the scale_limit keys
 
-# Those keys are shared between the clusters, they will be used for tiny (or debug) jobs for which the cluster doesn't matter
+# Those keys are shared between the clusters, they will be used for jobs for which the cluster doesn't matter
 shared: 
   progs:
     orca: &tiny_orca
@@ -22,6 +22,12 @@ shared:
       cores: 8 
       mem_per_cpu: 200 # in MB
       delay_command:
+    qoct-ra: &unique_qoctra
+      label: unique
+      scale_limit: 100
+      partition_name: default
+      time: 1-00:00:00
+      mem_per_cpu: 2000 # in MB
 
 # Below are all the useful informations specific to each cluster and each program you wish to run on this cluster.
 
@@ -59,6 +65,11 @@ dragon1:
           cores: 8
           mem_per_cpu: 4000 # in MB  
           delay_command: --begin=now+120
+    qoct-ra:
+      set_env:
+      command:
+      job_scales:
+        - <<: *unique_qoctra
 
 dragon2:
   name: dragon2
@@ -96,6 +107,11 @@ dragon2:
           cores: 8  
           mem_per_cpu: 4000 # in MB
           delay_command: --begin=now+120
+    qoct-ra:
+      set_env:
+      command:
+      job_scales:
+        - <<: *unique_qoctra
 
 lemaitre3:
   name: lemaitre3
@@ -158,6 +174,11 @@ vega:
           cores: 8
           mem_per_cpu: 2000 # in MB
           delay_command: --begin=now+120
+    qoct-ra:
+      set_env:
+      command:
+      job_scales:
+        - <<: *unique_qoctra
 
 #Careful, not member of the CECI and uses Torque instead of SLURM
 hydra:

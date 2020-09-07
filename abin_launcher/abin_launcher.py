@@ -170,7 +170,6 @@ render_fct = prog + "_render"
 
 # Check if the program exists in our databases. 
  
-""" cluster_name = "dragon2" """
 cluster_name = os.environ['CLUSTER_NAME']
 print("\nThis script is running on the %s cluster" % cluster_name)
 
@@ -265,12 +264,12 @@ print("\nJob scales for %s:" % cluster_name)
 job_scales = OrderedDict(sorted(job_scales.items()))
 
 print("")
-print(''.center(85, '-'))
-print ("{:<15} {:<20} {:<20} {:<20} {:<10}".format('scale_limit','Label','Partition_name','Time','Cores'))
-print(''.center(85, '-'))
+print(''.center(105, '-'))
+print ("{:<15} {:<20} {:<20} {:<20} {:<10} {:<20}".format('scale_limit','Label','Partition_name','Time','Cores','Mem per CPU (MB)'))
+print(''.center(105, '-'))
 for scale_limit, scale in job_scales.items():
-  print ("{:<15} {:<20} {:<20} {:<20} {:<10}".format(scale_limit, scale['label'], scale['partition_name'], scale['time'], scale['cores']))
-print(''.center(85, '-'))
+  print ("{:<15} {:<20} {:<20} {:<20} {:<10} {:<20}".format(scale_limit, scale['label'], scale['partition_name'], scale['time'], scale['cores'], scale['mem_per_cpu']))
+print(''.center(105, '-'))
 
 # =========================================================
 # Looking for the molecule files
@@ -384,7 +383,7 @@ for mol_filename in mol_inp_list:
   print(section_title.center(len(section_title)+10))
   print(''.center(len(section_title)+10, '*'))
   
-  # Determining which cluster we're running on and obtaining the related informations
+  # Obtaining the informations associated to our job scale
   
   job_partition = jobscale['partition_name']
   job_walltime = jobscale['time']
@@ -403,6 +402,7 @@ for mol_filename in mol_inp_list:
   print("{:<20} {:<30}".format("Job walltime: ", job_walltime))
   print("{:<20} {:<30}".format("Number of cores: ", job_cores))
   print("{:<20} {:<30}".format("Mem per CPU (MB): ", job_mem_per_cpu))
+  print(''.center(50, '-'))
 
   # =========================================================
   # Rendering the needed input files
