@@ -28,7 +28,7 @@ import yaml
 # ===================================================================
 
 def check_abspath(path,type="either"):
-    """Checks if a path towards a file or folder exists and make sure it's absolute
+    """Checks if a path towards a file or folder exists and makes sure it's absolute.
 
     Parameters
     ----------
@@ -45,25 +45,33 @@ def check_abspath(path,type="either"):
     """
 
     if type not in ["file","folder","either"]:
-      raise ValueError ("The specified type for which check_path function has been called is not one of 'file', 'folder or 'either'")
-    elif not os.path.exists(path):
-      raise IOError ("%s does not seem to exist." % path)
-    elif type == "file":
-      if not os.path.isfile(path):
-        raise ValueError ("%s is not a file" % path)
-    elif type == "folder":
-      if not os.path.isdir(path):
-        raise ValueError ("%s is not a directory" % path)
-    elif type =="either":
-      if not os.path.isdir(path) and not os.path.isfile(path):
-        raise ValueError ("%s is neither a file nor a directory" % path)
-    
+      # Not in try/except structure because the full error message will be need in this case
+      raise ValueError ("The specified type for which the check_abspath function has been called is not one of 'file', 'folder or 'either'")
+
+    # For more informations on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
+    try:
+      if not os.path.exists(path):
+        raise IOError ("%s does not seem to exist." % path)
+      elif type == "file":
+        if not os.path.isfile(path):
+          raise ValueError ("%s is not a file" % path)
+      elif type == "folder":
+        if not os.path.isdir(path):
+          raise ValueError ("%s is not a directory" % path)
+      elif type == "either":
+        if not os.path.isdir(path) and not os.path.isfile(path):
+          raise ValueError ("%s is neither a file nor a directory" % path)
+    except Exception as error:
+      print("ERROR: The argument",error)
+      exit(1)
+
+    # If everything went well, get the normalized absolutized version of the path
     abspath = os.path.abspath(path)
 
     return abspath
 
 def jinja_render(path_tpl_dir, tpl, render_vars):
-    """Renders a file based on its jinja template
+    """Renders a file based on its jinja template.
 
     Parameters
     ----------
@@ -118,6 +126,10 @@ clusters_file = args.clusters            # YAML file containing all informations
 overwrite = args.overwrite               # Flag for overwriting the files
 keep = args.keep                         # Flag for keeping the source file where it is
 
+# Other important variable
+
+prog = "qoct-ra"                         # Name of the blocks that appear in the clusters and config YAML files
+
 # ===================================================================
 # ===================================================================
 #                           PREPARATION STEP
@@ -145,84 +157,77 @@ print(section_title.center(len(section_title)+10))
 print(''.center(len(section_title)+10, '*'))
 
 # =========================================================
-# Important folders
-# =========================================================
-
-# Codes directory (determined by getting the path to the directory where this script is)
-
-code_dir = os.path.dirname(os.path.realpath(os.path.abspath(getsourcefile(lambda:0))))
-print("\nCodes directory:   ", code_dir)
-
-# =========================================================
-# Load YAML files
-# =========================================================
-
-# Loading the config_file
-
-config_file = check_abspath(config_file,"file")
-
-print("\nLoading the main configuration file %s ..." % config_file, end="")
-with open(config_file, 'r') as f_config:
-  config = yaml.load(f_config, Loader=yaml.FullLoader)
-print('%12s' % "[ DONE ]")
-
-# Loading the clusters_file for the informations about the clusters
-
-clusters_file = check_abspath(clusters_file,"file")
-
-print("\nLoading the clusters file %s ..." % clusters_file, end="")
-with open(clusters_file, 'r') as f_clusters:
-  clusters_cfg = yaml.load(f_clusters, Loader=yaml.FullLoader)
-print('%20s' % "[ DONE ]")
-
-# =========================================================
 # Check arguments
 # =========================================================
 
-cluster_name = os.environ['CLUSTER_NAME']
-print("\nThis script is running on the %s cluster" % cluster_name)
-
-# Check if the path to the QOCT-RA directory exists and make sure it's absolute.
-
-qoct_ra_dir = check_abspath(qoct_ra_dir,"folder")
-
-print("\nQOCT-RA directory: ", qoct_ra_dir)
-
-# Check if the path to the source file exists and make sure it's absolute.
-
 source = check_abspath(source,"file")
+qoct_ra_dir = check_abspath(qoct_ra_dir,"folder")
+config_file = check_abspath(config_file,"file")
+clusters_file = check_abspath(clusters_file,"file")
 
-print("\nSource file: ", source)
+# =========================================================
+# Important files and folders
+# =========================================================
 
+cluster_name = os.environ['CLUSTER_NAME']
+print("\nThis script is running on the %s cluster" % cluster_name.upper())
+print ("{:<40} {:<100}".format('\nQOCT-RA directory:',qoct_ra_dir))
+print ("{:<40} {:<100}".format('\nSource file:',source))
+
+# Codes directory (determined by getting the path to the directory where this script is)
+code_dir = os.path.dirname(os.path.realpath(os.path.abspath(getsourcefile(lambda:0))))
+print ("{:<40} {:<100}".format('\nCodes directory:',code_dir))
+
+# Get the name of the source file and the name of the folder where the source file is
 source_path = os.path.dirname(source)
 source_filename = os.path.basename(source)
 
 # Check if a folder already exists for that molecule
-
 mol_name = str(source_filename.split('.')[0]) # Getting rid of the format extension to get the name of the molecule
-
 if os.path.exists(os.path.join(qoct_ra_dir,"Dat",mol_name)) and not overwrite:
   print("\n\nERROR: A folder for the %s molecule already exists in %s !" % (mol_name, os.path.join(qoct_ra_dir,"Dat")))
   print("Aborting ...")
   exit(4)
 
 # =========================================================
+# Load YAML files
+# =========================================================
+
+# Loading the config_file for the information about the molecule
+
+print ("{:<40} {:<100}".format('\nLoading the main configuration file',config_file + " ..."), end="")
+#print("\nLoading the main configuration file  %s ..." % config_file, end="")
+with open(config_file, 'r') as f_config:
+  config = yaml.load(f_config, Loader=yaml.FullLoader)
+print('%12s' % "[ DONE ]")
+
+# Loading the clusters_file for the information about the clusters
+
+print ("{:<40} {:<100}".format('\nLoading the clusters file',clusters_file + " ..."), end="")
+#print("\nLoading the clusters file            %s ..." % clusters_file, end="")
+with open(clusters_file, 'r') as f_clusters:
+  clusters_cfg = yaml.load(f_clusters, Loader=yaml.FullLoader)
+print('%12s' % "[ DONE ]")
+
+# =========================================================
 # Establishing the different job scales
 # =========================================================
 
-if "qoct-ra" not in config:
-  print("\nERROR: No information provided for qoct-ra in the YAML config file. Please add informations for qoct-ra before attempting to run this script.")
+# Check if the relevant informations about QOCT-RA have been provided in the YAML config and clusters files
+
+if prog not in config:
+  print("\nERROR: No information provided for %s in the YAML config file. Please add informations for qoct-ra before attempting to run this script." % prog)
   print("Aborting...")
   exit(3)
 
-if "qoct-ra" not in clusters_cfg[cluster_name]["progs"]:
-  print("\nERROR: There is no information about qoct-ra on this cluster, please add informations to the YAML cluster file.")
+if prog not in clusters_cfg[cluster_name]["progs"]:
+  print("\nERROR: There is no information about %s on this cluster, please add informations to the YAML cluster file." % prog)
   print("Aborting...")
   exit(3) 
 
 # Gather all the different job scales from the clusters configuration file in a temporary dictionary
 
-job_scales_tmp = clusters_cfg[cluster_name]['progs']['qoct-ra']['job_scales']
+job_scales_tmp = clusters_cfg[cluster_name]['progs'][prog]['job_scales']
 
 # Initialize the final dictionary where the job scales will be sorted by their upper limit
 
@@ -235,12 +240,12 @@ for scale in job_scales_tmp:
   del scale['scale_limit']
   job_scales[int(scale_limit)] = scale
 
-print("\nJob scales for %s:" % cluster_name)
+print("\nJob scales for QOCT-RA on %s:" % cluster_name.upper())
 job_scales = OrderedDict(sorted(job_scales.items()))
 
 print("")
 print(''.center(95, '-'))
-print ("{:<15} {:<20} {:<20} {:<20} {:<20}".format('scale_limit','Label','Partition_name','Time','Mem per CPU (MB)'))
+print ("{:<15} {:<20} {:<20} {:<20} {:<20}".format('Scale Limit','Label','Partition Name','Time','Mem per CPU (MB)'))
 print(''.center(95, '-'))
 for scale_limit, scale in job_scales.items():
   print ("{:<15} {:<20} {:<20} {:<20} {:<20}".format(scale_limit, scale['label'], scale['partition_name'], scale['time'], scale['mem_per_cpu']))
@@ -262,12 +267,14 @@ print(''.center(len(section_title)+10, '*'))
 
 # Define and import the parser module that will be used to parse the source file
 
-print("\nSource file format: ", config['qoct-ra']['source_file_format'])
+source_format = config[prog]['source_file_format']
+print("\nSource file format: ", source_format)
 
 try:
-  source_parser = importlib.import_module(config['qoct-ra']['source_file_format'] + "_parser")
+  # The source_parser must be named as the source file format provided in the config file + "_parser.py"
+  source_parser = importlib.import_module(source_format + "_parser")
 except ModuleNotFoundError:
-  print("Unable to find the %s.py file in %s" % (source_parser, code_dir))
+  print("ERROR: Unable to find the %s_parser.py file in %s" % (source_format, code_dir))
   exit(1)
 # For more informations on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
 
@@ -275,10 +282,10 @@ except ModuleNotFoundError:
 # Reading the file
 # =========================================================
 
-print("\nScanning %s file ... " % source_filename, end="")
+print ("{:<60}".format('\nScanning %s file ... ' % source_filename), end="")
 with open(source, 'r') as source_file:
   source_content = source_file.read().splitlines()
-print('%20s' % "[ DONE ]")
+print('%12s' % "[ DONE ]")
 
 # Cleaning up the source file from surrounding spaces and blank lines
 
@@ -289,23 +296,33 @@ source_content = list(filter(None, source_content))     # removes blank lines/no
 # Get the list of states
 # =========================================================
 
-print("\nExtracting the list of states ...                   ", end="")
+print ("{:<60}".format('\nExtracting the list of states ... '), end="")
 states_list = source_parser.get_states_list(source_content)
-print('%20s' % "[ DONE ]")
+print('%12s' % "[ DONE ]")
 
-#! The states_list variable is a list of lists of the form [[0, Multiplicity, Energy, Label], [1, Multiplicity, Energy, Label], [2, Multiplicity, Energy, Label], ...]
-#! The first element of each sublist is the state number, starting at 0
+#! The states_list variable is a list of tuples of the form [[0, Multiplicity, Energy, Label], [1, Multiplicity, Energy, Label], [2, Multiplicity, Energy, Label], ...]
+#! The first element of each tuple is the state number, starting at 0
 #! Multipliciy corresponds to the first letter of the multiplicity of the state (ex : S for a singlet, T for a triplet)
 #! Energy is the energy of the state, in cm-1
 #! Label is the label of the state, in the form of multiplicity + number of that state of this multiplicity (ex : T1 for the first triplet, S3 for the third singlet)
+
+print("")
+print(''.center(50, '-'))
+print('States List'.center(50, ' '))
+print(''.center(50, '-'))
+print("{:<10} {:<15} {:<15} {:<10}".format('Number','Multiplicity','Energy (cm-1)','Label'))
+print(''.center(50, '-'))
+for state in states_list:
+  print("{:<10} {:<15} {:<15.3f} {:<10}".format(state[0],state[1],state[2],state[3]))
+print(''.center(50, '-'))
 
 # =========================================================
 # Get the list of coupling values
 # =========================================================
 
-print("\nExtracting the list of states couplings ...         ", end="")
+print ("{:<60}".format('\nExtracting the list of states couplings ... '), end="")
 coupling_list = source_parser.get_coupling_list(source_content)
-print('%20s' % "[ DONE ]")
+print('%12s' % "[ DONE ]")
 
 #! The coupling_list variable is a list of tuples of the form [[State0, State1, Coupling0-1], [State0, State2, Coupling0-2], [State1, State2, Coupling1-2], ...]
 #! The first two elements of each tuple are the number of the two states and the third one is the value of the coupling linking them (in cm-1)
@@ -314,11 +331,11 @@ print('%20s' % "[ DONE ]")
 # Get the list of transition dipole moments
 # =========================================================
 
-print("\nExtracting the list of transition dipole moments ...", end="")
+print ("{:<60}".format('\nExtracting the list of transition dipole moments ... '), end="")
 momdip_list = source_parser.get_momdip_list(source_content)
-print('%20s' % "[ DONE ]")
+print('%12s' % "[ DONE ]")
 
-#! The coupling_list variable is a list of tuples of the form [[State0, State1, MomDip0-1], [State0, State2, MomDip0-2], [State1, State2, MomDip1-2], ...]
+#! The momdip_list variable is a list of tuples of the form [[State0, State1, MomDip0-1], [State0, State2, MomDip0-2], [State1, State2, MomDip1-2], ...]
 #! The first two elements of each tuple are the number of the two states and the third one is the value of the transition dipole moment associated with the transition between them (in atomic units)
 
 print("\nThe source file has been succesfully parsed.")
@@ -400,8 +417,8 @@ mime = np.zeros((len(states_list), len(states_list)))  # Quick init of a zero-fi
 
 # Add energies (in cm-1) to the tuple list (those will be placed on the diagonal of the MIME)
 for state in states_list:
-  tpl = (state[0], state[0], state[2])
   # Reminder : state[0] is the state number and state[2] is the state energy
+  tpl = (state[0], state[0], state[2])
   coupling_list.append(tpl)
 
 # Creation of the MIME
@@ -564,7 +581,7 @@ print("\nWriting already calculated values to files (states list, mime, eigenval
 
 # MIME
 
-mime_file = config['qoct-ra']['created_files']['mime_file']
+mime_file = config[prog]['created_files']['mime_file']
 np.savetxt(os.path.join(mol_dir,mime_file),mime,fmt='% 18.10e')
 
 # States List
@@ -572,21 +589,19 @@ np.savetxt(os.path.join(mol_dir,mime_file),mime,fmt='% 18.10e')
 basis_dir = os.path.join(mol_dir,"Basis")
 os.makedirs(basis_dir)
 
-states_file = config['qoct-ra']['created_files']['basis_folder']['states_file']
+states_file = config[prog]['created_files']['basis_folder']['states_file']
 
 with open(os.path.join(basis_dir, states_file), "w") as f:
   for state in states_list:
-    f.write("%d %s" % (state[0], state[1]))
-  f.write("#comment")
-
-#TODO : Save the whole states_list with np.savetxt ? Will it still works with QOCT-RA ?
+    print("{:<5} {:<5} {:<10.3f} {:<8}".format(state[0],state[1],state[2],state[3]),file = f)
+  print("#comment", file = f)
 
 # Energies
 
 energies_dir = os.path.join(mol_dir,"Energies")
 os.makedirs(energies_dir)
 
-energies_file = config['qoct-ra']['created_files']['energies_folder']['energies_file']
+energies_file = config[prog]['created_files']['energies_folder']['energies_file']
 
 np.savetxt(os.path.join(energies_dir,energies_file + '_cm-1'),eigenvalues,fmt='%1.10e')
 np.savetxt(os.path.join(energies_dir,energies_file + '_ua'),eigenvalues_ua,fmt='%1.10e',footer='comment',comments='#')
@@ -598,10 +613,10 @@ np.savetxt(os.path.join(energies_dir,energies_file + '_ev'),eigenvalues_ev,fmt='
 mat_dir = os.path.join(mol_dir,"Mat_cb")
 os.makedirs(mat_dir)
 
-mat_et0 = config['qoct-ra']['created_files']['mat_cb_folder']['eigen_to_zero']
+mat_et0 = config[prog]['created_files']['mat_cb_folder']['eigen_to_zero']
 np.savetxt(os.path.join(mat_dir,mat_et0),eigenvectors,fmt='% 18.10e')
 
-mat_0te = config['qoct-ra']['created_files']['mat_cb_folder']['zero_to_eigen']
+mat_0te = config[prog]['created_files']['mat_cb_folder']['zero_to_eigen']
 np.savetxt(os.path.join(mat_dir,mat_0te),transpose,fmt='% 18.10e')
 
 # Dipole moments matrix
@@ -609,10 +624,10 @@ np.savetxt(os.path.join(mat_dir,mat_0te),transpose,fmt='% 18.10e')
 mom_dir = os.path.join(mol_dir,"MomDip")
 os.makedirs(mom_dir)
 
-momdip_0 = config['qoct-ra']['created_files']['momdip_folder']['momdip_zero']
+momdip_0 = config[prog]['created_files']['momdip_folder']['momdip_zero']
 np.savetxt(os.path.join(mom_dir,momdip_0),momdip_mtx,fmt='% 18.10e')
 
-momdip_e = config['qoct-ra']['created_files']['momdip_folder']['momdip_eigen']
+momdip_e = config[prog]['created_files']['momdip_folder']['momdip_eigen']
 np.savetxt(os.path.join(mom_dir,momdip_e),momdip_es_mtx,fmt='% 18.10e')	
 
 print('%20s' % "[ DONE ]")
@@ -631,7 +646,7 @@ print("\nCreating initial population file (ground state in the eigenstates basis
 init_pop = np.zeros((len(states_list), len(states_list)),dtype=complex)  # Quick init of a zero-filled matrix
 init_pop[0,0] = 1+0j # All the population is in the ground state at the beginning
 
-init_file = config['qoct-ra']['created_files']['md_folder']['initial'] + "_1"
+init_file = config[prog]['created_files']['md_folder']['initial'] + "_1"
 
 with open(os.path.join(md_dir, init_file), "w") as f:
   for line in init_pop:
@@ -645,7 +660,7 @@ print('%20s' % "[ DONE ]")
 
 print("\nCreating dummy final population file (copy of the initial population file) ...", end="") 
 
-final_file = config['qoct-ra']['created_files']['md_folder']['final'] + "_1"
+final_file = config[prog]['created_files']['md_folder']['final'] + "_1"
 shutil.copy(os.path.join(md_dir,init_file), os.path.join(md_dir,final_file))
 
 print('%20s' % "[ DONE ]")
@@ -659,7 +674,7 @@ for state in states_list:
     print("Creating the projector file for state %s ..." % state[3], end="")
     proj = np.zeros((len(states_list),len(states_list)),dtype=complex)
     proj[state[0]-1,state[0]-1] = 1+0j
-    proj_file = config['qoct-ra']['created_files']['md_folder']['projectors'] + state[3] + "_1"
+    proj_file = config[prog]['created_files']['md_folder']['projectors'] + state[3] + "_1"
     with open(os.path.join(md_dir, proj_file), "w") as f:
       for line in proj:
         for val in line:
@@ -678,8 +693,8 @@ print("\nRendering the jinja template for the shaped pulse file ...", end="")
 
 # Define the names of the template and rendered file, given in the main configuration YAML file.
 
-tpl_pulse = config['qoct-ra']['jinja_templates']['shaped_pulse']                           # Jinja template file for the shaped pulse file
-rnd_pulse = config['qoct-ra']['created_files']['shaped_pulse_folder']['pulse_file']        # Name of the rendered shaped pulse file
+tpl_pulse = config[prog]['jinja_templates']['shaped_pulse']                           # Jinja template file for the shaped pulse file
+rnd_pulse = config[prog]['created_files']['shaped_pulse_folder']['pulse_file']        # Name of the rendered shaped pulse file
 
 # Determine the central frequency of the pulse in cm-1 (here defined as the average of the eigenvalues)
 
@@ -688,11 +703,11 @@ central_frequency = np.mean(eigenvalues)
 # Definition of the variables present in the jinja template
 
 render_vars = {
-  "basis" : config['qoct-ra']['created_files']['basis_folder']['states_file'],
-  "shape" : config['qoct-ra']['pulse_parameters']['shape'],
-  "nb_pixels" : config['qoct-ra']['pulse_parameters']['nb_pixels'],
-  "energy" : config['qoct-ra']['pulse_parameters']['energy'],
-  "fwhm" : config['qoct-ra']['pulse_parameters']['fwhm'],
+  "basis" : config[prog]['created_files']['basis_folder']['states_file'],
+  "shape" : config[prog]['pulse_parameters']['shape'],
+  "nb_pixels" : config[prog]['pulse_parameters']['nb_pixels'],
+  "energy" : config[prog]['pulse_parameters']['energy'],
+  "fwhm" : config[prog]['pulse_parameters']['fwhm'],
   "frequency" : central_frequency
 }
 
@@ -721,24 +736,24 @@ print(''.center(len(section_title)+10, '*'))
 
 # Define the names of the template and rendered file, given in the main configuration YAML file.
 
-tpl_param = config['qoct-ra']['jinja_templates']['parameters_file']                           # Jinja template file for the parameters file
-rnd_param = config['qoct-ra']['rendered_files']['parameters_file']                            # Name of the rendered parameters file
+tpl_param = config[prog]['jinja_templates']['parameters_file']                           # Jinja template file for the parameters file
+rnd_param = config[prog]['rendered_files']['parameters_file']                            # Name of the rendered parameters file
 
 # Definition of the variables present in the jinja template
 
 render_vars = {
   "mol_name" : mol_name,
-  "basis" : config['qoct-ra']['created_files']['basis_folder']['states_file'],
+  "basis" : config[prog]['created_files']['basis_folder']['states_file'],
   "energies_ua" : energies_file + '_ua',
   "momdip_e" : momdip_e,
   "initial" : init_file,
   "final" : final_file,
-  "projector" : config['qoct-ra']['created_files']['md_folder']['projectors'],
-  "nstep" : config['qoct-ra']['main_parameters']['nstep'],
-  "dt" : config['qoct-ra']['main_parameters']['dt'],
-  "niter" : config['qoct-ra']['main_parameters']['niter'],
-  "threshold" : config['qoct-ra']['main_parameters']['threshold'],
-  "alpha0" : config['qoct-ra']['main_parameters']['alpha0'],
+  "projector" : config[prog]['created_files']['md_folder']['projectors'],
+  "nstep" : config[prog]['main_parameters']['nstep'],
+  "dt" : config[prog]['main_parameters']['dt'],
+  "niter" : config[prog]['main_parameters']['niter'],
+  "threshold" : config[prog]['main_parameters']['threshold'],
+  "alpha0" : config[prog]['main_parameters']['alpha0'],
   "pulse" : rnd_pulse,
   "mat_et0" : mat_et0
 }

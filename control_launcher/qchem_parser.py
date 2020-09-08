@@ -42,8 +42,8 @@ def get_states_list(file_content):
     Returns
     -------
     states_list : list
-        A list of lists of the form [[0, Multiplicity, Energy, Label], [1, Multiplicity, Energy, Label], [2, Multiplicity, Energy, Label], ...]
-        The first element of each sublist is the state number, starting at 0
+        A list of tuples of the form [[0, Multiplicity, Energy, Label], [1, Multiplicity, Energy, Label], [2, Multiplicity, Energy, Label], ...]
+        The first element of each tuple is the state number, starting at 0
         Multiplicity corresponds to the first letter of the multiplicity of the state (ex : S for a singlet, T for a triplet)
         Energy is the energy of the state, in cm-1
         Label is the label of the state, in the form of multiplicity + number of that state of this multiplicity (ex : T1 for the first triplet, S3 for the third singlet)
@@ -283,7 +283,7 @@ def get_momdip_list (file_content):
             r'^STATE-TO-STATE TRANSITION MOMENTS$'),
         # Pattern for finding lines looking like '                    END OF TRANSITION MOMENT CALCULATION'
         'section_end': re.compile(
-            r'^END OF TRANSITION MOMEMT CALCULATION$')
+            r'^END OF TRANSITION MOMENT CALCULATION$')
     }
 
     # Define the expression patterns for the lines containing information about the dipole moments
