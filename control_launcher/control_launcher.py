@@ -302,9 +302,9 @@ print('%12s' % "[ DONE ]")
 
 #! The states_list variable is a list of tuples of the form [[0, Multiplicity, Energy, Label], [1, Multiplicity, Energy, Label], [2, Multiplicity, Energy, Label], ...]
 #! The first element of each tuple is the state number, starting at 0
-#! Multipliciy corresponds to the first letter of the multiplicity of the state (ex : S for a singlet, T for a triplet)
+#! Multipliciy corresponds to the first letter of the multiplicity of the state (ex: S for a singlet, T for a triplet)
 #! Energy is the energy of the state, in cm-1
-#! Label is the label of the state, in the form of multiplicity + number of that state of this multiplicity (ex : T1 for the first triplet, S3 for the third singlet)
+#! Label is the label of the state, in the form of multiplicity + number of that state of this multiplicity (ex: T1 for the first triplet, S3 for the third singlet)
 
 print("")
 print(''.center(50, '-'))
@@ -371,10 +371,10 @@ for scale_limit in job_scales:
     break
 
 if not jobscale:
-  print("\n\nERROR: The number of states is too big for this cluster (%s). Please change cluster." % cluster_name)
+  print("\n\nERROR: The number of states is too big for this cluster (%s). Please change cluster." % cluster_name.upper())
   exit(4)
 
-# Obtaining the informations associated to our job scale
+# Obtaining the information associated to our job scale
 
 job_partition = jobscale['partition_name']
 job_walltime = jobscale['time']
@@ -536,8 +536,8 @@ for row in momdip_mtx:
 momdip_es_mtx = np.dot(transpose,momdip_mtx) #! TODO: check if it's correct
 
 for row in range(len(momdip_es_mtx)):
-	for val in range(row):
-		momdip_es_mtx[val,row] = momdip_es_mtx[row,val] #!: Why?
+  for val in range(row):
+    momdip_es_mtx[val,row] = momdip_es_mtx[row,val] #!: Why?
 		
 print("\nDipole moments matrix in the eigenstates basis set (ua)")
 print('')

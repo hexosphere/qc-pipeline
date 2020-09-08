@@ -3,31 +3,36 @@
 
 #! Keep in mind the definition of your scaling function when assigning values to the scale_limit keys
 
-# Those keys are shared between the clusters, they will be used for jobs for which the cluster doesn't matter
+# Those keys are shared between the clusters, they will be used for information for which the cluster doesn't matter
 shared: 
   progs:
-    orca: &tiny_orca
-      label: tiny
-      scale_limit: 50
-      partition_name: default
-      time: 0-00:10:00
-      cores: 8 
-      mem_per_cpu: 200 # in MB
-      delay_command:
-    qchem: &tiny_qchem
-      label: tiny
-      scale_limit: 50
-      partition_name: default
-      time: 0-00:10:00
-      cores: 8 
-      mem_per_cpu: 200 # in MB
-      delay_command:
-    qoct-ra: &unique_qoctra
-      label: unique
-      scale_limit: 100
-      partition_name: default
-      time: 1-00:00:00
-      mem_per_cpu: 2000 # in MB
+    orca:
+      manifest_template: &orca_jinja orca_job.sh.jinja # Name of the jinja template for the job submitting script
+      manifest_render: &orca_render orca_job.sh        # Name of the rendered job submitting script
+      job_scales: &tiny_orca
+        label: tiny
+        scale_limit: 50
+        partition_name: default
+        time: 0-00:10:00
+        cores: 8 
+        mem_per_cpu: 200 # in MB
+        delay_command:
+    qchem: 
+      job_scales: &tiny_qchem
+        label: tiny
+        scale_limit: 50
+        partition_name: default
+        time: 0-00:10:00
+        cores: 8 
+        mem_per_cpu: 200 # in MB
+        delay_command:
+    qoct-ra: 
+      job_scales: &unique_qoctra
+        label: unique
+        scale_limit: 100
+        partition_name: default
+        time: 1-00:00:00
+        mem_per_cpu: 2000 # in MB
 
 # Below are all the useful informations specific to each cluster and each program you wish to run on this cluster.
 
@@ -38,6 +43,8 @@ dragon1:
   subcommand: sbatch
   progs:
     orca:
+      manifest_template: *orca_jinja
+      manifest_render: *orca_render
       set_env:
         - module --force purge
         - module load orca/4.0.1.2 
@@ -78,6 +85,8 @@ dragon2:
   subcommand: sbatch
   progs:
     orca:
+      manifest_template: *orca_jinja
+      manifest_render: *orca_render
       set_env:
         - module --force purge
         - module load releases/2019b
@@ -120,6 +129,8 @@ lemaitre3:
   subcommand: sbatch
   progs:
     orca:
+      manifest_template: *orca_jinja
+      manifest_render: *orca_render
       set_env: 
         - module load ORCA/4.1.0-OpenMPI-3.1.3
       command: /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.1.0-OpenMPI-3.1.3/orca
@@ -154,6 +165,8 @@ vega:
   subcommand: sbatch
   progs:
     orca:
+      manifest_template: *orca_jinja
+      manifest_render: *orca_render
       set_env: 
         - module purge
         - module load ORCA/4.0.0.2-OpenMPI-2.0.2
@@ -189,6 +202,8 @@ hydra:
   subcommand: qsub
   progs:
     qchem:
+      manifest_template: qchem_job.sh.jinja
+      manifest_render: qchem_job.sh
       set_env: 
         - module load Q-Chem/5.2.1-intel-2019a-mpich3
       command: qchem -nt

@@ -15,12 +15,9 @@ general:
 
 # This block contains all the informations specific to orca.
 orca:
-# Define here the jinja template names, as well as the name of the files created by abin_launcher. The jinja templates must be put in the Templates folder.
+# Define here the jinja template names, those files must be put in the Templates folder.
   jinja_templates:
-    manifest: orca_job.sh.jinja
-    input: orca.inp.jinja
-  rendered_files:
-    manifest: orca_job.sh
+    input: orca.inp.jinja   # The rendered file will be named <mol_name>.inp, where <mol_name> is the name of the molecule file
 # Define here the name of your scaling function
   scaling_function: total_nb_elec
 # The keywords you provide here are the keywords that will be used "as-is" in the keyword line of the ORCA input file, be sure that ORCA knows them! (see ORCA's manual for more informations)
@@ -34,12 +31,9 @@ orca:
 
 # This block contains all the informations specific to qchem.
 qchem:
-# Define here the jinja template names, as well as the name of the files created by abin_launcher. The jinja templates must be put in the Templates folder.
+# Define here the jinja template names, those files must be put in the Templates folder.
   jinja_templates:
-    manifest: qchem_job.sh.jinja
-    input: qchem.in.jinja
-  rendered_files:
-    manifest: qchem_job.sh
+    input: qchem.in.jinja   # The rendered file will be named <mol_name>.in, where <mol_name> is the name of the molecule file
 # Define here the name of your scaling function
   scaling_function: total_nb_elec
 # The keywords you provide here are the keywords that will be used "as-is" in the Q-CHEM input file, be sure that Q-CHEM knows them! (see Q-CHEM's manual for more informations)

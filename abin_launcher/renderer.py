@@ -58,11 +58,11 @@ def orca_render(vars):
 
     # Define the names of all the template and rendered files, given in the main configuration YAML file.
 
-    tpl_inp = vars['config'][vars['prog']]['jinja_templates']['input']                 # Jinja template file for the orca input
-    tpl_manifest = vars['config'][vars['prog']]['jinja_templates']['manifest']         # Jinja template file for the orca job manifest (slurm script)
+    tpl_inp = vars['config'][vars['prog']]['jinja_templates']['input']                                            # Jinja template file for the orca input
+    tpl_manifest = vars['clusters_cfg'][vars['cluster_name']]['progs'][vars['prog']]['manifest_template']         # Jinja template file for the orca job manifest (job submitting script)
 
-    rnd_input = vars['mol_name'] + ".inp"                                              # Name of the rendered input file, this one is automatically named after the molecule and not defined in the configuration file
-    rnd_manifest = vars['config'][vars['prog']]['rendered_files']['manifest']          # Name of the rendered job manifest file
+    rnd_input = vars['mol_name'] + ".inp"                                                                         # Name of the rendered input file (automatically named after the molecule and not defined in the config file)
+    rnd_manifest = vars['clusters_cfg'][vars['cluster_name']]['progs'][vars['prog']]['manifest_render']           # Name of the rendered job manifest file
 
     # Initialize our dictionary that will content all the text of the rendered files
 
@@ -151,11 +151,11 @@ def qchem_render(vars):
 
     # Define the names of all the template and rendered files, given in the main configuration YAML file.
 
-    tpl_inp = vars['config'][vars['prog']]['jinja_templates']['input']                 # Jinja template file for the qchem input
-    tpl_manifest = vars['config'][vars['prog']]['jinja_templates']['manifest']         # Jinja template file for the qchem job manifest (slurm script)
+    tpl_inp = vars['config'][vars['prog']]['jinja_templates']['input']                                            # Jinja template file for the qchem input
+    tpl_manifest = vars['clusters_cfg'][vars['cluster_name']]['progs'][vars['prog']]['manifest_template']         # Jinja template file for the qchem job manifest (job submitting script)
 
-    rnd_input = vars['mol_name'] + ".in"                                               # Name of the rendered input file, this one is automatically named after the molecule and not defined in the configuration file
-    rnd_manifest = vars['config'][vars['prog']]['rendered_files']['manifest']          # Name of the rendered job manifest file
+    rnd_input = vars['mol_name'] + ".in"                                                                          # Name of the rendered input file (automatically named after the molecule and not defined in the config file)
+    rnd_manifest = vars['clusters_cfg'][vars['cluster_name']]['progs'][vars['prog']]['manifest_render']           # Name of the rendered job manifest file
 
     # Initialize our dictionary that will content all the text of the rendered files
 
