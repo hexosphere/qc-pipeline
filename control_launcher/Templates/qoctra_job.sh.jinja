@@ -39,7 +39,7 @@ echo -e "Creating temporary folder $SCRATCH for handling temporary files."
 mkdir -p $SCRATCH || exit $?
 
 cp -r $SLURM_SUBMIT_DIR/Codes $SCRATCH/ || exit $?
-cp $SLURM_SUBMIT_DIR/param.nml $SCRATCH/ || exit $?
+cp $SLURM_SUBMIT_DIR/{{  rnd_param  }} $SCRATCH/ || exit $?
 
 cd $SCRATCH
 
@@ -75,7 +75,9 @@ echo -e "\n===================================================================="
 echo -e "==============   Post-calculation files manipulation   ============="
 echo -e "===================================================================="
 
-
+#TODO: FFT and FFTi of the field
+#TODO: PCP if high fidelity (use param_<target>_PCP.nml)
+#TODO: Send relevant output files to CECIHOME
 
 echo -e "\n******************************************************************************"
 echo -e "*****************************   End of the job   *****************************"

@@ -596,7 +596,8 @@ print("{:<60}".format('\nCreating %s file ... ' % states_file), end="")
 with open(os.path.join(data_dir, states_file), "w") as f:
   print("Number;Multiplicity;Energy (cm-1);Label", file = f)
   for state in states_list:
-    print((state[0],";",state[1],";",state[2],";",state[3]), file = f)
+    # Print every item in state, separated by ";"
+    print(";".join(map(str,state)), file = f)
 print('%12s' % "[ DONE ]")
 
 # Energies
@@ -671,7 +672,7 @@ target_state = config[prog]['target_state'] # The type of states that will be ta
 
 for state in states_list:
   if state[1] == target_state:
-    print("{:<59}".format("Creating the %s file ..." % (proj_file + state[3])), end="")
+    print("{:<59}".format("Creating %s file ..." % (proj_file + state[3])), end="")
     proj = np.zeros((len(states_list),len(states_list)),dtype=complex)
     proj[state[0],state[0]] = 1+0j
     with open(os.path.join(data_dir, proj_file + state[3] + "_1"), "w") as f:
@@ -699,7 +700,7 @@ print(''.center(len(section_title)+10, '*'))
 # Defining the jinja templates
 # =========================================================
 
-print("{:<80}".format("\nDefining and preparing the jinja templates ..."), end="") 
+print("{:<81}".format("\nDefining and preparing the jinja templates ..."), end="") 
 
 # Define the names of the template and rendered files, given in the YAML files.
 
@@ -786,17 +787,16 @@ for state in states_list:
     print('%12s' % "[ DONE ]")
     
     # Launch the job
-    print("    Launching the job ...")
+    print("{:<80}".format("    Launching the job ..."), end="")
     os.chdir(job_dir)
     launch_command = clusters_cfg[cluster_name]['subcommand'] + " " + rnd_manifest
-    """
     retcode = os.system(launch_command)
     if retcode != 0 :
       print("ALERT: Job submit encountered an issue")
       print("Aborting ...")
       exit(1)
-    """
-        
+    print('%12s' % "[ DONE ]")
+    
 # Archive the molecule file in launched_dir if keep has not been set
     
 if not keep:
