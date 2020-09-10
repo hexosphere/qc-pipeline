@@ -772,8 +772,8 @@ for state in states_list:
     print("{:<80}".format("    Rendering the jinja template to create the %s file ..." % rnd_param), end ="")
     param_render_vars["target"] = target
     param_content = jinja_render(os.path.join(code_dir,"Templates"), tpl_param, param_render_vars)       # Render the jinja template of the parameters file
-    with open(os.path.join(job_dir, rnd_param), "w") as param_file:
-      param_file.write(param_content.encode('utf-8').strip())
+    with open(os.path.join(job_dir, rnd_param), "w", encoding='utf-8') as param_file:
+      param_file.write(param_content)
     print('%12s' % "[ DONE ]")
     
     # Create the job manifest for that specific target
@@ -781,7 +781,7 @@ for state in states_list:
     manifest_render_vars["target"] = target
     manifest_render_vars["rnd_param"] = rnd_param
     manifest_content = jinja_render(os.path.join(code_dir,"Templates"), tpl_manifest, manifest_render_vars) # Render the jinja template of the job manifest
-    with open(os.path.join(job_dir, rnd_manifest), "w") as manifest_file:
+    with open(os.path.join(job_dir, rnd_manifest), "w", encoding='utf-8') as manifest_file:
       manifest_file.write(manifest_content)
     print('%12s' % "[ DONE ]")
     
