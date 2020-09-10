@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# coding: utf8
 
 ########################################################################################################################################################
 ##                                                        QOCT-RA Input Builder & Job Launcher                                                        ##
@@ -267,14 +268,14 @@ print(''.center(len(section_title)+10, '*'))
 
 # Define and import the parser module that will be used to parse the source file
 
-source_format = config[prog]['source_file_format']
-print("\nSource file format: ", source_format)
+parser_file = config[prog]['parser_script']
+print("\nParser script file: ", parser_file)
 
 try:
-  # The source_parser must be named as the source file format provided in the config file + "_parser.py"
-  source_parser = importlib.import_module(source_format + "_parser")
+  # The source_parser must be named as the "parser_script" provided in the config YAML file + ".py"
+  source_parser = importlib.import_module(parser_file)
 except ModuleNotFoundError:
-  print("ERROR: Unable to find the %s_parser.py file in %s" % (source_format, code_dir))
+  print("ERROR: Unable to find the %s.py file in %s" % (parser_file, code_dir))
   exit(1)
 # For more informations on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
 
@@ -302,9 +303,9 @@ print('%12s' % "[ DONE ]")
 
 #! The states_list variable is a list of tuples of the form [[0, Multiplicity, Energy, Label], [1, Multiplicity, Energy, Label], [2, Multiplicity, Energy, Label], ...]
 #! The first element of each tuple is the state number, starting at 0
-#! Multipliciy corresponds to the first letter of the multiplicity of the state (ex: S for a singlet, T for a triplet)
+#! Multipliciy corresponds to the multiplicity of the state
 #! Energy is the energy of the state, in cm-1
-#! Label is the label of the state, in the form of multiplicity + number of that state of this multiplicity (ex: T1 for the first triplet, S3 for the third singlet)
+#! Label is the label of the state, in the form of first letter of multiplicity + number of that state of this multiplicity (ex: T1 for the first triplet, S3 for the third singlet)
 
 print("")
 print(''.center(50, '-'))
@@ -666,9 +667,10 @@ print('%12s' % "[ DONE ]")
 
 print('')
 proj_file = config[prog]['created_files']['projectors']
+target_state = config[prog]['target_state'] # The type of states that will be targeted by the control
 
 for state in states_list:
-  if state[1] == "T":
+  if state[1] == target_state:
     print("{:<59}".format("Creating the %s file ..." % (proj_file + state[3])), end="")
     proj = np.zeros((len(states_list),len(states_list)),dtype=complex)
     proj[state[0],state[0]] = 1+0j
@@ -756,7 +758,7 @@ print('%12s' % "[ DONE ]")
 # For each projector, render the parameters file and run the corresponding job
 
 for state in states_list:
-  if state[1] == "T": # The target states are the triplets
+  if state[1] == target_state: # The target states are the triplets
     target = state[3]
     print("\nPreparing to launch job with %s as the target state ..." % target)
 
@@ -771,7 +773,7 @@ for state in states_list:
     param_render_vars["target"] = target
     param_content = jinja_render(os.path.join(code_dir,"Templates"), tpl_param, param_render_vars)       # Render the jinja template of the parameters file
     with open(os.path.join(job_dir, rnd_param), "w") as param_file:
-      param_file.write(param_content)
+      param_file.write(param_content.encode('utf-8').strip())
     print('%12s' % "[ DONE ]")
     
     # Create the job manifest for that specific target
@@ -782,7 +784,28 @@ for state in states_list:
     with open(os.path.join(job_dir, rnd_manifest), "w") as manifest_file:
       manifest_file.write(manifest_content)
     print('%12s' % "[ DONE ]")
-    #TODO: Run the job
+    
+    # Launch the job
+    print("    Launching the job ...")
+    os.chdir(job_dir)
+    launch_command = clusters_cfg[cluster_name]['subcommand'] + " " + rnd_manifest
+    """
+    retcode = os.system(launch_command)
+    if retcode != 0 :
+      print("ALERT: Job submit encountered an issue")
+      print("Aborting ...")
+      exit(1)
+    """
+        
+# Archive the molecule file in launched_dir if keep has not been set
+    
+if not keep:
+  launched_dir = os.path.join(source_path,"Launched")                             # Folder where the source file will be put after having been treated by this script, path is relative to the directory of the source file.
+  os.makedirs(launched_dir, exist_ok=True)
+  if os.path.exists(os.path.join(launched_dir,source_filename)):
+    os.remove(os.path.join(launched_dir,source_filename))
+  shutil.move(os.path.join(source_path,source_filename), launched_dir)
+  print("\nOriginal source file archived to %s" % launched_dir)
 
 print("")
 print("".center(columns,"*"))

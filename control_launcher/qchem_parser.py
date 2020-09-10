@@ -57,7 +57,7 @@ def get_states_list(file_content):
 
     section_found = False
     section_in = False
-    states_list = [(0, 'S', 0.0, 'S0')] # Starts with information about the ground state
+    states_list = [(0, 'Singlet', 0.0, 'S0')] # Starts with information about the ground state
     curr_state = -1
     curr_energy = -1
     exc_state = -1
@@ -65,6 +65,7 @@ def get_states_list(file_content):
     cpt_triplet = 0
     cpt_singlet = 0
     multiplicity = ""
+    first_letter = ""
     search_energy = True
 
     # Define the START and END expression patterns of the "TDDFT/TDA Excitation Energies" section of the output file
@@ -126,18 +127,18 @@ def get_states_list(file_content):
                     multiplicity = m.group("mplicity")
                     cpt = -1
                     if multiplicity == "Triplet":
-                        multiplicity = "T"
+                        first_letter = "T"
                         cpt_triplet += 1
                         cpt = cpt_triplet
                     elif multiplicity == "Singlet":
-                        multiplicity = "S"
+                        first_letter = "S"
                         cpt_singlet += 1
                         cpt = cpt_singlet
                     else:
                         raise ValueError("Multiplicity unknown value")
                     search_energy = True
                     # Format: (state_number, state_multiplicity, energy value (cm-1), label)
-                    states_list.append((curr_state, multiplicity, ev_to_cm1(curr_energy), (multiplicity + str(cpt))))
+                    states_list.append((curr_state, multiplicity, ev_to_cm1(curr_energy), (first_letter + str(cpt))))
                     continue
 
     return states_list

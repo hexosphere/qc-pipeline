@@ -46,11 +46,13 @@ qchem:
 
 # This block contains all the informations specific to qoct-ra.
 qoct-ra:
-# Format of the source file that will be used to extract relevant informations for QOCT-RA
-  source_file_format: qchem
+# Name of the script that will be used to extract relevant informations for QOCT-RA (it must have an extension ".py" but don't include it in this value)
+  parser_script: qchem_parser
 # Define here the jinja template names, they must be put in the Templates folder.
   jinja_templates:
     parameters_file: param.nml.jinja   # The rendered file will be named param_<target>.nml, where <target> is the state label corresponding to the projector that will be used
+# Define here the type of states you want to target (must correspond with a type of value stored in the states_list at state[1])
+  target_state: Triplet
 # Define here the names of the files that will be created in the molecule folder (in a "data" subfolder)
   created_files: 
     mime_file: mime
