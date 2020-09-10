@@ -1,0 +1,82 @@
+#!/bin/bash
+
+#SBATCH --output=slurm_output.log
+#SBATCH --job-name={{  mol_name  }}_{{ target  }}
+#SBATCH --mail-user={{  user_email  }}
+#SBATCH --mail-type={{  mail_type  }}
+#SBATCH --time={{  job_walltime  }}
+#SBATCH --ntasks=1
+#SBATCH --mem-per-cpu={{  job_mem_per_cpu  }}
+{% if partition != "default" %}
+#SBATCH --partition={{  partition  }}
+{% endif %}
+
+echo -e "******************************************************************************"
+echo -e "**************************   Beginning of the job   **************************"
+echo -e "******************************************************************************\n"
+
+cd $SLURM_SUBMIT_DIR
+
+# Define the QOCT-RA folder here
+QOCT_RA_DIR="${CECIHOME}/QOCT-RA"
+
+# Copy codes from QOCT-RA into the job folder
+mkdir -p $SLURM_SUBMIT_DIR/Codes
+cp -rf $QOCT_RA_DIR/Controle.f90 $SLURM_SUBMIT_DIR/Codes/
+cp -rf $QOCT_RA_DIR/Sub/Fortran/mymod.f $SLURM_SUBMIT_DIR/Codes/
+
+echo -e "======================================================================="
+echo -e "=========================   Running QOCT-RA   ========================="
+echo -e "======================================================================="
+
+# A temporary directory (SCRATCH) is created on the node where the job is running, for handling temporary files. 
+# See https://support.ceci-hpc.be/doc/_contents/SubmittingJobs/SlurmFAQ.html#q11-how-do-i-use-the-local-scratch-space for more details.
+
+SCRATCH=$LOCALSCRATCH/$SLURM_JOB_ID
+
+echo -e "Creating temporary folder $SCRATCH for handling temporary files."
+
+mkdir -p $SCRATCH || exit $?
+
+cp -r $SLURM_SUBMIT_DIR/Codes $SCRATCH/ || exit $?
+cp $SLURM_SUBMIT_DIR/param.nml $SCRATCH/ || exit $?
+
+cd $SCRATCH
+
+echo -e "\n================= QOCT-RA execution begins now =================="
+
+# Load the necessary modules
+
+{% for set_env_line in set_env -%}
+{{  set_env_line  }}
+{% endfor -%}
+
+# Compile the code (cluster dependent)
+
+echo -e ">>> Compilation en cours"
+{{  command  }} Codes/mymod.f Codes/Controle.f90 -o Controle.out
+rm mymod.mod  
+echo -e ">>> Compilation réussie"
+
+# Execute the code with the corresponding parameters
+
+./Controle.out {{  rnd_param  }} $QOCT_RA_DIR || (cp -r  $SCRATCH/* $SLURM_SUBMIT_DIR/ && echo "A problem has occcured" && exit $?)
+rm Controle.out
+
+echo -e "\n================= QOCT-RA execution ends now =================="
+
+echo -e "\nCopying output files to the submit folder."
+cp -r  $SCRATCH/* $SLURM_SUBMIT_DIR/  || (echo "Unable to copy SCRATCH folder in the SLURM_SUBMIT_DIR" && exit $?)
+
+echo -e "\nRemoving $SCRATCH folder."
+rm -rf $SCRATCH || echo "A problem might have occurred when trying to remove temporary files."
+
+echo -e "\n===================================================================="
+echo -e "==============   Post-calculation files manipulation   ============="
+echo -e "===================================================================="
+
+
+
+echo -e "\n******************************************************************************"
+echo -e "*****************************   End of the job   *****************************"
+echo -e "******************************************************************************"

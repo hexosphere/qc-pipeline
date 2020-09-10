@@ -105,7 +105,7 @@ parser = argparse.ArgumentParser(add_help=False, description="This script prepar
 
 required = parser.add_argument_group('Required arguments')
 required.add_argument("-i","--source", type=str, help="Path to the source file that contains all the necessary informations that need to be processed", required=True)
-required.add_argument("-d","--qoct_ra_dir", type=str, help="Path to the directory where QOCT-RA is located", required=True)
+required.add_argument("-o","--out_dir", type=str, help="Path to the directory where you want to create the subdirectories for each job", required=True)
 required.add_argument('-cfg', '--config', type=str, help="Path to the YAML config file", required=True)
 required.add_argument('-cl', '--clusters', type=str, help="Path to the YAML clusters file", required=True)
 
@@ -119,7 +119,7 @@ args = parser.parse_args()
 # Define the variables corresponding to those arguments
 
 source = args.source                     # Source file containing all the necessary informations
-qoct_ra_dir = args.qoct_ra_dir           # Path to the directory where QOCT-RA is located
+out_dir = args.out_dir                   # Folder where all jobs subfolders will be created
 config_file = args.config                # Main configuration file
 clusters_file = args.clusters            # YAML file containing all informations about the clusters
 
@@ -161,7 +161,7 @@ print(''.center(len(section_title)+10, '*'))
 # =========================================================
 
 source = check_abspath(source,"file")
-qoct_ra_dir = check_abspath(qoct_ra_dir,"folder")
+out_dir = check_abspath(out_dir,"folder")
 config_file = check_abspath(config_file,"file")
 clusters_file = check_abspath(clusters_file,"file")
 
@@ -171,7 +171,7 @@ clusters_file = check_abspath(clusters_file,"file")
 
 cluster_name = os.environ['CLUSTER_NAME']
 print("\nThis script is running on the %s cluster" % cluster_name.upper())
-print ("{:<40} {:<100}".format('\nQOCT-RA directory:',qoct_ra_dir))
+print ("{:<40} {:<100}".format('\nJobs main directory:',out_dir))
 print ("{:<40} {:<100}".format('\nSource file:',source))
 
 # Codes directory (determined by getting the path to the directory where this script is)
@@ -184,8 +184,8 @@ source_filename = os.path.basename(source)
 
 # Check if a folder already exists for that molecule
 mol_name = str(source_filename.split('.')[0]) # Getting rid of the format extension to get the name of the molecule
-if os.path.exists(os.path.join(qoct_ra_dir,"Dat",mol_name)) and not overwrite:
-  print("\n\nERROR: A folder for the %s molecule already exists in %s !" % (mol_name, os.path.join(qoct_ra_dir,"Dat")))
+if os.path.exists(os.path.join(out_dir,mol_name)) and not overwrite:
+  print("\n\nERROR: A folder for the %s molecule already exists in %s !" % (mol_name, out_dir))
   print("Aborting ...")
   exit(4)
 
@@ -216,7 +216,7 @@ print('%12s' % "[ DONE ]")
 # Check if the relevant informations about QOCT-RA have been provided in the YAML config and clusters files
 
 if prog not in config:
-  print("\nERROR: No information provided for %s in the YAML config file. Please add informations for qoct-ra before attempting to run this script." % prog)
+  print("\nERROR: No information provided for %s in the YAML config file. Please add informations for %s before attempting to run this script." % (prog,prog))
   print("Aborting...")
   exit(3)
 
@@ -240,7 +240,7 @@ for scale in job_scales_tmp:
   del scale['scale_limit']
   job_scales[int(scale_limit)] = scale
 
-print("\nJob scales for QOCT-RA on %s:" % cluster_name.upper())
+print("\nJob scales for %s on %s:" % (prog,cluster_name.upper()))
 job_scales = OrderedDict(sorted(job_scales.items()))
 
 print("")
@@ -561,164 +561,123 @@ print(section_title.center(len(section_title)+10))
 print(''.center(len(section_title)+10, '*'))
 
 # =========================================================
-# Creating the subfolder in the "Dat" folder of QOCT-RA
+# Creating the molecule folder and the data subfolder
 # =========================================================
 
-mol_dir = os.path.join(qoct_ra_dir,"Dat",mol_name)
+mol_dir = os.path.join(out_dir,mol_name)
 
-if os.path.exists(mol_dir):
+if os.path.exists(mol_dir): # Overwrite was already checked previously, no need to check it again
   shutil.rmtree(mol_dir)
 
 os.makedirs(mol_dir)
 
-print("\nThe %s subfolder has been created at %s" % (mol_name, os.path.join(qoct_ra_dir,"Dat")))
+# Creating the data subfolder where all the files describing the molecule will be stored
+data_dir = os.path.join(mol_dir,"data")
+os.makedirs(data_dir)
+
+print("\nThe data subfolder has been created at %s" % data_dir)
 
 # =========================================================
 # Writing already calculated values to files
 # =========================================================
 
-print("\nWriting already calculated values to files (states list, mime, eigenvalues, eigenvectors, dipole moments matrix) ...", end="") 
-
 # MIME
 
 mime_file = config[prog]['created_files']['mime_file']
-np.savetxt(os.path.join(mol_dir,mime_file),mime,fmt='% 18.10e')
+print("{:<60}".format('\nCreating %s file ... ' % mime_file), end="")
+np.savetxt(os.path.join(data_dir,mime_file),mime,fmt='% 18.10e')
+print('%12s' % "[ DONE ]")
 
-# States List
+# States List (not neeeded for QOCT-RA but useful to know) in CSV format
 
-basis_dir = os.path.join(mol_dir,"Basis")
-os.makedirs(basis_dir)
-
-states_file = config[prog]['created_files']['basis_folder']['states_file']
-
-with open(os.path.join(basis_dir, states_file), "w") as f:
+states_file = config[prog]['created_files']['states_file']
+print("{:<60}".format('\nCreating %s file ... ' % states_file), end="")
+with open(os.path.join(data_dir, states_file), "w") as f:
+  print("Number;Multiplicity;Energy (cm-1);Label", file = f)
   for state in states_list:
-    print("{:<5} {:<5} {:<10.3f} {:<8}".format(state[0],state[1],state[2],state[3]),file = f)
-  print("#comment", file = f)
+    print((state[0],";",state[1],";",state[2],";",state[3]), file = f)
+print('%12s' % "[ DONE ]")
 
 # Energies
 
-energies_dir = os.path.join(mol_dir,"Energies")
-os.makedirs(energies_dir)
-
-energies_file = config[prog]['created_files']['energies_folder']['energies_file']
-
-np.savetxt(os.path.join(energies_dir,energies_file + '_cm-1'),eigenvalues,fmt='%1.10e')
-np.savetxt(os.path.join(energies_dir,energies_file + '_ua'),eigenvalues_ua,fmt='%1.10e',footer='comment',comments='#')
-np.savetxt(os.path.join(energies_dir,energies_file + '_nm'),eigenvalues_nm,fmt='%1.10e')
-np.savetxt(os.path.join(energies_dir,energies_file + '_ev'),eigenvalues_ev,fmt='%1.10e')
+energies_file = config[prog]['created_files']['energies_file']
+print("{:<60}".format('\nCreating %s file ... ' % energies_file), end="")
+np.savetxt(os.path.join(data_dir,energies_file + '_cm-1'),eigenvalues,fmt='%1.10e')
+#np.savetxt(os.path.join(data_dir,energies_file + '_ua'),eigenvalues_ua,fmt='%1.10e',footer='comment',comments='#')
+np.savetxt(os.path.join(data_dir,energies_file + '_ua'),eigenvalues_ua,fmt='%1.10e')
+np.savetxt(os.path.join(data_dir,energies_file + '_nm'),eigenvalues_nm,fmt='%1.10e')
+np.savetxt(os.path.join(data_dir,energies_file + '_ev'),eigenvalues_ev,fmt='%1.10e')
+print('%12s' % "[ DONE ]")
 
 # Eigenvectors matrix and eigenvectors transpose matrix
 
-mat_dir = os.path.join(mol_dir,"Mat_cb")
-os.makedirs(mat_dir)
+mat_et0 = config[prog]['created_files']['mat_et0']
+print("{:<60}".format('\nCreating %s file ... ' % mat_et0), end="")
+np.savetxt(os.path.join(data_dir,mat_et0),eigenvectors,fmt='% 18.10e')
+print('%12s' % "[ DONE ]")
 
-mat_et0 = config[prog]['created_files']['mat_cb_folder']['eigen_to_zero']
-np.savetxt(os.path.join(mat_dir,mat_et0),eigenvectors,fmt='% 18.10e')
-
-mat_0te = config[prog]['created_files']['mat_cb_folder']['zero_to_eigen']
-np.savetxt(os.path.join(mat_dir,mat_0te),transpose,fmt='% 18.10e')
+mat_0te = config[prog]['created_files']['mat_0te']
+print ("{:<60}".format('\nCreating %s file ... ' % mat_0te), end="")
+np.savetxt(os.path.join(data_dir,mat_0te),transpose,fmt='% 18.10e')
+print('%12s' % "[ DONE ]")
 
 # Dipole moments matrix
 
-mom_dir = os.path.join(mol_dir,"MomDip")
-os.makedirs(mom_dir)
+momdip_0 = config[prog]['created_files']['momdip_zero']
+print("{:<60}".format('\nCreating %s file ... ' % momdip_0), end="")
+np.savetxt(os.path.join(data_dir,momdip_0),momdip_mtx,fmt='% 18.10e')
+print('%12s' % "[ DONE ]")
 
-momdip_0 = config[prog]['created_files']['momdip_folder']['momdip_zero']
-np.savetxt(os.path.join(mom_dir,momdip_0),momdip_mtx,fmt='% 18.10e')
-
-momdip_e = config[prog]['created_files']['momdip_folder']['momdip_eigen']
-np.savetxt(os.path.join(mom_dir,momdip_e),momdip_es_mtx,fmt='% 18.10e')	
-
-print('%20s' % "[ DONE ]")
+momdip_e = config[prog]['created_files']['momdip_eigen']
+print("{:<60}".format('\nCreating %s file ... ' % momdip_e), end="")
+np.savetxt(os.path.join(data_dir,momdip_e),momdip_es_mtx,fmt='% 18.10e')	
+print('%12s' % "[ DONE ]")
 
 # =========================================================
 # Density matrices
 # =========================================================
 
-md_dir = os.path.join(mol_dir,"Md")
-os.makedirs(md_dir)
-
 # Initial population
 
-print("\nCreating initial population file (ground state in the eigenstates basis set) ...", end="") 
+init_file = config[prog]['created_files']['init_pop']
+print("{:<60}".format("\nCreating %s file ..." % init_file), end="") 
 
 init_pop = np.zeros((len(states_list), len(states_list)),dtype=complex)  # Quick init of a zero-filled matrix
 init_pop[0,0] = 1+0j # All the population is in the ground state at the beginning
 
-init_file = config[prog]['created_files']['md_folder']['initial'] + "_1"
-
-with open(os.path.join(md_dir, init_file), "w") as f:
+with open(os.path.join(data_dir, init_file + "_1"), "w") as f:
   for line in init_pop:
     for val in line:
       print('( {0.real:.2f} , {0.imag:.2f} )'.format(val), end = " ", file = f)
     print('', file = f)
 
-print('%20s' % "[ DONE ]")
+print('%12s' % "[ DONE ]")
 
 # Final population (dummy file but still needed by QOCT-RA)
 
-print("\nCreating dummy final population file (copy of the initial population file) ...", end="") 
+final_file = config[prog]['created_files']['final_pop']
+print("{:<60}".format("\nCreating %s file ..." % final_file), end="") 
 
-final_file = config[prog]['created_files']['md_folder']['final'] + "_1"
-shutil.copy(os.path.join(md_dir,init_file), os.path.join(md_dir,final_file))
+shutil.copy(os.path.join(data_dir,init_file + "_1"), os.path.join(data_dir,final_file + "_1"))
 
-print('%20s' % "[ DONE ]")
+print('%12s' % "[ DONE ]")
 
 # Projectors
 
 print('')
+proj_file = config[prog]['created_files']['projectors']
 
 for state in states_list:
   if state[1] == "T":
-    print("Creating the projector file for state %s ..." % state[3], end="")
+    print("{:<59}".format("Creating the %s file ..." % (proj_file + state[3])), end="")
     proj = np.zeros((len(states_list),len(states_list)),dtype=complex)
-    proj[state[0]-1,state[0]-1] = 1+0j
-    proj_file = config[prog]['created_files']['md_folder']['projectors'] + state[3] + "_1"
-    with open(os.path.join(md_dir, proj_file), "w") as f:
+    proj[state[0],state[0]] = 1+0j
+    with open(os.path.join(data_dir, proj_file + state[3] + "_1"), "w") as f:
       for line in proj:
         for val in line:
           print('( {0.real:.2f} , {0.imag:.2f} )'.format(val), end = " ", file = f)
         print('', file = f)
-    print('%20s' % "[ DONE ]")
-
-# =========================================================
-# Shaped Pulse
-# =========================================================
-
-pulse_dir = os.path.join(mol_dir,"Shaped_pulse")
-os.makedirs(pulse_dir)
-
-print("\nRendering the jinja template for the shaped pulse file ...", end="")
-
-# Define the names of the template and rendered file, given in the main configuration YAML file.
-
-tpl_pulse = config[prog]['jinja_templates']['shaped_pulse']                           # Jinja template file for the shaped pulse file
-rnd_pulse = config[prog]['created_files']['shaped_pulse_folder']['pulse_file']        # Name of the rendered shaped pulse file
-
-# Determine the central frequency of the pulse in cm-1 (here defined as the average of the eigenvalues)
-
-central_frequency = np.mean(eigenvalues)
-
-# Definition of the variables present in the jinja template
-
-render_vars = {
-  "basis" : config[prog]['created_files']['basis_folder']['states_file'],
-  "shape" : config[prog]['pulse_parameters']['shape'],
-  "nb_pixels" : config[prog]['pulse_parameters']['nb_pixels'],
-  "energy" : config[prog]['pulse_parameters']['energy'],
-  "fwhm" : config[prog]['pulse_parameters']['fwhm'],
-  "frequency" : central_frequency
-}
-
-# Rendering the jinja template
-
-pulse_content = jinja_render(os.path.join(code_dir,"Templates"), tpl_pulse, render_vars)
-
-with open(os.path.join(pulse_dir, rnd_pulse), "w") as pulse_file:
-  pulse_file.write(pulse_content)
-
-print('%12s' % "[ DONE ]")
+    print('%12s' % "[ DONE ]")
 
 # ===================================================================
 # ===================================================================
@@ -734,39 +693,100 @@ print(''.center(len(section_title)+10, '*'))
 print(section_title.center(len(section_title)+10))
 print(''.center(len(section_title)+10, '*'))
 
-# Define the names of the template and rendered file, given in the main configuration YAML file.
+# =========================================================
+# Defining the jinja templates
+# =========================================================
+
+print("{:<80}".format("\nDefining and preparing the jinja templates ..."), end="") 
+
+# Define the names of the template and rendered files, given in the YAML files.
 
 tpl_param = config[prog]['jinja_templates']['parameters_file']                           # Jinja template file for the parameters file
-rnd_param = config[prog]['rendered_files']['parameters_file']                            # Name of the rendered parameters file
 
-# Definition of the variables present in the jinja template
+tpl_manifest = clusters_cfg[cluster_name]['progs'][prog]['manifest_template']            # Jinja template file for the job manifest (job submitting script)
+rnd_manifest = clusters_cfg[cluster_name]['progs'][prog]['manifest_render']              # Name of the rendered job manifest file
 
-render_vars = {
+# Determine the central frequency of the guess pulse in cm-1 (here defined as the average of the eigenvalues)
+
+central_frequency = np.mean(eigenvalues)
+
+# Definition of the variables present in the jinja template for the parameters file (except the target state)
+
+param_render_vars = {
   "mol_name" : mol_name,
-  "basis" : config[prog]['created_files']['basis_folder']['states_file'],
-  "energies_ua" : energies_file + '_ua',
-  "momdip_e" : momdip_e,
-  "initial" : init_file,
-  "final" : final_file,
-  "projector" : config[prog]['created_files']['md_folder']['projectors'],
-  "nstep" : config[prog]['main_parameters']['nstep'],
-  "dt" : config[prog]['main_parameters']['dt'],
-  "niter" : config[prog]['main_parameters']['niter'],
-  "threshold" : config[prog]['main_parameters']['threshold'],
-  "alpha0" : config[prog]['main_parameters']['alpha0'],
-  "pulse" : rnd_pulse,
-  "mat_et0" : mat_et0
+  "energies_file_path" : os.path.join(data_dir,energies_file + '_ua'),
+  "momdip_e_path" : os.path.join(data_dir,momdip_e),
+  "init_file_path" : os.path.join(data_dir,init_file),
+  "final_file_path" : os.path.join(data_dir,final_file),
+  "proj_file_path" : os.path.join(data_dir,proj_file),
+  "nstep" : config[prog]['param_nml']['control']['nstep'],
+  "dt" : config[prog]['param_nml']['control']['dt'],
+  "niter" : config[prog]['param_nml']['control']['niter'],
+  "threshold" : config[prog]['param_nml']['control']['threshold'],
+  "alpha0" : config[prog]['param_nml']['control']['alpha0'],
+  "ndump" : config[prog]['param_nml']['control']['ndump'],
+  "ndump2" : config[prog]['param_nml']['post-control']['ndump2'],
+  "mat_et0_path" : os.path.join(data_dir,mat_et0),
+  "numericincrements" : config[prog]['param_nml']['guess_pulse']['numericincrements'],
+  "numberofpixels" : config[prog]['param_nml']['guess_pulse']['numberofpixels'],
+  "inputenergy" : config[prog]['param_nml']['guess_pulse']['inputenergy'],
+  "widthhalfmax" : config[prog]['param_nml']['guess_pulse']['widthhalfmax'],
+  "omegazero" : central_frequency
 }
+
+# Definition of the variables present in the jinja template for the job manifest (except the target state and the name of the rendered parameters file)
+
+manifest_render_vars = {
+  "mol_name" : mol_name,
+  "user_email" : config['general']['user-email'],
+  "mail_type" : config['general']['mail-type'],
+  "job_walltime" : job_walltime,
+  "job_mem_per_cpu" : job_mem_per_cpu, # in MB
+  "partition" : job_partition,     
+  "set_env" : clusters_cfg[cluster_name]['progs'][prog]['set_env'],       
+  "command" : clusters_cfg[cluster_name]['progs'][prog]['command']
+}
+
+print('%12s' % "[ DONE ]")
+
+# =========================================================
+# Rendering the templates and launching the jobs
+# =========================================================
 
 # For each projector, render the parameters file and run the corresponding job
 
-print("\nRendering the jinja template for the param.dat file ...")
-
 for state in states_list:
-  if state[1] == "T":
-    render_vars["target"] = state[3]
-    param_content = jinja_render(os.path.join(code_dir,"Templates"), tpl_param, render_vars)
-    with open(os.path.join(qoct_ra_dir, rnd_param), "w") as param_file:   #! join(qoct_ra_dir, "QOCTRA", rnd_param)   before modification
+  if state[1] == "T": # The target states are the triplets
+    target = state[3]
+    print("\nPreparing to launch job with %s as the target state ..." % target)
+
+    # Create the job folder for that specific target
+    job_dir = os.path.join(mol_dir,proj_file + target)
+    os.makedirs(job_dir)
+    print("    The %s job folder has been created in %s" % (proj_file + target,mol_dir))
+
+    # Create the parameters file for that specific target
+    rnd_param = "param" + "_" + target + ".nml"                                                          # Name of the rendered parameters file
+    print("{:<80}".format("    Rendering the jinja template to create the %s file ..." % rnd_param), end ="")
+    param_render_vars["target"] = target
+    param_content = jinja_render(os.path.join(code_dir,"Templates"), tpl_param, param_render_vars)       # Render the jinja template of the parameters file
+    with open(os.path.join(job_dir, rnd_param), "w") as param_file:
       param_file.write(param_content)
+    print('%12s' % "[ DONE ]")
+    
+    # Create the job manifest for that specific target
+    print("{:<80}".format("    Rendering the jinja template to create the %s file ..." % rnd_manifest), end ="")
+    manifest_render_vars["target"] = target
+    manifest_render_vars["rnd_param"] = rnd_param
+    manifest_content = jinja_render(os.path.join(code_dir,"Templates"), tpl_manifest, manifest_render_vars) # Render the jinja template of the job manifest
+    with open(os.path.join(job_dir, rnd_manifest), "w") as manifest_file:
+      manifest_file.write(manifest_content)
+    print('%12s' % "[ DONE ]")
     #TODO: Run the job
 
+print("")
+print("".center(columns,"*"))
+print("")
+print("END OF EXECUTION".center(columns))
+print("")
+print("".center(columns,"*"))

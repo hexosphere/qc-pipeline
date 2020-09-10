@@ -56,7 +56,7 @@ def orca_render(vars):
     Pay a particular attention to the render_vars dictionary, it contains all the definitions of the variables appearing in your jinja template and should be modified accordingly.
     """
 
-    # Define the names of all the template and rendered files, given in the main configuration YAML file.
+    # Define the names of all the template and rendered files, given in the YAML files.
 
     tpl_inp = vars['config'][vars['prog']]['jinja_templates']['input']                                            # Jinja template file for the orca input
     tpl_manifest = vars['clusters_cfg'][vars['cluster_name']]['progs'][vars['prog']]['manifest_template']         # Jinja template file for the orca job manifest (job submitting script)
@@ -149,7 +149,7 @@ def qchem_render(vars):
     Pay a particular attention to the render_vars dictionary, it contains all the definitions of the variables appearing in your jinja template and should be modified accordingly.
     """
 
-    # Define the names of all the template and rendered files, given in the main configuration YAML file.
+    # Define the names of all the template and rendered files, given in the YAML files.
 
     tpl_inp = vars['config'][vars['prog']]['jinja_templates']['input']                                            # Jinja template file for the qchem input
     tpl_manifest = vars['clusters_cfg'][vars['cluster_name']]['progs'][vars['prog']]['manifest_template']         # Jinja template file for the qchem job manifest (job submitting script)

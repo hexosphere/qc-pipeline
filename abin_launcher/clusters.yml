@@ -27,6 +27,8 @@ shared:
         mem_per_cpu: 200 # in MB
         delay_command:
     qoct-ra: 
+      manifest_template: &qoctra_jinja qoctra_job.sh.jinja # Name of the jinja template for the job submitting script
+      manifest_render: &qoctra_render qoctra_job.sh        # Name of the rendered job submitting script
       job_scales: &unique_qoctra
         label: unique
         scale_limit: 100
@@ -73,6 +75,8 @@ dragon1:
           mem_per_cpu: 4000 # in MB  
           delay_command: --begin=now+120
     qoct-ra:
+      manifest_template: *qoctra_jinja
+      manifest_render: *qoctra_render
       set_env:
       command:
       job_scales:
@@ -117,6 +121,8 @@ dragon2:
           mem_per_cpu: 4000 # in MB
           delay_command: --begin=now+120
     qoct-ra:
+      manifest_template: *qoctra_jinja
+      manifest_render: *qoctra_render
       set_env:
       command:
       job_scales:
@@ -157,6 +163,16 @@ lemaitre3:
           cores: 8
           mem_per_cpu: 4000 # in MB
           delay_command: --begin=now+120
+    qoct-ra:
+      manifest_template: *qoctra_jinja
+      manifest_render: *qoctra_render
+      set_env:
+        - module --force purge
+        - module load releases/2019b
+        - module load OpenBLAS/0.3.7-GCC-8.3.0
+      command: gfortran -lopenblas -O3 -ffast-math -funroll-loops -fwhole-program -flto -fexternal-blas -fdefault-integer-8 -m64
+      job_scales:
+        - <<: *unique_qoctra
 
 vega:
   name: vega
@@ -188,6 +204,8 @@ vega:
           mem_per_cpu: 2000 # in MB
           delay_command: --begin=now+120
     qoct-ra:
+      manifest_template: *qoctra_jinja
+      manifest_render: *qoctra_render
       set_env:
       command:
       job_scales:

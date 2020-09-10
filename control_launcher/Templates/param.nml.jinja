@@ -1,0 +1,66 @@
+! Informations générales
+&GENERAL
+  systeme = "{{  mol_name  }}"
+/
+
+&OPTIONS                         ! [1] oui [0] non
+  op_com = 1,                    ! Activer les commentaires
+  op_ch = 2,                     ! Activer l'écriture des champs ([2] à chaque itération)
+  op_ver = 0,                    ! Activer les fichiers de vérification
+  op_mat = 0                     ! Activer l'impression des matrices (routine sqrtm) ([2] désactiver le calcul de la fidélité de Uhlmann) 
+/
+
+! Chemins vers les différents fichiers permettant de décrire le système étudié
+! Utilisez la commande :%s/foo/bar/g pour remplacer toutes les occurrences du mot "foo" par le mot "bar" et modifier facilement tous les chemins.
+&FICHIERS
+  cheminE = "{{  energies_file_path  }}",                 ! Hartree
+  cheminMD = "{{  momdip_e_path  }}",                     ! Unités atomiques
+  eti = "{{  init_file_path  }}_",
+  etf = "{{  final_file_path  }}_",
+  projector = "{{  proj_file_path  }}{{ target  }}_"      ! A la place d'un état final spécifique
+/
+
+! Paramètres généraux du contrôle
+&CONTROLE
+  envi = "LIOUVILLE",                             ! Environnement (HILBERT ou LIOUVILLE)
+  nstep = {{  nstep  }},                          ! Nombre de pas de temps
+  dt = {{  dt  }},                                ! Pas de temps en unités atomiques
+  nep = 1,                                        ! Nombre de voies
+  RI = 1,                                         ! Phase dynamique pour l'état final - [1] oui [0] non
+  processus = "OPM",                              ! Nature du processus : [OPC] Contrôle optimal, [OPM] Contrôle a contraintes multiples ; [PCP] Post-contrôle avec pulse [PCL] Post-contrôle libre
+/
+
+! Paramètres pour le contrôle optimal (OPC)
+&OPC
+  fnelle = "NF",                                  ! Fonctionelle (AF ou NF) pour les cas multicible
+  niterini = 0,                                   ! Iteration de départ (0 si démarrage, > 0 si redémarrage)
+  niter = {{  niter  }},                          ! Nombre d'itérations
+  seuil = {{  threshold  }},                      ! Seuil de recouvrement pour le contrôle
+  alpha0 = {{  alpha0  }},                        ! Contrainte sur l'amplitude du champ (alpha0, nulle si =1)
+  wAire = 0,                                      ! Contrainte d'aire nulle (wAire<0)
+  f0 = 0,                                         ! Contrainte sur l'intensité totale du champ (0<f0<1)
+  ikrotov = 1,                                    ! Correction dans le calcul du champ (ikrotov)
+  ndump = {{  ndump  }},                          ! Nombre d'iterations avant ecriture du champ 
+  ChpEssai = ""                                   ! Nom du champ d'essai if OPC ($pdata/Ch_essai/...), parameters of the shaped pulse if OPCFREQ ($pdata/Shaped_pulse/...)
+/
+
+! Paramètres pour le post-contrôle ou la propagation
+&PCP_PCL
+  ndump2 = {{  ndump2  }},                        ! Nombre de pas avant analyse des populations, phases, positions et energies (suivant nstep*dt)
+  sourc3 = "{{  mat_et0_path  }}"                 ! Matrice changement de base (es --> zos)
+  tinit = 20661110.d0                             ! PCL temps initial (phase)
+/
+
+! Paramètres pour la dissipation
+&LIOUVILLE
+  cheminDissShort = "non"        ! Dissipation - Nom du fichier des paramètres de Lindblad - [$pdata/Diss/...] oui [non] non
+/
+
+! Paramètres pour le champ d'essai si gradients (OPM)
+&OPM_PULSE
+  numericincrements = {{  numericincrements  }},         ! Type of shape, to be eventually used later  
+  numberofpixels = {{  numberofpixels  }},
+  inputenergy = {{  inputenergy  }},                     ! in microjoule per cm2
+  widthhalfmax = {{  widthhalfmax  }},                   ! in spectrum, in cm-1
+  omegazero = {{  omegazero  }}                          ! in spectrum, in cm-1
+/
