@@ -51,9 +51,8 @@ Right-click > "View Image" to zoom in
       └── clusters.yml
 └── control_launcher/
       └── Templates/
-            ├── jinja-template1
-            ├── jinja-template2
-            └── etc.
+            ├── param.nml.jinja
+            └── qoctra_job.sh.jinja
       ├── qchem_parser.py
       └── control_launcher.py
 └── results_treatment/
@@ -87,23 +86,22 @@ Right-click > "View Image" to zoom in
      ├── molecule2.out
      └── etc.
 └── CONTROL_OUT
-     ├── molecule1/
-     ├── molecule2/
+     ├── molecule1.end
+     ├── molecule2.end
      └── etc.
 └── RESULTS
      └── molecule1/
             ├── ORCA
             ├── Q-CHEM
             ├── CONTROL
-            ├── RESULTS
             └── molecule1_config.yml
      └── molecule2/
             ├── ORCA
             ├── Q-CHEM
             ├── CONTROL
-            ├── RESULTS
             └── molecule2_config.yml
      └── etc.
+└── FIGURES
 ```
 
 ## External resources

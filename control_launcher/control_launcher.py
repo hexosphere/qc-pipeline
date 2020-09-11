@@ -660,7 +660,14 @@ print('%12s' % "[ DONE ]")
 final_file = config[prog]['created_files']['final_pop']
 print("{:<60}".format("\nCreating %s file ..." % final_file), end="") 
 
-shutil.copy(os.path.join(data_dir,init_file + "_1"), os.path.join(data_dir,final_file + "_1"))
+final_pop = np.zeros((len(states_list), len(states_list)),dtype=complex)  # Quick init of a zero-filled matrix
+final_pop[0,0] = 0+0j # Unrealistic population
+
+with open(os.path.join(data_dir, final_file + "_1"), "w") as f:
+  for line in final_pop:
+    for val in line:
+      print('( {0.real:.2f} , {0.imag:.2f} )'.format(val), end = " ", file = f)
+    print('', file = f)
 
 print('%12s' % "[ DONE ]")
 
@@ -713,6 +720,10 @@ rnd_manifest = clusters_cfg[cluster_name]['progs'][prog]['manifest_render']     
 
 central_frequency = np.mean(eigenvalues)
 
+# Define here the number of iterations for QOCT-RA, as it will be used multiple times later on
+
+niter = config[prog]['param_nml']['control']['niter']
+
 # Definition of the variables present in the jinja template for the parameters file (except the target state)
 
 param_render_vars = {
@@ -724,7 +735,7 @@ param_render_vars = {
   "proj_file_path" : os.path.join(data_dir,proj_file),
   "nstep" : config[prog]['param_nml']['control']['nstep'],
   "dt" : config[prog]['param_nml']['control']['dt'],
-  "niter" : config[prog]['param_nml']['control']['niter'],
+  "niter" : niter,
   "threshold" : config[prog]['param_nml']['control']['threshold'],
   "alpha0" : config[prog]['param_nml']['control']['alpha0'],
   "ndump" : config[prog]['param_nml']['control']['ndump'],
@@ -747,7 +758,12 @@ manifest_render_vars = {
   "job_mem_per_cpu" : job_mem_per_cpu, # in MB
   "partition" : job_partition,     
   "set_env" : clusters_cfg[cluster_name]['progs'][prog]['set_env'],       
-  "command" : clusters_cfg[cluster_name]['progs'][prog]['command']
+  "command" : clusters_cfg[cluster_name]['progs'][prog]['command'],
+  "output_folder" : config[prog]['output-folder'],
+  "results_folder" : config['general']['results-folder'],
+  "data_dir" : data_dir,
+  "job_manifest" : rnd_manifest,
+  "niter" : niter
 }
 
 print('%12s' % "[ DONE ]")
@@ -759,29 +775,44 @@ print('%12s' % "[ DONE ]")
 # For each projector, render the parameters file and run the corresponding job
 
 for state in states_list:
-  if state[1] == target_state: # The target states are the triplets
+  if state[1] == target_state:
     target = state[3]
     print("\nPreparing to launch job with %s as the target state ..." % target)
 
     # Create the job folder for that specific target
-    job_dir = os.path.join(mol_dir,proj_file + target)
+    job_dirname = proj_file + target
+    job_dir = os.path.join(mol_dir,job_dirname)
     os.makedirs(job_dir)
-    print("    The %s job folder has been created in %s" % (proj_file + target,mol_dir))
+    print("    The %s job folder has been created in %s" % (job_dirname,mol_dir))
 
-    # Create the parameters file for that specific target
-    rnd_param = "param" + "_" + target + ".nml"                                                          # Name of the rendered parameters file
+    # Create the OPM parameters file for that specific target
+    rnd_param = "param" + "_" + target + ".nml"                                                              # Name of the rendered parameters file
     print("{:<80}".format("    Rendering the jinja template to create the %s file ..." % rnd_param), end ="")
     param_render_vars["target"] = target
-    param_content = jinja_render(os.path.join(code_dir,"Templates"), tpl_param, param_render_vars)       # Render the jinja template of the parameters file
+    param_render_vars["processus"] = "OPM"
+    param_render_vars["source"] = " "
+    param_content = jinja_render(os.path.join(code_dir,"Templates"), tpl_param, param_render_vars)           # Render the jinja template of the parameters file
     with open(os.path.join(job_dir, rnd_param), "w", encoding='utf-8') as param_file:
       param_file.write(param_content)
     print('%12s' % "[ DONE ]")
-    
+
+    # Create the PCP parameters file for that specific target
+    rnd_param_PCP = "param" + "_" + target + "_PCP.nml"                                                      # Name of the rendered parameters file
+    print("{:<80}".format("    Rendering the jinja template to create the %s file ..." % rnd_param_PCP), end ="")
+    param_render_vars["processus"] = "PCP"
+    param_render_vars["source"] = "../Pulse/Pulse_iter" + str(niter)
+    param_content = jinja_render(os.path.join(code_dir,"Templates"), tpl_param, param_render_vars)           # Render the jinja template of the parameters file
+    with open(os.path.join(job_dir, rnd_param_PCP), "w", encoding='utf-8') as param_file:
+      param_file.write(param_content)
+    print('%12s' % "[ DONE ]")
+
     # Create the job manifest for that specific target
     print("{:<80}".format("    Rendering the jinja template to create the %s file ..." % rnd_manifest), end ="")
     manifest_render_vars["target"] = target
     manifest_render_vars["rnd_param"] = rnd_param
-    manifest_content = jinja_render(os.path.join(code_dir,"Templates"), tpl_manifest, manifest_render_vars) # Render the jinja template of the job manifest
+    manifest_render_vars["rnd_param_PCP"] = rnd_param_PCP
+    manifest_render_vars["job_dirname"] = job_dirname
+    manifest_content = jinja_render(os.path.join(code_dir,"Templates"), tpl_manifest, manifest_render_vars)  # Render the jinja template of the job manifest
     with open(os.path.join(job_dir, rnd_manifest), "w", encoding='utf-8') as manifest_file:
       manifest_file.write(manifest_content)
     print('%12s' % "[ DONE ]")
@@ -797,7 +828,7 @@ for state in states_list:
       exit(1)
     print('%12s' % "[ DONE ]")
     
-# Archive the molecule file in launched_dir if keep has not been set
+# Archive the source file in launched_dir if keep has not been set
     
 if not keep:
   launched_dir = os.path.join(source_path,"Launched")                             # Folder where the source file will be put after having been treated by this script, path is relative to the directory of the source file.

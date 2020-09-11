@@ -20,11 +20,6 @@ cd $SLURM_SUBMIT_DIR
 # Define the QOCT-RA folder here
 QOCT_RA_DIR="${CECIHOME}/QOCT-RA"
 
-# Copy codes from QOCT-RA into the job folder
-mkdir -p $SLURM_SUBMIT_DIR/Codes
-cp -rf $QOCT_RA_DIR/Controle.f90 $SLURM_SUBMIT_DIR/Codes/
-cp -rf $QOCT_RA_DIR/Sub/Fortran/mymod.f $SLURM_SUBMIT_DIR/Codes/
-
 echo -e "======================================================================="
 echo -e "=========================   Running QOCT-RA   ========================="
 echo -e "======================================================================="
@@ -38,12 +33,9 @@ echo -e "Creating temporary folder $SCRATCH for handling temporary files."
 
 mkdir -p $SCRATCH || exit $?
 
-cp -r $SLURM_SUBMIT_DIR/Codes $SCRATCH/ || exit $?
-cp $SLURM_SUBMIT_DIR/{{  rnd_param  }} $SCRATCH/ || exit $?
+cp $SLURM_SUBMIT_DIR/{{  rnd_param  }} $SLURM_SUBMIT_DIR/{{  rnd_param_PCP  }} $SCRATCH/ || exit $?
 
 cd $SCRATCH
-
-echo -e "\n================= QOCT-RA execution begins now =================="
 
 # Load the necessary modules
 
@@ -53,17 +45,27 @@ echo -e "\n================= QOCT-RA execution begins now =================="
 
 # Compile the code (cluster dependent)
 
-echo -e ">>> Compilation en cours"
-{{  command  }} Codes/mymod.f Codes/Controle.f90 -o Controle.out
+echo -e ">>> Start of QOCT-RA compilation"
+{{  command  }} $QOCT_RA_DIR/Sub/Fortran/mymod.f $QOCT_RA_DIR/Controle.f90 -o Controle.out
 rm mymod.mod  
-echo -e ">>> Compilation réussie"
+echo -e ">>> End of QOCT-RA compilation"
 
-# Execute the code with the corresponding parameters
+# First execution to get the optimal pulse
 
-./Controle.out {{  rnd_param  }} $QOCT_RA_DIR || (cp -r  $SCRATCH/* $SLURM_SUBMIT_DIR/ && echo "A problem has occcured" && exit $?)
+echo -e "\n================= First QOCT-RA execution begins now =================="
+./Controle.out {{  rnd_param  }} $QOCT_RA_DIR || (cp -r  $SCRATCH/* $SLURM_SUBMIT_DIR/ && echo "A problem has occcured during the first execution of QOCT-RA" && rm -rf $SCRATCH && exit $?)
+echo -e "\n================= First QOCT-RA execution ends now =================="
+
+# Second execution to test the optimal pulse (PCP mode)
+
+mkdir $SCRATCH/PCP
+mv Controle.out $SCRATCH/PCP/
+cd $SCRATCH/PCP/
+
+echo -e "\n================= PCP QOCT-RA execution begins now =================="
+./Controle.out $SCRATCH/{{  rnd_param_PCP  }} $QOCT_RA_DIR || (cp -r  $SCRATCH/* $SLURM_SUBMIT_DIR/ && echo "A problem has occcured during the PCP execution of QOCT-RA" && rm -rf $SCRATCH && exit $?)
 rm Controle.out
-
-echo -e "\n================= QOCT-RA execution ends now =================="
+echo -e "\n================= PCP QOCT-RA execution ends now =================="
 
 echo -e "\nCopying output files to the submit folder."
 cp -r  $SCRATCH/* $SLURM_SUBMIT_DIR/  || (echo "Unable to copy SCRATCH folder in the SLURM_SUBMIT_DIR" && exit $?)
@@ -75,9 +77,36 @@ echo -e "\n===================================================================="
 echo -e "==============   Post-calculation files manipulation   ============="
 echo -e "===================================================================="
 
-#TODO: FFT and FFTi of the field
-#TODO: PCP if high fidelity (use param_<target>_PCP.nml)
-#TODO: Send relevant output files to CECIHOME
+cd $SLURM_SUBMIT_DIR
+
+# Copying important files
+
+echo -e "\nCreating end flag file in {{  output_folder  }}."
+mkdir -p {{  output_folder  }}
+touch {{  output_folder  }}/{{  mol_name  }}.end # empty file, just to let the next crontab know we've finished
+
+echo -e "\nCopying data files to {{  results_folder  }}/{{  mol_name  }}/CONTROL."
+mkdir -p {{  results_folder  }}/{{  mol_name  }}/CONTROL
+cp -rf  {{  data_dir  }} {{  results_folder  }}/{{  mol_name  }}/CONTROL/
+
+res_dir="{{  results_folder  }}/{{  mol_name  }}/CONTROL/{{ job_dirname  }}"
+
+echo -e "\nCopying job files to ${res_dir}."
+mkdir -p $res_dir
+cp {{  rnd_param  }} {{  rnd_param_PCP  }} {{  job_manifest  }} slurm_output.log obj.res  $res_dir
+
+echo -e "\nCopying and renaming pulse files to ${res_dir}/Pulse."
+mkdir -p $res_dir/Pulse
+cd $SLURM_SUBMIT_DIR/Pulse/
+cp Pixel_heat{{  niter  }} Pulse_init Pulse_iter{{  niter  }} Pulse_param_init Pulse_param_iter{{  niter  }} $res_dir/Pulse
+mv $res_dir/Pulse/Pixel_heat{{  niter  }} $res_dir/Pulse/Pixel_heat_final
+mv $res_dir/Pulse/Pulse_iter{{  niter  }} $res_dir/Pulse/Pulse_final
+mv $res_dir/Pulse/Pulse_param_iter{{  niter  }} $res_dir/Pulse/Pulse_param_final
+
+echo -e "\nCopying PCP files to ${res_dir}/PCP."
+mkdir -p $res_dir/PCP
+cd $SLURM_SUBMIT_DIR/PCP/
+cp obj.res pop1 popzero1 popzero_Sch1 $res_dir/PCP/
 
 echo -e "\n******************************************************************************"
 echo -e "*****************************   End of the job   *****************************"
