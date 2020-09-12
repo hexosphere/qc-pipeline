@@ -22,54 +22,13 @@ import jinja2
 import numpy as np
 import yaml
 
+import errors
+
 # ===================================================================
 # ===================================================================
 # Function definitions
 # ===================================================================
 # ===================================================================
-
-def check_abspath(path,type="either"):
-    """Checks if a path towards a file or folder exists and makes sure it's absolute.
-
-    Parameters
-    ----------
-    path : str
-        The path towards the file or directory you want to test
-    type : str (optional)
-        The type of element for which you would like to test the path (file, folder or either)
-        By default, checks if the path leads to either a file or a folder (type = either)
-    
-    Returns
-    -------
-    abspath : str
-        Normalized absolutized version of the path
-    """
-
-    if type not in ["file","folder","either"]:
-      # Not in try/except structure because the full error message will be need in this case
-      raise ValueError ("The specified type for which the check_abspath function has been called is not one of 'file', 'folder or 'either'")
-
-    # For more informations on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
-    try:
-      if not os.path.exists(path):
-        raise IOError ("ERROR: The argument %s does not seem to exist." % path)
-      elif type == "file":
-        if not os.path.isfile(path):
-          raise ValueError ("ERROR: The argument %s is not a file" % path)
-      elif type == "folder":
-        if not os.path.isdir(path):
-          raise ValueError ("ERROR: The argument %s is not a directory" % path)
-      elif type == "either":
-        if not os.path.isdir(path) and not os.path.isfile(path):
-          raise ValueError ("ERROR: The argument %s is neither a file nor a directory" % path)
-    except Exception as error:
-      print(error)
-      exit(1)
-
-    # If everything went well, get the normalized absolutized version of the path
-    abspath = os.path.abspath(path)
-
-    return abspath
 
 def jinja_render(path_tpl_dir, tpl, render_vars):
     """Renders a file based on its jinja template.
@@ -176,16 +135,16 @@ print ("{:<40} {:<100}".format('\nCodes directory:',code_dir))
 # Check arguments
 # =========================================================
 
-source = check_abspath(source,"file")
+source = errors.check_abspath(source,"file")
 print ("{:<40} {:<100}".format('\nSource file:',source))
 
-out_dir = check_abspath(out_dir,"folder")
+out_dir = errors.check_abspath(out_dir,"folder")
 print ("{:<40} {:<100}".format('\nJobs main directory:',out_dir))
 
-config_file = check_abspath(config_file,"file")
+config_file = errors.check_abspath(config_file,"file")
 
 if clusters_file: 
-  clusters_file = check_abspath(clusters_file,"file")
+  clusters_file = errors.check_abspath(clusters_file,"file")
 else:
   # If no value has been provided through the command line, take the clusters.yml file in the abin_launcher directory of CHAINS
   chains_dir = os.path.dirname(code_dir) 
@@ -225,6 +184,17 @@ print ("{:<40} {:<100}".format('\nLoading the clusters file',clusters_file + " .
 with open(clusters_file, 'r') as f_clusters:
   clusters_cfg = yaml.load(f_clusters, Loader=yaml.FullLoader)
 print('%12s' % "[ DONE ]")
+
+# =========================================================
+# Check jinja templates
+# =========================================================
+
+# Get the path to jinja templates folder (a folder named "Templates" in the same folder as this script)
+path_tpl_dir = os.path.join(code_dir,"Templates")
+
+for filename in clusters_cfg[cluster_name]['progs'][prog]['jinja']['templates'].values():
+  # Check if all the files specified in the clusters YAML file exists in the Templates folder of control_launcher.
+  errors.check_abspath(os.path.join(path_tpl_dir,filename),"file")
 
 # =========================================================
 # Establishing the different job scales
@@ -621,7 +591,6 @@ print('%12s' % "[ DONE ]")
 energies_file = config[prog]['created_files']['energies_file']
 print("{:<60}".format('\nCreating %s file ... ' % energies_file), end="")
 np.savetxt(os.path.join(data_dir,energies_file + '_cm-1'),eigenvalues,fmt='%1.10e')
-#np.savetxt(os.path.join(data_dir,energies_file + '_ua'),eigenvalues_ua,fmt='%1.10e',footer='comment',comments='#')
 np.savetxt(os.path.join(data_dir,energies_file + '_ua'),eigenvalues_ua,fmt='%1.10e')
 np.savetxt(os.path.join(data_dir,energies_file + '_nm'),eigenvalues_nm,fmt='%1.10e')
 np.savetxt(os.path.join(data_dir,energies_file + '_ev'),eigenvalues_ev,fmt='%1.10e')
@@ -677,7 +646,6 @@ final_file = config[prog]['created_files']['final_pop']
 print("{:<60}".format("\nCreating %s file ..." % final_file), end="") 
 
 final_pop = np.zeros((len(states_list), len(states_list)),dtype=complex)  # Quick init of a zero-filled matrix
-final_pop[0,0] = 0+0j # Unrealistic population
 
 with open(os.path.join(data_dir, final_file + "_1"), "w") as f:
   for line in final_pop:
@@ -727,10 +695,10 @@ print("{:<81}".format("\nDefining and preparing the jinja templates ..."), end="
 
 # Define the names of the template and rendered files, given in the YAML files.
 
-tpl_param = config[prog]['jinja_templates']['parameters_file']                           # Jinja template file for the parameters file
+tpl_param = clusters_cfg[cluster_name]['progs'][prog]['jinja']['templates']['parameters_file']            # Jinja template file for the parameters file
 
-tpl_manifest = clusters_cfg[cluster_name]['progs'][prog]['manifest_template']            # Jinja template file for the job manifest (job submitting script)
-rnd_manifest = clusters_cfg[cluster_name]['progs'][prog]['manifest_render']              # Name of the rendered job manifest file
+tpl_manifest = clusters_cfg[cluster_name]['progs'][prog]['jinja']['templates']['job_manifest']            # Jinja template file for the job manifest (job submitting script)
+rnd_manifest = clusters_cfg[cluster_name]['progs'][prog]['jinja']['renders']['job_manifest']              # Name of the rendered job manifest file
 
 # Determine the central frequency of the guess pulse in cm-1 (here defined as the average of the eigenvalues)
 
@@ -807,7 +775,7 @@ for state in states_list:
     param_render_vars["target"] = target
     param_render_vars["processus"] = "OPM"
     param_render_vars["source"] = " "
-    param_content = jinja_render(os.path.join(code_dir,"Templates"), tpl_param, param_render_vars)           # Render the jinja template of the parameters file
+    param_content = jinja_render(path_tpl_dir, tpl_param, param_render_vars)           # Render the jinja template of the parameters file
     with open(os.path.join(job_dir, rnd_param), "w", encoding='utf-8') as param_file:
       param_file.write(param_content)
     print('%12s' % "[ DONE ]")
@@ -817,7 +785,7 @@ for state in states_list:
     print("{:<80}".format("    Rendering the jinja template to create the %s file ..." % rnd_param_PCP), end ="")
     param_render_vars["processus"] = "PCP"
     param_render_vars["source"] = "../Pulse/Pulse_iter" + str(niter)
-    param_content = jinja_render(os.path.join(code_dir,"Templates"), tpl_param, param_render_vars)           # Render the jinja template of the parameters file
+    param_content = jinja_render(path_tpl_dir, tpl_param, param_render_vars)           # Render the jinja template of the parameters file
     with open(os.path.join(job_dir, rnd_param_PCP), "w", encoding='utf-8') as param_file:
       param_file.write(param_content)
     print('%12s' % "[ DONE ]")
@@ -828,7 +796,7 @@ for state in states_list:
     manifest_render_vars["rnd_param"] = rnd_param
     manifest_render_vars["rnd_param_PCP"] = rnd_param_PCP
     manifest_render_vars["job_dirname"] = job_dirname
-    manifest_content = jinja_render(os.path.join(code_dir,"Templates"), tpl_manifest, manifest_render_vars)  # Render the jinja template of the job manifest
+    manifest_content = jinja_render(path_tpl_dir, tpl_manifest, manifest_render_vars)  # Render the jinja template of the job manifest
     with open(os.path.join(job_dir, rnd_manifest), "w", encoding='utf-8') as manifest_file:
       manifest_file.write(manifest_content)
     print('%12s' % "[ DONE ]")

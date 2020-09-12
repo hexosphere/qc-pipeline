@@ -6,7 +6,6 @@
 
 import os
 import jinja2
-from pathlib import Path
 
 def jinja_render(path_tpl_dir, tpl, render_vars):
     """Renders a file based on its jinja template
@@ -56,13 +55,13 @@ def orca_render(vars):
     Pay a particular attention to the render_vars dictionary, it contains all the definitions of the variables appearing in your jinja template and should be modified accordingly.
     """
 
-    # Define the names of all the template and rendered files, given in the YAML files.
+    # Define the names of all the template and rendered files, given in the YAML cluster file.
 
-    tpl_inp = vars['config'][vars['prog']]['jinja_templates']['input']                                            # Jinja template file for the orca input
-    tpl_manifest = vars['clusters_cfg'][vars['cluster_name']]['progs'][vars['prog']]['manifest_template']         # Jinja template file for the orca job manifest (job submitting script)
+    tpl_inp = vars['clusters_cfg'][vars['cluster_name']]['progs'][vars['prog']]['jinja']['templates']['input']                     # Jinja template file for the orca input
+    tpl_manifest = vars['clusters_cfg'][vars['cluster_name']]['progs'][vars['prog']]['jinja']['templates']['job_manifest']         # Jinja template file for the orca job manifest (job submitting script)
 
-    rnd_input = vars['mol_name'] + ".inp"                                                                         # Name of the rendered input file (automatically named after the molecule and not defined in the config file)
-    rnd_manifest = vars['clusters_cfg'][vars['cluster_name']]['progs'][vars['prog']]['manifest_render']           # Name of the rendered job manifest file
+    rnd_input = vars['mol_name'] + ".inp"                                                                                          # Name of the rendered input file (automatically named after the molecule and not defined in the clusters file)
+    rnd_manifest = vars['clusters_cfg'][vars['cluster_name']]['progs'][vars['prog']]['jinja']['renders']['job_manifest']           # Name of the rendered job manifest file
 
     # Initialize our dictionary that will content all the text of the rendered files
 
@@ -70,8 +69,8 @@ def orca_render(vars):
 
     # Get the path to the chains folder and the check_scripts folder because the job manifest needs to execute check_orca.py and source load_modules.sh
 
-    chains_path = Path(vars['code_dir']).parent       # Get the parent folder from the codes_dir (which is the abin_launcher folder)                         
-    check_script_path = os.path.join(str(chains_path),"check_scripts")
+    chains_path = os.path.dirname(vars['code_dir'])                      # Get the parent folder from the codes_dir (which is the abin_launcher folder)                         
+    check_script_path = os.path.join(chains_path,"check_scripts")
 
     # Rendering the jinja template for the orca job manifest
   
@@ -149,13 +148,13 @@ def qchem_render(vars):
     Pay a particular attention to the render_vars dictionary, it contains all the definitions of the variables appearing in your jinja template and should be modified accordingly.
     """
 
-    # Define the names of all the template and rendered files, given in the YAML files.
+    # Define the names of all the template and rendered files, given in the YAML cluster file.
 
-    tpl_inp = vars['config'][vars['prog']]['jinja_templates']['input']                                            # Jinja template file for the qchem input
-    tpl_manifest = vars['clusters_cfg'][vars['cluster_name']]['progs'][vars['prog']]['manifest_template']         # Jinja template file for the qchem job manifest (job submitting script)
+    tpl_inp = vars['clusters_cfg'][vars['cluster_name']]['progs'][vars['prog']]['jinja']['templates']['input']                     # Jinja template file for the qchem input
+    tpl_manifest = vars['clusters_cfg'][vars['cluster_name']]['progs'][vars['prog']]['jinja']['templates']['job_manifest']         # Jinja template file for the qchem job manifest (job submitting script)
 
-    rnd_input = vars['mol_name'] + ".in"                                                                          # Name of the rendered input file (automatically named after the molecule and not defined in the config file)
-    rnd_manifest = vars['clusters_cfg'][vars['cluster_name']]['progs'][vars['prog']]['manifest_render']           # Name of the rendered job manifest file
+    rnd_input = vars['mol_name'] + ".in"                                                                                           # Name of the rendered input file (automatically named after the molecule and not defined in the clusters file)
+    rnd_manifest = vars['clusters_cfg'][vars['cluster_name']]['progs'][vars['prog']]['jinja']['renders']['job_manifest']           # Name of the rendered job manifest file
 
     # Initialize our dictionary that will content all the text of the rendered files
 
@@ -163,8 +162,8 @@ def qchem_render(vars):
 
     # Get the path to the chains folder and the check_scripts folder because the job manifest needs to execute check_qchem.py and source load_modules.sh
 
-    chains_path = Path(vars['code_dir']).parent       # Get the parent folder from the codes_dir (which is the abin_launcher folder)                         
-    check_script_path = os.path.join(str(chains_path),"check_scripts")
+    chains_path = os.path.dirname(vars['code_dir'])                      # Get the parent folder from the codes_dir (which is the abin_launcher folder)                         
+    check_script_path = os.path.join(chains_path,"check_scripts")
 
     # Rendering the jinja template for the qchem job manifest
   

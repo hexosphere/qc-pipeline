@@ -1,7 +1,7 @@
 # This is the main configuration file, this file will contain every information you need to provide to the different scripts and programs your molecule will run through.
 # This is a YAML database, see https://yaml.org/ for more informations
 
-# This block contains all the informations that is not specific to any program in particular.
+# General information that is not specific to any program in particular.
 general: 
   charge: 0
   multiplicity: 1
@@ -13,11 +13,8 @@ general:
 # Folder where all the results of this molecule will be sent (a subfolder with the name of the molecule will be created)
   results-folder: $CECIHOME/RESULTS
 
-# This block contains all the informations specific to orca.
+# Orca information
 orca:
-# Define here the jinja template names, those files must be put in the Templates folder.
-  jinja_templates:
-    input: orca.inp.jinja   # The rendered file will be named <mol_name>.inp, where <mol_name> is the name of the molecule file
 # The keywords you provide here are the keywords that will be used "as-is" in the keyword line of the ORCA input file, be sure that ORCA knows them! (see ORCA's manual for more informations)
   job-type: Opt
   method: B3LYP
@@ -27,11 +24,8 @@ orca:
 # Folder where the orca output files needed for the next step will be sent.
   output-folder: $CECIHOME/ORCA_OUT               
 
-# This block contains all the informations specific to qchem.
+# Q-Chem information
 qchem:
-# Define here the jinja template names, those files must be put in the Templates folder.
-  jinja_templates:
-    input: qchem.in.jinja   # The rendered file will be named <mol_name>.in, where <mol_name> is the name of the molecule file
 # The keywords you provide here are the keywords that will be used "as-is" in the Q-CHEM input file, be sure that Q-CHEM knows them! (see Q-CHEM's manual for more informations)
   job-type: sp
   exchange: b3lyp
@@ -40,14 +34,11 @@ qchem:
 # Folder where the q-chem output files needed for the next step will be sent.
   output-folder: $CECIHOME/Q-CHEM_OUT             
 
-# This block contains all the informations specific to qoct-ra.
+# QOCT-RA information
 qoct-ra:
 # Name of the script that will be used to extract relevant informations for QOCT-RA (it must have an extension ".py" but don't include it in this value)
   parser_script: qchem_parser
-# Define here the jinja template names, they must be put in the Templates folder.
-  jinja_templates:
-    parameters_file: param.nml.jinja   # The rendered file will be named param_<target>.nml, where <target> is the state label corresponding to the projector that will be used
-# Define here the type of states you want to target (must correspond with a type of value stored in the states_list at state[1])
+ # Define here the type of states you want to target (must correspond with a type of value stored in the states_list at state[1])
   target_state: Triplet
 # Define here the names of the files that will be created in the molecule folder (in a "data" subfolder)
   created_files: 

@@ -21,58 +21,12 @@ from inspect import getsourcefile
 import jinja2  # Only needed in the renderer subscript, it is loaded here to check if your python installation does support jinja2
 import yaml
 
+# Subscripts (files that end with .py and must be placed in the same folder as this script)
+
+import errors
 import mol_scan
 import renderer
 import scaling_fcts
-
-# ===================================================================
-# ===================================================================
-# Function definitions
-# ===================================================================
-# ===================================================================
-
-def check_abspath(path,type="either"):
-    """Checks if a path towards a file or folder exists and makes sure it's absolute.
-
-    Parameters
-    ----------
-    path : str
-        The path towards the file or directory you want to test
-    type : str (optional)
-        The type of element for which you would like to test the path (file, folder or either)
-        By default, checks if the path leads to either a file or a folder (type = either)
-    
-    Returns
-    -------
-    abspath : str
-        Normalized absolutized version of the path
-    """
-
-    if type not in ["file","folder","either"]:
-      # Not in try/except structure because the full error message will be need in this case
-      raise ValueError ("The specified type for which the check_abspath function has been called is not one of 'file', 'folder or 'either'")
-
-    # For more informations on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
-    try:
-      if not os.path.exists(path):
-        raise IOError ("ERROR: The argument %s does not seem to exist." % path)
-      elif type == "file":
-        if not os.path.isfile(path):
-          raise ValueError ("ERROR: The argument %s is not a file" % path)
-      elif type == "folder":
-        if not os.path.isdir(path):
-          raise ValueError ("ERROR: The argument %s is not a directory" % path)
-      elif type == "either":
-        if not os.path.isdir(path) and not os.path.isfile(path):
-          raise ValueError ("ERROR: The argument %s is neither a file nor a directory" % path)
-    except Exception as error:
-      print(error)
-      exit(1)
-
-    # If everything went well, get the normalized absolutized version of the path
-    abspath = os.path.abspath(path)
-
-    return abspath
 
 # ===================================================================
 # ===================================================================
@@ -155,7 +109,7 @@ print ("{:<40} {:<100}".format('\nCodes directory:',code_dir))
 # Check molecule file(s)
 # =========================================================
 
-mol_inp = check_abspath(mol_inp)
+mol_inp = errors.check_abspath(mol_inp)
 
 if os.path.isdir(mol_inp):
   # If the argument mol_inp is a folder, we need to look for every molecule file with the given format in that folder.
@@ -184,7 +138,7 @@ else:
 # Check config file(s)
 # =========================================================
 
-config_inp = check_abspath(config_inp)
+config_inp = errors.check_abspath(config_inp)
 
 if os.path.isdir(config_inp):
   # If the argument config_inp is a folder, we need to look for every YAML configuration file in that folder.
@@ -214,11 +168,11 @@ else:
 # Check other arguments (program will be checked later)
 # =========================================================
 
-out_dir = check_abspath(out_dir,"folder")
+out_dir = errors.check_abspath(out_dir,"folder")
 print ("{:<40} {:<100}".format('\nJobs main directory:',out_dir))
 
 if clusters_file: 
-  clusters_file = check_abspath(clusters_file,"file")
+  clusters_file = errors.check_abspath(clusters_file,"file")
 else:
   # If no value has been provided through the command line, take the clusters.yml file in the same directory as this script 
   clusters_file = os.path.join(code_dir,"clusters.yml")
@@ -236,7 +190,7 @@ print('%12s' % "[ DONE ]")
 
 # Loading AlexGustafsson's Mendeleev Table (found at https://github.com/AlexGustafsson/molecular-data) which will be used for the scaling functions.
 
-print ("{:<140}".format("\nLoading AlexGustafsson's Mendeleev Table ..."), end="")
+print ("{:<141}".format("\nLoading AlexGustafsson's Mendeleev Table ..."), end="")
 with open(os.path.join(code_dir,'elements.yml'), 'r') as f_elements:
   elements = yaml.load(f_elements, Loader=yaml.FullLoader)
 print('%12s' % "[ DONE ]")
@@ -249,7 +203,7 @@ print('%12s' % "[ DONE ]")
 scan_fct = mol_fmt + "_scan"
 
 # Name of the scaling function that will determine the scale_index of the molecule (necessary for determining the job scale) - defined in scaling_fcts.py
-scaling_fct = clusters_cfg["progs"][prog]["scaling_function"]
+scaling_fct = clusters_cfg[cluster_name]["progs"][prog]["scaling_function"]
 
 # Name of the render function that will render the job manifest and the input file (depends on the program)  - defined in renderer.py
 render_fct = prog + "_render"
@@ -284,6 +238,17 @@ if (scaling_fct) not in dir(scaling_fcts) or not callable(getattr(scaling_fcts, 
   exit(3) 
 
 # =========================================================
+# Check jinja templates
+# =========================================================
+
+# Get the path to jinja templates folder (a folder named "Templates" in the same folder as this script)
+path_tpl_dir = os.path.join(code_dir,"Templates")
+
+for filename in clusters_cfg[cluster_name]['progs'][prog]['jinja']['templates'].values():
+  # Check if all the files specified in the clusters YAML file exists in the Templates folder of abin_launcher.
+  errors.check_abspath(os.path.join(path_tpl_dir,filename),"file")
+
+# =========================================================
 # Establishing the different job scales
 # =========================================================
 
@@ -307,7 +272,7 @@ job_scales = OrderedDict(sorted(job_scales.items()))
 
 print("")
 print(''.center(105, '-'))
-print ("{:<15} {:<20} {:<20} {:<20} {:<10} {:<20}".format('scale_limit','Label','Partition_name','Time','Cores','Mem per CPU (MB)'))
+print ("{:<15} {:<20} {:<20} {:<20} {:<10} {:<20}".format('Scale Limit','Label','Partition Name','Time','Cores','Mem per CPU (MB)'))
 print(''.center(105, '-'))
 for scale_limit, scale in job_scales.items():
   print ("{:<15} {:<20} {:<20} {:<20} {:<10} {:<20}".format(scale_limit, scale['label'], scale['partition_name'], scale['time'], scale['cores'], scale['mem_per_cpu']))
@@ -321,132 +286,156 @@ print(''.center(105, '-'))
 
 for mol_filename in mol_inp_list:
 
-  # Getting rid of the format extension to get the name of the molecule and the configuration
-  mol_name = str(mol_filename.split('.')[0])
-  print("Now treating %s molecule" % mol_name)
+  # =========================================================
+  # =========================================================
+  #                Molecule file treatment
+  # =========================================================
+  # =========================================================
 
   # For more informations on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
   try:
 
-    for config_filename in config_inp_list:
+    # Getting rid of the format extension to get the name of the molecule and the configuration
+    mol_name = str(mol_filename.split('.')[0])
+    console_message = "Start procedure for the molecule " + mol_name
+    print("")
+    print(''.center(len(console_message)+11, '*'))
+    print(console_message.center(len(console_message)+10))
+    print(''.center(len(console_message)+11, '*'))
+
+    # Create a output log file containing all the information about the molecule treatment
+    mol_log_name = mol_name + ".log"
+    mol_log = open(os.path.join(out_dir,mol_log_name), 'w', encoding='utf-8')
+
+    # Redirect standard output to the mol_log file (see https://stackabuse.com/writing-to-a-file-with-pythons-print-function/ for reference)
+    sys.stdout = mol_log
+    
+    # =========================================================
+    # Reading the content of the molecule file
+    # =========================================================
+  
+    print("{:<80}".format("\nScanning %s file ..." % mol_filename), end="")
+    with open(os.path.join(mol_inp_path,mol_filename), 'r') as mol_file:
+      mol_content = mol_file.read().splitlines()
+
+    file_data = eval("mol_scan." + scan_fct)(mol_content)
+
+    #! The file_data variable is a dictionary of the form {'chemical_formula':{}, 'atomic_coordinates':[]}
+    #! The first key of file_data is a dictionary stating the chemical formula of the molecule in the form {'atom type 1':number of type 1 atoms, 'atom type 2':number of type 2 atoms, ...}, ex: {'Si':17, 'O':4, 'H':28}
+    #! The second key is a list containing all atomic coordinates, as they will be used in the input file of the ab initio program
+    #! If a problem arises when scanning the molecule file, a MoleculeError exception should be raised with a proper error message (see errors.py for more informations)
+
+    print('%12s' % "[ DONE ]")
+    
+    # =========================================================
+    # Determining the scale_index
+    # =========================================================
+    
+    section_title = "1. Scale index determination"
+
+    print("")
+    print("")
+    print(''.center(len(section_title)+10, '*'))
+    print(section_title.center(len(section_title)+10))
+    print(''.center(len(section_title)+10, '*'))
+    
+    # Scale index determination
+    
+    scale_index = eval("scaling_fcts." + scaling_fct)(elements, file_data)
+
+    print(("\nScale index: ", scale_index))
+    
+    # Job scale category definition
+
+    jobscale = None
+
+    for scale_limit in job_scales:
+      if scale_index > scale_limit:
+        continue
+      else:
+        jobscale = job_scales[scale_limit]
+        jobscale_limit = scale_limit
+        break
+
+    if not jobscale:
+      raise errors.AbinError("ERROR: This molecule job scale is too big for this cluster (%s). Please change cluster." % cluster_name.upper())
+    
+    # =========================================================
+    # Determining the ressources needed for the job
+    # =========================================================
+    
+    section_title = "2. Calculation requirements"
+
+    print("")
+    print("")
+    print(''.center(len(section_title)+10, '*'))
+    print(section_title.center(len(section_title)+10))
+    print(''.center(len(section_title)+10, '*'))
+    
+    # Obtaining the informations associated to our job scale
+    
+    job_partition = jobscale['partition_name']
+    job_walltime = jobscale['time']
+    job_cores = jobscale['cores']
+    job_mem_per_cpu = jobscale['mem_per_cpu']
+
+    print("")
+    print(''.center(50, '-'))
+    print("{:<20} {:<30}".format("Scale index: ", scale_index))
+    print(''.center(50, '-'))
+    print("{:<20} {:<30}".format("Cluster: ", cluster_name))
+    print("{:<20} {:<30}".format("Job scale: ", jobscale["label"]))
+    print("{:<20} {:<30}".format("Job scale limit: ", jobscale_limit))
+    print(''.center(50, '-'))
+    print("{:<20} {:<30}".format("Job partition: ", job_partition))
+    print("{:<20} {:<30}".format("Job walltime: ", job_walltime))
+    print("{:<20} {:<30}".format("Number of cores: ", job_cores))
+    print("{:<20} {:<30}".format("Mem per CPU (MB): ", job_mem_per_cpu))
+    print(''.center(50, '-'))
+
+  # In case of an error specific to the molecule file, skip it
+  except errors.AbinError as error:
+    sys.stdout = original_stdout                       # Reset the standard output to its original value
+    print(error)
+    print("Skipping %s molecule" % mol_name)
+    os.remove(os.path.join(out_dir,mol_log_name))      # Remove the log file since there was a problem
+    continue
+
+  # =========================================================
+  # =========================================================
+  #               Configuration file treatment
+  # =========================================================
+  # =========================================================
+
+  sys.stdout = original_stdout                         # Reset the standard output to its original value
+
+  check = True                                         # No problem has occurred yet
+
+  # We are still inside the molecule files "for" loop and we are going to iterate over each configuration file with that molecule
+  for config_filename in config_inp_list: 
+
+    try:
 
       # Getting rid of the format extension to get the name of the configuration
       config_name = str(config_inp_file.split('.')[0])
-      print("{:<80}".format("    Treating %s molecule with %s configuration ..." % (mol_name, config_name)), end="")
+      print("{:<80}".format("\nTreating %s molecule with '%s' configuration ..." % (mol_name, config_name)), end="")
       
-      # Create an output log file for each molecule - config combination
+      # Check if a folder already exists for that molecule - config combination
+      if os.path.exists(os.path.join(out_dir,mol_name + "_" + config_name)) and not overwrite:
+        print("\nERROR: A folder for the %s molecule with the '%s' configuration already exists in %s !" % (mol_name, config_name, out_dir))
+        print("Skipping this configuration")
+        check = False                                  # Flag to notify that a problem has occurred
+        continue
+
+      # Create an output log file for each molecule - config combination, using the mol_log file as a basis
+      # TODO: does not seem to work right now (the content of mol_log isn't added)
       log_name = mol_name + "_" + config_name + ".log"
-      log = open(os.path.join(out_dir,log_name), 'x', encoding='utf-8')
+      shutil.copy(os.path.join(out_dir,mol_log_name),os.path.join(out_dir,log_name))
+      log = open(os.path.join(out_dir,log_name), 'a', encoding='utf-8')
 
       # Redirect standard output to the log file (see https://stackabuse.com/writing-to-a-file-with-pythons-print-function/ for reference)
       sys.stdout = log
-
-      # Check if a folder already exists for that molecule - config combination
-      if os.path.exists(os.path.join(out_dir,mol_name + "_" + config_name)) and not overwrite:
-        raise ValueError ("ERROR: A folder for the %s molecule with the %s configuration already exists in %s !" % (mol_name, config_name, out_dir))
       
-      # =========================================================
-      # Load config file
-      # =========================================================
-
-      print ("{:<40} {:<100}".format('\nLoading the configuration file',config_filename + " ..."), end="")
-      #print("\nLoading the main configuration file  %s ..." % config_file, end="")
-      with open(os.path.join(config_inp_path,config_filename), 'r') as f_config:
-        config = yaml.load(f_config, Loader=yaml.FullLoader)
-      print('%12s' % "[ DONE ]")
-
-      # Check if the program exists in the config file. 
-
-      if prog not in config:
-        raise ValueError ("ERROR: No information provided for this program in the YAML config file")
-
-      # =========================================================
-      # Molecule file treatment
-      # =========================================================
-      
-      # Reading the content of the molecule file
-      
-      print("{:<80}".format("\nScanning %s file ..." % mol_filename), end="")
-      with open(os.path.join(mol_inp_path,mol_filename), 'r') as mol_file:
-        mol_content = mol_file.read().splitlines()
-
-      # Scanning the content of the file and extracting the relevant informations
-
-      file_data = eval("mol_scan." + scan_fct)(mol_content)
-
-      #! The file_data variable is a dictionary of the form {'chemical_formula':{}, 'atomic_coordinates':[]}
-      #! The first key of file_data is a dictionary stating the chemical formula of the molecule in the form {'atom type 1':number of type 1 atoms, 'atom type 2':number of type 2 atoms, ...}, ex: {'Si':17, 'O':4, 'H':28}
-      #! The second key is a list containing all atomic coordinates, as they will be used in the input file of the ab initio program
-      #! If a problem arises when scanning the molecule file, a ValueError exception should be raised with a proper error message
-
-      print('%12s' % "[ DONE ]")
-      
-      # =========================================================
-      # Determining the scale_index
-      # =========================================================
-      
-      section_title = "1. Scale index determination"
-
-      print("")
-      print("")
-      print(''.center(len(section_title)+10, '*'))
-      print(section_title.center(len(section_title)+10))
-      print(''.center(len(section_title)+10, '*'))
-      
-      # scale_index determination
-      
-      scale_index = eval("scaling_fcts." + scaling_fct)(elements, file_data)
-
-      print(("\nScale index: ", scale_index))
-      
-      # Job scale category definition
-
-      jobscale = None
-
-      for scale_limit in job_scales:
-        if scale_index > scale_limit:
-          continue
-        else:
-          jobscale = job_scales[scale_limit]
-          jobscale_limit = scale_limit
-          break
-
-      if not jobscale:
-        raise ValueError("ERROR: This molecule job scale is too big for this cluster (%s). Please change cluster." % cluster_name.upper())
-      
-      # =========================================================
-      # Determining the ressources needed for the job
-      # =========================================================
-      
-      section_title = "2. Calculation requirements"
-
-      print("")
-      print("")
-      print(''.center(len(section_title)+10, '*'))
-      print(section_title.center(len(section_title)+10))
-      print(''.center(len(section_title)+10, '*'))
-      
-      # Obtaining the informations associated to our job scale
-      
-      job_partition = jobscale['partition_name']
-      job_walltime = jobscale['time']
-      job_cores = jobscale['cores']
-      job_mem_per_cpu = jobscale['mem_per_cpu']
-
-      print("")
-      print(''.center(50, '-'))
-      print("{:<20} {:<30}".format("Scale index: ", scale_index))
-      print(''.center(50, '-'))
-      print("{:<20} {:<30}".format("Cluster: ", cluster_name))
-      print("{:<20} {:<30}".format("Job scale: ", jobscale["label"]))
-      print("{:<20} {:<30}".format("Job scale limit: ", jobscale_limit))
-      print(''.center(50, '-'))
-      print("{:<20} {:<30}".format("Job partition: ", job_partition))
-      print("{:<20} {:<30}".format("Job walltime: ", job_walltime))
-      print("{:<20} {:<30}".format("Number of cores: ", job_cores))
-      print("{:<20} {:<30}".format("Mem per CPU (MB): ", job_mem_per_cpu))
-      print(''.center(50, '-'))
-
       # =========================================================
       # Rendering the needed input files
       # =========================================================
@@ -458,10 +447,18 @@ for mol_filename in mol_inp_list:
       print(''.center(len(section_title)+10, '*'))
       print(section_title.center(len(section_title)+10))
       print(''.center(len(section_title)+10, '*'))
-      
-      # Get the path to jinja templates folder (a folder named "Templates" in the samed folder as this script)
 
-      path_tpl_dir = os.path.join(code_dir,"Templates")
+      # Load config file
+
+      print ("{:<40} {:<100}".format('\nLoading the configuration file',config_filename + " ..."), end="")
+      with open(os.path.join(config_inp_path,config_filename), 'r') as f_config:
+        config = yaml.load(f_config, Loader=yaml.FullLoader)
+      print('%12s' % "[ DONE ]")
+
+      # Check if the program exists in the config file. 
+
+      if prog not in config:
+        raise errors.AbinError("ERROR: No information provided for this program in the YAML config file")
 
       # Dynamically call the inputs render function for the given program
 
@@ -512,40 +509,47 @@ for mol_filename in mol_inp_list:
       os.chdir(job_dir)
       subcommand = clusters_cfg[cluster_name]['subcommand']
       delay_command = str(jobscale["delay_command"] or '')
-      manifest = config[prog]['rendered_files']['manifest']
+      manifest = clusters_cfg[cluster_name]['progs'][prog]['jinja']['renders']['job_manifest']
       launch_command = subcommand + " " + delay_command + " " + manifest
       retcode = os.system(launch_command)
       if retcode != 0 :
-        sys.stdout = original_stdout # Reset the standard output to its original value
+        sys.stdout = original_stdout                 # Reset the standard output to its original value
         print("Job submit encountered an issue")
         print("Aborting ...")
         exit(5)
       
       # End of treatment for that particular molecule - config combination
 
-      sys.stdout = original_stdout # Reset the standard output to its original value
-      shutil.move(os.path.join(out_dir,log_name), job_dir) # Archive the log file in the job subfolder
+      sys.stdout = original_stdout                            # Reset the standard output to its original value
+      shutil.move(os.path.join(out_dir,log_name), job_dir)    # Archive the log file in the job subfolder
       print('%12s' % "[ DONE ]")
 
-  except ValueError as error:
-    sys.stdout = original_stdout # Reset the standard output to its original value
-    print(error)
-    print("Skipping %s molecule" % mol_name)
-    os.remove(os.path.join(out_dir,log_name))
-    continue
+    # In case of an error specific to the configuration file, skip it and never deal with it again
+    except errors.AbinError as error:
+      sys.stdout = original_stdout                   # Reset the standard output to its original value
+      print(error)
+      print("Skipping config %s" % config_name)
+      os.remove(os.path.join(out_dir,log_name))      # Remove the log file since there was a problem
+      config_inp_list.remove(config_filename)        # Remove the problematic configuration file from the list, to not iterate over it again for the next molecules
+      check = False                                  # Flag to notify that a problem has occurred
+      continue        
+    
+  os.remove(os.path.join(out_dir,mol_log_name))          # Remove the molecule log file since we've finished treating this molecule
 
-  # Archive the molecule file in launched_dir if keep has not been set
-
-  if not keep:
-    launched_dir = os.path.join(mol_inp_path,"Launched")                             # Folder where the molecule files will be put after having been treated by this script, path is relative to the directory where are all the molecule files.
+  # Archive the molecule file in launched_dir if keep has not been set and there was no problem
+  if not keep and check:
+    launched_dir = os.path.join(mol_inp_path,"Launched")        # Folder where the molecule files will be put after having been treated by this script, path is relative to the directory where are all the molecule files.
     os.makedirs(launched_dir, exist_ok=True)
     if os.path.exists(os.path.join(launched_dir,mol_filename)):
       os.remove(os.path.join(launched_dir,mol_filename))
     shutil.move(os.path.join(mol_inp_path,mol_filename), launched_dir)
-    print("    Molecule original structure file archived to %s" % launched_dir)
+    print("Molecule original structure file archived to %s" % launched_dir)
 
-  print("End of procedure for the molecule %s" % mol_name)
+  console_message = "End of procedure for the molecule " + mol_name
   print("")
+  print(''.center(len(console_message)+10, '*'))
+  print(console_message.center(len(console_message)+10))
+  print(''.center(len(console_message)+10, '*'))
 
 print("")
 print("".center(columns,"*"))

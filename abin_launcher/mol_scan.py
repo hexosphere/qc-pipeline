@@ -5,6 +5,7 @@
 ################################################################################################################################################
 
 import re
+import errors
 
 #! ATTENTION: All the functions defined below need to:
 #! - be called fmt_scan, where fmt is the name of the format of the molecule file as it will be given in the command line (stored in the mol_fmt variable in abin_launcher.py) 
@@ -12,7 +13,7 @@ import re
 #! - return a dictionary (file_data), following the pattern {'chemical_formula':{}, 'atomic_coordinates':[]}
 #!   * The first key of file_data is a dictionary stating the chemical formula of the molecule in the form {'atom type 1':number of type 1 atoms, 'atom type 2':number of type 2 atoms, ...}, ex: {'Si':17, 'O':4, 'H':28}
 #!   * The second key is a list containing all atomic coordinates, as they will be used in the input file of the ab initio program
-#! If a problem arises when scanning the molecule file, a ValueError exception should be raised with a proper error message
+#! If a problem arises when scanning the molecule file, a MoleculeError exception should be raised with a proper error message (see errors.py for more informations)
 #! Otherwise, you will need to modify abin_launcher.py accordingly.
 
 def xyz_scan(mol_content:list):
@@ -58,6 +59,6 @@ def xyz_scan(mol_content:list):
     # Check if the number of lines matches the number of atoms defined in the first line of the .xyz file
     
     if checksum_nlines != nb_atoms:
-      raise ValueError("ERROR: Number of atoms lines (%s) doesn't match the number of atoms mentioned in the first line of the .xyz file (%s) !" % (checksum_nlines, nb_atoms))
+      raise errors.AbinError("ERROR: Number of atoms lines (%s) doesn't match the number of atoms mentioned in the first line of the .xyz file (%s) !" % (checksum_nlines, nb_atoms))
   
     return file_data

@@ -4,11 +4,18 @@
 #! Keep in mind the definition of your scaling function when assigning values to the scale_limit keys
 
 # Those keys are shared between the clusters, they will be used for information for which the cluster doesn't matter
+
 shared: 
   progs:
     orca:
-      manifest_template: &orca_jinja orca_job.sh.jinja # Name of the jinja template for the job submitting script
-      manifest_render: &orca_render orca_job.sh        # Name of the rendered job submitting script
+      jinja: &orca_jinja
+        # Names of the jinja templates, those files must be put in the Templates folder.
+        templates:
+          input: orca.inp.jinja                        # The rendered file will be named <mol_name>.inp, where <mol_name> is the name of the molecule file
+          job_manifest: orca_job.sh.jinja              
+        # Name of the files that will be rendered based on their jinja templates
+        renders:
+          job_manifest: orca_job.sh                    
       scaling_function: &scl_fct total_nb_elec         # Name of your scaling function (must be defined in abin_launcher/scaling_fcts.py)
       job_scales: &tiny_orca
         label: tiny
@@ -28,8 +35,14 @@ shared:
         mem_per_cpu: 200 # in MB
         delay_command:
     qoct-ra: 
-      manifest_template: &qoctra_jinja qoctra_job.sh.jinja # Name of the jinja template for the job submitting script
-      manifest_render: &qoctra_render qoctra_job.sh        # Name of the rendered job submitting script
+      jinja: &qoctra_jinja
+        # Names of the jinja templates, those files must be put in the Templates folder.
+        templates:
+          parameters_file: param.nml.jinja             # The rendered file will be named param_<target>.nml, where <target> is the state label corresponding to the projector that will be used
+          job_manifest: qoctra_job.sh.jinja              
+        # Name of the files that will be rendered based on their jinja templates
+        renders:
+          job_manifest: qoctra_job.sh                    
       job_scales: &unique_qoctra
         label: unique
         scale_limit: 100
@@ -46,8 +59,7 @@ dragon1:
   subcommand: sbatch
   progs:
     orca:
-      manifest_template: *orca_jinja
-      manifest_render: *orca_render
+      jinja: *orca_jinja
       set_env:
         - module --force purge
         - module load orca/4.0.1.2 
@@ -77,8 +89,7 @@ dragon1:
           mem_per_cpu: 4000 # in MB  
           delay_command: --begin=now+120
     qoct-ra:
-      manifest_template: *qoctra_jinja
-      manifest_render: *qoctra_render
+      jinja: *qoctra_jinja
       set_env:
       command:
       job_scales:
@@ -91,8 +102,7 @@ dragon2:
   subcommand: sbatch
   progs:
     orca:
-      manifest_template: *orca_jinja
-      manifest_render: *orca_render
+      jinja: *orca_jinja
       set_env:
         - module --force purge
         - module load releases/2019b
@@ -124,8 +134,7 @@ dragon2:
           mem_per_cpu: 4000 # in MB
           delay_command: --begin=now+120
     qoct-ra:
-      manifest_template: *qoctra_jinja
-      manifest_render: *qoctra_render
+      jinja: *qoctra_jinja
       set_env:
       command:
       job_scales:
@@ -138,8 +147,7 @@ lemaitre3:
   subcommand: sbatch
   progs:
     orca:
-      manifest_template: *orca_jinja
-      manifest_render: *orca_render
+      jinja: *orca_jinja
       set_env: 
         - module load ORCA/4.1.0-OpenMPI-3.1.3
       command: /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.1.0-OpenMPI-3.1.3/orca
@@ -168,8 +176,7 @@ lemaitre3:
           mem_per_cpu: 4000 # in MB
           delay_command: --begin=now+120
     qoct-ra:
-      manifest_template: *qoctra_jinja
-      manifest_render: *qoctra_render
+      jinja: *qoctra_jinja
       set_env:
         - module --force purge
         - module load releases/2019b
@@ -185,8 +192,7 @@ vega:
   subcommand: sbatch
   progs:
     orca:
-      manifest_template: *orca_jinja
-      manifest_render: *orca_render
+      jinja: *orca_jinja
       set_env: 
         - module purge
         - module load ORCA/4.0.0.2-OpenMPI-2.0.2
@@ -209,8 +215,7 @@ vega:
           mem_per_cpu: 2000 # in MB
           delay_command: --begin=now+120
     qoct-ra:
-      manifest_template: *qoctra_jinja
-      manifest_render: *qoctra_render
+      jinja: *qoctra_jinja
       set_env:
       command:
       job_scales:
@@ -225,8 +230,14 @@ hydra:
   subcommand: qsub
   progs:
     qchem:
-      manifest_template: qchem_job.sh.jinja
-      manifest_render: qchem_job.sh
+      jinja:
+        # Names of the jinja templates, those files must be put in the Templates folder.
+        templates:
+          input: qchem.in.jinja                        # The rendered file will be named <mol_name>.inp, where <mol_name> is the name of the molecule file
+          job_manifest: qchem_job.sh.jinja              
+        # Name of the files that will be rendered based on their jinja templates
+        renders:
+          job_manifest: qchem_job.sh   
       set_env: 
         - module load Q-Chem/5.2.1-intel-2019a-mpich3
       command: qchem -nt

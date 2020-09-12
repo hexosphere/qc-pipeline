@@ -35,12 +35,33 @@ def total_nb_elec(elements:dict,file_data:dict):
     Do not alter the elements.yml file from AlexGustafsson as it will be used as is.
     """
 
-    # Definition of the function that can fecth the number of electrons associated with each element in Gustafsson's table
+    # Definition of the function that can fetch the number of electrons associated with each element in Gustafsson's table
 
     def get_nb_elec_for_element(symbol:str, elements:dict) -> int:
-      for elm in elements:
-        if (elm['symbol'] == symbol):
-          return elm['number']
+        """Return the number of electrons for a specific elements
+
+        Parameters
+        ----------
+        symbol : str
+            The atom symbol of the element
+        elements : dict
+            Content of AlexGustafsson's Mendeleev Table YAML file (found at https://github.com/AlexGustafsson/molecular-data).
+
+        Returns
+        -------
+        nb_elec : int
+           Number of electrons
+        
+        Advice
+        -------
+        Do not alter the elements.yml file from AlexGustafsson as it will be used as is.
+        """
+
+        for elm in elements:
+          if (elm['symbol'] == symbol):
+              nb_elec = elm['number']
+        
+        return nb_elec
 
     # Calculating the total number of electrons in the molecule
 
@@ -56,7 +77,7 @@ def total_nb_elec(elements:dict,file_data:dict):
       print("{:<12} {:<16} {:<18} {:<22}".format(atom, atomic_number, nb_atom, subtotal_elec))
       total_elec += subtotal_elec
     print(''.center(68, '-'))
-    print("{:<29} {:<18} {:<22}".format('Total',file_data['nb_atoms'],total_elec))
+    print("{:<29} {:<18} {:<22}".format('Total',sum(file_data['chemical_formula'].values()),total_elec))
     print(''.center(68, '-'))
 
     return total_elec
