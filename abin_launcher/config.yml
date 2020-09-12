@@ -18,8 +18,6 @@ orca:
 # Define here the jinja template names, those files must be put in the Templates folder.
   jinja_templates:
     input: orca.inp.jinja   # The rendered file will be named <mol_name>.inp, where <mol_name> is the name of the molecule file
-# Define here the name of your scaling function
-  scaling_function: total_nb_elec
 # The keywords you provide here are the keywords that will be used "as-is" in the keyword line of the ORCA input file, be sure that ORCA knows them! (see ORCA's manual for more informations)
   job-type: Opt
   method: B3LYP
@@ -34,8 +32,6 @@ qchem:
 # Define here the jinja template names, those files must be put in the Templates folder.
   jinja_templates:
     input: qchem.in.jinja   # The rendered file will be named <mol_name>.in, where <mol_name> is the name of the molecule file
-# Define here the name of your scaling function
-  scaling_function: total_nb_elec
 # The keywords you provide here are the keywords that will be used "as-is" in the Q-CHEM input file, be sure that Q-CHEM knows them! (see Q-CHEM's manual for more informations)
   job-type: sp
   exchange: b3lyp

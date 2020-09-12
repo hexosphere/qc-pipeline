@@ -9,6 +9,7 @@ shared:
     orca:
       manifest_template: &orca_jinja orca_job.sh.jinja # Name of the jinja template for the job submitting script
       manifest_render: &orca_render orca_job.sh        # Name of the rendered job submitting script
+      scaling_function: &scl_fct total_nb_elec         # Name of your scaling function (must be defined in abin_launcher/scaling_fcts.py)
       job_scales: &tiny_orca
         label: tiny
         scale_limit: 50
@@ -51,6 +52,7 @@ dragon1:
         - module --force purge
         - module load orca/4.0.1.2 
       command: /usr/local/orca/orca_4_0_1_2_linux_x86-64_openmpi202/orca
+      scaling_function: *scl_fct
       job_scales: 
         - <<: *tiny_orca     
         - label: small
@@ -96,6 +98,7 @@ dragon2:
         - module load releases/2019b
         - module load ORCA/4.2.1-gompi-2019b 
       command: /opt/cecisw/arch/easybuild/2019b/software/ORCA/4.2.1-gompi-2019b/orca
+      scaling_function: *scl_fct
       job_scales:
         - <<: *tiny_orca
           partition_name: debug  
@@ -140,6 +143,7 @@ lemaitre3:
       set_env: 
         - module load ORCA/4.1.0-OpenMPI-3.1.3
       command: /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.1.0-OpenMPI-3.1.3/orca
+      scaling_function: *scl_fct
       job_scales:
         - <<: *tiny_orca  
         - label: small
@@ -187,6 +191,7 @@ vega:
         - module purge
         - module load ORCA/4.0.0.2-OpenMPI-2.0.2
       command: /apps/brussel/interlagos/software/ORCA/4.0.0.2-OpenMPI-2.0.2/orca
+      scaling_function: *scl_fct
       job_scales:
         - <<: *tiny_orca  
         - label: small
@@ -225,6 +230,7 @@ hydra:
       set_env: 
         - module load Q-Chem/5.2.1-intel-2019a-mpich3
       command: qchem -nt
+      scaling_function: *scl_fct
       job_scales:
         - <<: *tiny_qchem  
         - label: small

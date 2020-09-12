@@ -8,32 +8,32 @@ import re
 
 #! ATTENTION: All the functions defined below need to:
 #! - be called fmt_scan, where fmt is the name of the format of the molecule file as it will be given in the command line (stored in the mol_fmt variable in abin_launcher.py) 
-#! - receive a list (mol_content) and a dictionary (model_file_data) as arguments
-#! - return a dictionary (file_data), following the pattern from model_file_data
+#! - receive a list (mol_content) as argument
+#! - return a dictionary (file_data), following the pattern {'chemical_formula':{}, 'atomic_coordinates':[]}
+#!   * The first key of file_data is a dictionary stating the chemical formula of the molecule in the form {'atom type 1':number of type 1 atoms, 'atom type 2':number of type 2 atoms, ...}, ex: {'Si':17, 'O':4, 'H':28}
+#!   * The second key is a list containing all atomic coordinates, as they will be used in the input file of the ab initio program
+#! If a problem arises when scanning the molecule file, a ValueError exception should be raised with a proper error message
 #! Otherwise, you will need to modify abin_launcher.py accordingly.
 
-def xyz_scan(mol_content:list,model_file_data:dict):
+def xyz_scan(mol_content:list):
     """Scan the content of an xyz file and extract the chemical formula and atomic coordinates of the molecule
 
     Parameters
     ----------
     mol_content : list
         Content of the xyz file
-    model_file_data : dict
-        The model dictionary that will be used to store the informations of this file
-        model_file_data = {'nb_atoms': 0, 'chemical_formula':{}, 'atomic_coordinates':[]}
 
     Returns
     -------
     file_data : dict
-        The extracted informations of the xyz file, following the pattern from model_file_data
+        The extracted informations of the xyz file, following the pattern {'chemical_formula':{}, 'atomic_coordinates':[]}
     """
 
-    file_data = model_file_data
+    file_data = {'chemical_formula':{}, 'atomic_coordinates':[]}
     
     # Determining the number of atoms (first line of the xyz file)
     
-    file_data['nb_atoms'] = mol_content[0]
+    nb_atoms = int(mol_content[0])
 
     # Scanning the content of the XYZ file to determine the chemical formula and atomic coordinates of the molecule
       
@@ -57,9 +57,7 @@ def xyz_scan(mol_content:list,model_file_data:dict):
                 
     # Check if the number of lines matches the number of atoms defined in the first line of the .xyz file
     
-    if checksum_nlines != int(file_data['nb_atoms']):
-      print("\n\nERROR: Number of atoms lines (%s) doesn't match the number of atoms mentioned in the first line of the .xyz file (%s) !" % (checksum_nlines, int(file_data['#atoms'])))
-      print("Skipping this molecule...")
-      file_data = None
+    if checksum_nlines != nb_atoms:
+      raise ValueError("ERROR: Number of atoms lines (%s) doesn't match the number of atoms mentioned in the first line of the .xyz file (%s) !" % (checksum_nlines, nb_atoms))
   
     return file_data

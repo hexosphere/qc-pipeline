@@ -4,16 +4,14 @@
 ##                    This script contains the possible definition functions for the scale_index used in abin-launcher.py                     ##
 ################################################################################################################################################
 
-import os
-
 #! ATTENTION: All the functions defined below need to:
 #! - receive two dictionaries (elements and file_data) as arguments
 #! - return an integer or a float (that will act as the scale_index)
 #! Otherwise, you will need to modify abin_launcher.py accordingly.
-#! Additionnaly, their name will be called as is in the YAML config file, pertaining to the "scaling_function" key (total_nb_elec, total_nb_atoms, etc)
+#! Additionnaly, their name will be called as is in the YAML clusters file, pertaining to the "scaling_function" key (total_nb_elec, total_nb_atoms, etc)
 
 """  
-file_data is considered to follow the following pattern: {'nb_atoms': int; 'chemical_formula':{dict}; 'atomic_coordinates':[list]} (as it should have been given by the mol_scan functions)
+file_data is considered to follow the following pattern: {'chemical_formula':{dict}; 'atomic_coordinates':[list]} (as it should have been given by the mol_scan functions)
 If this is not the case, the functions below will need to be modified accordingly.
 """
 
@@ -50,15 +48,15 @@ def total_nb_elec(elements:dict,file_data:dict):
 
     print("")
     print(''.center(68, '-'))
-    print ("{:<12} {:<16} {:<18} {:<22}".format('Atom Type','Atomic Number','Number of atoms','Number of electrons'))
+    print("{:<12} {:<16} {:<18} {:<22}".format('Atom Type','Atomic Number','Number of atoms','Number of electrons'))
     print(''.center(68, '-'))
     for atom,nb_atom in file_data['chemical_formula'].items():
       atomic_number = get_nb_elec_for_element(atom,elements)
       subtotal_elec = nb_atom * atomic_number
-      print ("{:<12} {:<16} {:<18} {:<22}".format(atom, atomic_number, nb_atom, subtotal_elec))
+      print("{:<12} {:<16} {:<18} {:<22}".format(atom, atomic_number, nb_atom, subtotal_elec))
       total_elec += subtotal_elec
     print(''.center(68, '-'))
-    print ("{:<29} {:<18} {:<22}".format('Total',file_data['nb_atoms'],total_elec))
+    print("{:<29} {:<18} {:<22}".format('Total',file_data['nb_atoms'],total_elec))
     print(''.center(68, '-'))
 
     return total_elec
@@ -80,9 +78,9 @@ def total_nb_atoms(elements:dict,file_data:dict):
         Total number of atoms in the molecule    
     """
 
-    # Returns the total number of atoms in the molecule
+    # Returns the total number of atoms in the molecule by summing all the values given in the chemical_formula dictionary
 
-    total_atoms = file_data['nb_atoms']
+    total_atoms = sum(file_data['chemical_formula'].values())
 
     print("")
     print("Total number of atoms in the molecule : ",total_atoms)

@@ -52,18 +52,18 @@ def check_abspath(path,type="either"):
     # For more informations on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
     try:
       if not os.path.exists(path):
-        raise IOError ("%s does not seem to exist." % path)
+        raise IOError ("ERROR: The argument %s does not seem to exist." % path)
       elif type == "file":
         if not os.path.isfile(path):
-          raise ValueError ("%s is not a file" % path)
+          raise ValueError ("ERROR: The argument %s is not a file" % path)
       elif type == "folder":
         if not os.path.isdir(path):
-          raise ValueError ("%s is not a directory" % path)
+          raise ValueError ("ERROR: The argument %s is not a directory" % path)
       elif type == "either":
         if not os.path.isdir(path) and not os.path.isfile(path):
-          raise ValueError ("%s is neither a file nor a directory" % path)
+          raise ValueError ("ERROR: The argument %s is neither a file nor a directory" % path)
     except Exception as error:
-      print("ERROR: The argument",error)
+      print(error)
       exit(1)
 
     # If everything went well, get the normalized absolutized version of the path
@@ -108,12 +108,12 @@ required = parser.add_argument_group('Required arguments')
 required.add_argument("-i","--source", type=str, help="Path to the source file that contains all the necessary informations that need to be processed", required=True)
 required.add_argument("-o","--out_dir", type=str, help="Path to the directory where you want to create the subdirectories for each job", required=True)
 required.add_argument('-cfg', '--config', type=str, help="Path to the YAML config file", required=True)
-required.add_argument('-cl', '--clusters', type=str, help="Path to the YAML clusters file", required=True)
 
 optional = parser.add_argument_group('Optional arguments')
 optional.add_argument('-h','--help',action='help',default=argparse.SUPPRESS,help='Show this help message and exit')
 optional.add_argument("-ow","--overwrite",action="store_true",help="Overwrite files if they already exists")
 optional.add_argument("-k","--keep",action="store_true",help="Do not archive the treated source file and leave it where it is")
+optional.add_argument('-cl', '--clusters', type=str, help="Path to the YAML clusters file, default is abin_launcher/clusters.yml")
 
 args = parser.parse_args()
 
@@ -122,10 +122,10 @@ args = parser.parse_args()
 source = args.source                     # Source file containing all the necessary informations
 out_dir = args.out_dir                   # Folder where all jobs subfolders will be created
 config_file = args.config                # Main configuration file
-clusters_file = args.clusters            # YAML file containing all informations about the clusters
 
 overwrite = args.overwrite               # Flag for overwriting the files
 keep = args.keep                         # Flag for keeping the source file where it is
+clusters_file = args.clusters            # YAML file containing all informations about the clusters
 
 # Other important variable
 
@@ -158,26 +158,42 @@ print(section_title.center(len(section_title)+10))
 print(''.center(len(section_title)+10, '*'))
 
 # =========================================================
-# Check arguments
-# =========================================================
-
-source = check_abspath(source,"file")
-out_dir = check_abspath(out_dir,"folder")
-config_file = check_abspath(config_file,"file")
-clusters_file = check_abspath(clusters_file,"file")
-
-# =========================================================
-# Important files and folders
+# Define the cluster
 # =========================================================
 
 cluster_name = os.environ['CLUSTER_NAME']
 print("\nThis script is running on the %s cluster" % cluster_name.upper())
-print ("{:<40} {:<100}".format('\nJobs main directory:',out_dir))
-print ("{:<40} {:<100}".format('\nSource file:',source))
+
+# =========================================================
+# Define codes directory
+# =========================================================
 
 # Codes directory (determined by getting the path to the directory where this script is)
 code_dir = os.path.dirname(os.path.realpath(os.path.abspath(getsourcefile(lambda:0))))
 print ("{:<40} {:<100}".format('\nCodes directory:',code_dir))
+
+# =========================================================
+# Check arguments
+# =========================================================
+
+source = check_abspath(source,"file")
+print ("{:<40} {:<100}".format('\nSource file:',source))
+
+out_dir = check_abspath(out_dir,"folder")
+print ("{:<40} {:<100}".format('\nJobs main directory:',out_dir))
+
+config_file = check_abspath(config_file,"file")
+
+if clusters_file: 
+  clusters_file = check_abspath(clusters_file,"file")
+else:
+  # If no value has been provided through the command line, take the clusters.yml file in the abin_launcher directory of CHAINS
+  chains_dir = os.path.dirname(code_dir) 
+  clusters_file = os.path.join(chains_dir,"abin_launcher","clusters.yml")
+
+# =========================================================
+# Important files and folders
+# =========================================================
 
 # Get the name of the source file and the name of the folder where the source file is
 source_path = os.path.dirname(source)
