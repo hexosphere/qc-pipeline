@@ -33,13 +33,13 @@ if   [ "$CLUSTER_NAME" = "lemaitre3" ]; then out_line=2 ; else out_line=1 ; fi
 req=$(\squeue --Format=Partition,MaxCPUs --noheader --job=$SLURM_JOB_ID | awk "NR==$out_line" | tr -s ' ' , | sed 's/,/;/g')
 
 # Get the dates in an (almost) readable format through Excel
-dates_brut=$(\squeue --Format=SubmitTime,EligibleTime,StartTime --noheader --job=$SLURM_JOB_ID | awk "NR==$out_line" | tr -s ' ' , | sed 's/,/;/g')
+dates_raw=$(\squeue --Format=SubmitTime,EligibleTime,StartTime --noheader --job=$SLURM_JOB_ID | awk "NR==$out_line" | tr -s ' ' , | sed 's/,/;/g')
 
 # Get the actual date (to calculate time used by the job)
 end_time=$(date +"%Y-%m-%d_%H:%M:%S")
 
 # Replace the underscores with a space to allow Excel to read the dates
-dates=$(echo "${dates_brut}${end_time}" | tr -s _ " ")
+dates=$(echo "${dates_raw}${end_time}" | tr -s _ " ")
 
 # Store everything into a variable
 infos="{{  prog  }};${CLUSTER_NAME};{{  jobscale_label  }};${req}{{  job_mem_per_cpu  }};{{  job_walltime  }};$SLURM_JOB_ID;{{  mol_name  }};{{  scaling_function  }};{{  scale_index  }};${dates};$SLURM_NNODES;$SLURM_NODELIST"

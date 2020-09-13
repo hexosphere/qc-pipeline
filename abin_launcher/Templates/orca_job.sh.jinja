@@ -74,7 +74,7 @@ mkdir -p {{  results_folder  }}/{{  mol_name  }}/ORCA
 cp {{  mol_name  }}.inp {{  mol_name  }}.out {{  mol_name  }}.xyz {{  mol_name  }}_ori.xyz {{  job_manifest  }} slurm_output.log {{  mol_name  }}_{{ config_file  }}.log {{  results_folder  }}/{{  mol_name  }}/ORCA/
 
 {# Job instructions for compiling data about the job for benchmarking. #}
-{% include "benchmark.sh.jinja" if benchmark %}
+{% include "../benchmark_slurm/benchmark.sh.jinja" if benchmark %}
 
 echo -e "\n******************************************************************************"
 echo -e "*****************************   End of the job   *****************************"

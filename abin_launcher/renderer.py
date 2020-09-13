@@ -63,7 +63,7 @@ def orca_render(vars):
     rnd_input = vars['mol_name'] + ".inp"                                                                                          # Name of the rendered input file (automatically named after the molecule and not defined in the clusters file)
     rnd_manifest = vars['clusters_cfg'][vars['cluster_name']]['progs'][vars['prog']]['jinja']['renders']['job_manifest']           # Name of the rendered job manifest file
 
-    # Initialize our dictionary that will content all the text of the rendered files
+    # Initialize our dictionary that will contain all the text of the rendered files
 
     rendered_content = {}
 
@@ -156,7 +156,7 @@ def qchem_render(vars):
     rnd_input = vars['mol_name'] + ".in"                                                                                           # Name of the rendered input file (automatically named after the molecule and not defined in the clusters file)
     rnd_manifest = vars['clusters_cfg'][vars['cluster_name']]['progs'][vars['prog']]['jinja']['renders']['job_manifest']           # Name of the rendered job manifest file
 
-    # Initialize our dictionary that will content all the text of the rendered files
+    # Initialize our dictionary that will contain all the text of the rendered files
 
     rendered_content = {}   
 
@@ -172,16 +172,25 @@ def qchem_render(vars):
     render_vars = {
         "mol_name" : vars['mol_name'],
         "user_email" : vars['config']['general']['user-email'],
-        "mail_type" : vars['clusters_cfg'][vars['cluster_name']]['mail-type'],
+        "mail_type" : vars['config']['general']['mail-type'],
         "job_walltime" : vars['job_walltime'],
         "job_cores" : vars['job_cores'],
+        "job_mem_per_cpu" : vars['job_mem_per_cpu'], # in MB
+        "partition" : vars['job_partition'],     
         "set_env" : vars['clusters_cfg'][vars['cluster_name']]['progs'][vars['prog']]['set_env'],       
         "command" : vars['clusters_cfg'][vars['cluster_name']]['progs'][vars['prog']]['command'],
         "output_folder" : vars['config'][vars['prog']]['output-folder'],
         "results_folder" : vars['config']['general']['results-folder'],
         "chains_folder" : chains_path,
         "check_folder" : check_script_path,
-        "codes_folder" : vars['code_dir']
+        "job_manifest" : rnd_manifest,
+        "config_file" : vars['config_name'],
+        "benchmark" : vars['config']['general']['benchmark'],
+        "benchmark_folder" : vars['config']['general']['benchmark-folder'],
+        "prog" : vars['prog'],
+        "jobscale_label" : vars['jobscale']['label'],
+        "scaling_function" : vars['scaling_fct'],
+        "scale_index" : vars['scale_index']
         }
     
     rendered_content[rnd_manifest] = jinja_render(vars['path_tpl_dir'], tpl_manifest, render_vars)

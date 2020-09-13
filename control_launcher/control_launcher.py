@@ -66,7 +66,7 @@ parser = argparse.ArgumentParser(add_help=False, description="This script prepar
 required = parser.add_argument_group('Required arguments')
 required.add_argument("-i","--source", type=str, help="Path to the source file that contains all the necessary informations that need to be processed", required=True)
 required.add_argument("-o","--out_dir", type=str, help="Path to the directory where you want to create the subdirectories for each job", required=True)
-required.add_argument('-cfg', '--config', type=str, help="Path to the YAML config file", required=True)
+required.add_argument('-cf', '--config', type=str, help="Path to the YAML config file", required=True)
 
 optional = parser.add_argument_group('Optional arguments')
 optional.add_argument('-h','--help',action='help',default=argparse.SUPPRESS,help='Show this help message and exit')

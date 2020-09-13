@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 
+################################################################################################################################################
+##                                           Benchmarking script for jobs running on SLURM clusters                                           ##
+##                                                                                                                                            ##
+##                             Use it in conjunction with the jinja template benchmark.sh.jinja in this same folder                           ##
+################################################################################################################################################
+
 import fileinput
 import os
 import subprocess
 import csv
 import argparse
 import datetime
-
 
 # ===================================================================
 # ===================================================================
@@ -55,9 +60,9 @@ def get_Timelimit(jobID:int) -> str:
 
 def get_MaxRSS(jobID:int) -> int:
   maxRSS_k = str(subprocess.check_output("sacct -j {} --format=MaxRSS%12 --noheader | head -n2 | tr -d [:space:]".format(jobID), shell=True).decode('utf-8'))
-  maxRSS_k = maxRSS_k.strip() #! est-ce necessaire? 
+  maxRSS_k = maxRSS_k.strip()
   maxRSS_m = "-1"
-  if (maxRSS_k is not None and maxRSS_k != ''): #! est-ce necessaire? 
+  if (maxRSS_k is not None and maxRSS_k != ''):
     #Cut the K at the end of MaxRSS
     maxRSS_k = maxRSS_k.rstrip('k')
     maxRSS_k = maxRSS_k.rstrip('K')
@@ -211,7 +216,3 @@ with open(csv_final, 'a', newline='') as final_f:
   for line in final_list:
     csv_writer.writerow(line)
 print("[DONE]")
-
-# =========================================================
-# Goodbye, hope you enjoyed your flight !
-# =========================================================

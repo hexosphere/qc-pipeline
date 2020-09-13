@@ -46,15 +46,17 @@ Right-click > "View Image" to zoom in
       ├── mol_scan.py
       ├── scaling_fcts.py
       ├── renderer.py
-      ├── elements.yml
+      ├── errors.py
+      ├── mendeleev.yml
       ├── config.yml
       └── clusters.yml
 └── control_launcher/
       └── Templates/
             ├── param.nml.jinja
             └── qoctra_job.sh.jinja
+      ├── control_launcher.py
       ├── qchem_parser.py
-      └── control_launcher.py
+      └── errors.py
 └── results_treatment/
       ├── some jinja LaTeX templates for the tables
       └── some gnuplots scripts for the graphs

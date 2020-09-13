@@ -20,7 +20,7 @@ class Error(Exception):
     pass
 
 class ControlError(Error):
-    """Exception raised for errors specific to certain instructions in our script.
+    """Exception raised for errors specific to certain instructions in our scripts.
 
     Attributes:
         message -- explanation of the error

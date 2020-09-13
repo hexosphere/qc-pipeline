@@ -407,7 +407,7 @@ for mol_filename in mol_inp_list:
     print(''.center(50, '-'))
 
     # End of logging for the molecule file
-    sys.stdout = original_stdout                         # Reset the standard output to its original value
+    sys.stdout = original_stdout                       # Reset the standard output to its original value
     mol_log.close()
 
   # In case of an error specific to the molecule file, skip it
@@ -492,7 +492,7 @@ for mol_filename in mol_inp_list:
     
       job_dir = os.path.join(out_dir,mol_name + "_" + config_name)
 
-      if os.path.exists(job_dir):
+      if os.path.exists(job_dir): # Overwrite was already checked previously, no need to check it again
         shutil.rmtree(job_dir)
 
       os.makedirs(job_dir)
