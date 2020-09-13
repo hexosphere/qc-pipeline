@@ -91,7 +91,7 @@ def orca_render(vars):
         "chains_folder" : chains_path,
         "check_folder" : check_script_path,
         "job_manifest" : rnd_manifest,
-        "config_file" : vars['config_filename'],
+        "config_file" : vars['config_name'],
         "benchmark" : vars['config']['general']['benchmark'],
         "benchmark_folder" : vars['config']['general']['benchmark-folder'],
         "prog" : vars['prog'],

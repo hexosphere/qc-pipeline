@@ -45,7 +45,6 @@ echo -e "\n================= ORCA execution begins now =================="
 echo -e "\n=================  ORCA execution ends now  =================="
 
 echo -e "\nCopying ORCA output files to the submit folder."
-#srun -n $SLURM_NNODES --ntasks-per-node=1 "echo -e \"This is on: $(hostname)\n\"; for file in $(ls $SCRATCH/*); do cp -rf $file $SLURM_SUBMIT_DIR/; done" || exit $?
 cp -r  $SCRATCH/* $SLURM_SUBMIT_DIR/  || exit $?
 
 echo -e "\nRemoving $SCRATCH folder."
@@ -68,15 +67,11 @@ cp {{  mol_name  }}.xyz {{  output_folder  }}/
 
 echo -e "\nCopying and renaming main configuration file to {{  results_folder  }}/{{  mol_name  }}."
 mkdir -p {{  results_folder  }}/{{  mol_name  }}
-cp {{ config_file  }} {{  results_folder  }}/{{  mol_name  }}/
-mv {{  results_folder  }}/{{  mol_name  }}/{{ config_file  }} {{  results_folder  }}/{{  mol_name  }}/{{  mol_name  }}_config.yml
-
-echo -e "   => Hydra specific: copying the main configuration file to {{  output_folder  }} so that the crontab can pick it up with the output."
-cp {{  results_folder  }}/{{  mol_name  }}/{{  mol_name  }}_config.yml {{  output_folder  }}/
+cp {{ config_file  }}.yml {{  results_folder  }}/{{  mol_name  }}/{{  mol_name  }}.yml
 
 echo -e "\nCopying output files to {{  results_folder  }}/{{  mol_name  }}/ORCA."
 mkdir -p {{  results_folder  }}/{{  mol_name  }}/ORCA
-cp {{  mol_name  }}.inp {{  mol_name  }}.out {{  mol_name  }}.xyz {{  mol_name  }}_ori.xyz {{  job_manifest  }} slurm_output.log {{  results_folder  }}/{{  mol_name  }}/ORCA/
+cp {{  mol_name  }}.inp {{  mol_name  }}.out {{  mol_name  }}.xyz {{  mol_name  }}_ori.xyz {{  job_manifest  }} slurm_output.log {{  mol_name  }}_{{ config_file  }}.log {{  results_folder  }}/{{  mol_name  }}/ORCA/
 
 {# Job instructions for compiling data about the job for benchmarking. #}
 {% include "benchmark.sh.jinja" if benchmark %}

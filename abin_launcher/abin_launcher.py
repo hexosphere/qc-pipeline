@@ -191,8 +191,8 @@ print('%12s' % "[ DONE ]")
 # Loading AlexGustafsson's Mendeleev Table (found at https://github.com/AlexGustafsson/molecular-data) which will be used for the scaling functions.
 
 print ("{:<141}".format("\nLoading AlexGustafsson's Mendeleev Table ..."), end="")
-with open(os.path.join(code_dir,'elements.yml'), 'r') as f_elements:
-  elements = yaml.load(f_elements, Loader=yaml.FullLoader)
+with open(os.path.join(code_dir,'mendeleev.yml'), 'r') as periodic_table:
+  mendeleev = yaml.load(periodic_table, Loader=yaml.FullLoader)
 print('%12s' % "[ DONE ]")
 
 # =========================================================
@@ -323,9 +323,22 @@ for mol_filename in mol_inp_list:
     #! The file_data variable is a dictionary of the form {'chemical_formula':{}, 'atomic_coordinates':[]}
     #! The first key of file_data is a dictionary stating the chemical formula of the molecule in the form {'atom type 1':number of type 1 atoms, 'atom type 2':number of type 2 atoms, ...}, ex: {'Si':17, 'O':4, 'H':28}
     #! The second key is a list containing all atomic coordinates, as they will be used in the input file of the ab initio program
-    #! If a problem arises when scanning the molecule file, a MoleculeError exception should be raised with a proper error message (see errors.py for more informations)
+    #! If a problem arises when scanning the molecule file, an AbinError exception should be raised with a proper error message (see errors.py for more informations)
 
     print('%12s' % "[ DONE ]")
+
+    # =========================================================
+    # Check if all atom types do exist in Mendeleev's table
+    # =========================================================
+
+    for atom in file_data['chemical_formula'].keys():
+      match = False
+      for element in mendeleev:
+        if element['symbol'] == atom:
+          match = True
+          break
+      if not match:
+        raise errors.AbinError ("ERROR: Element %s is not defined in AlexGustafsson's Mendeleev Table YAML file (mendeleev.yml)" % atom)
     
     # =========================================================
     # Determining the scale_index
@@ -341,9 +354,9 @@ for mol_filename in mol_inp_list:
     
     # Scale index determination
     
-    scale_index = eval("scaling_fcts." + scaling_fct)(elements, file_data)
+    scale_index = eval("scaling_fcts." + scaling_fct)(mendeleev, file_data)
 
-    print(("\nScale index: ", scale_index))
+    print("\nScale index: ", scale_index)
     
     # Job scale category definition
 
@@ -393,6 +406,10 @@ for mol_filename in mol_inp_list:
     print("{:<20} {:<30}".format("Mem per CPU (MB): ", job_mem_per_cpu))
     print(''.center(50, '-'))
 
+    # End of logging for the molecule file
+    sys.stdout = original_stdout                         # Reset the standard output to its original value
+    mol_log.close()
+
   # In case of an error specific to the molecule file, skip it
   except errors.AbinError as error:
     sys.stdout = original_stdout                       # Reset the standard output to its original value
@@ -407,28 +424,23 @@ for mol_filename in mol_inp_list:
   # =========================================================
   # =========================================================
 
-  sys.stdout = original_stdout                         # Reset the standard output to its original value
-
-  check = True                                         # No problem has occurred yet
-
   # We are still inside the molecule files "for" loop and we are going to iterate over each configuration file with that molecule
   for config_filename in config_inp_list: 
 
     try:
 
       # Getting rid of the format extension to get the name of the configuration
-      config_name = str(config_inp_file.split('.')[0])
+      config_name = str(config_filename.split('.')[0])
       print("{:<80}".format("\nTreating %s molecule with '%s' configuration ..." % (mol_name, config_name)), end="")
       
       # Check if a folder already exists for that molecule - config combination
       if os.path.exists(os.path.join(out_dir,mol_name + "_" + config_name)) and not overwrite:
         print("\nERROR: A folder for the %s molecule with the '%s' configuration already exists in %s !" % (mol_name, config_name, out_dir))
         print("Skipping this configuration")
-        check = False                                  # Flag to notify that a problem has occurred
+        problem = True                                 # Flag to notify that a problem has occurred
         continue
 
       # Create an output log file for each molecule - config combination, using the mol_log file as a basis
-      # TODO: does not seem to work right now (the content of mol_log isn't added)
       log_name = mol_name + "_" + config_name + ".log"
       shutil.copy(os.path.join(out_dir,mol_log_name),os.path.join(out_dir,log_name))
       log = open(os.path.join(out_dir,log_name), 'a', encoding='utf-8')
@@ -521,29 +533,31 @@ for mol_filename in mol_inp_list:
       # End of treatment for that particular molecule - config combination
 
       sys.stdout = original_stdout                            # Reset the standard output to its original value
+      log.close()                                             # End of logging for the config file
       shutil.move(os.path.join(out_dir,log_name), job_dir)    # Archive the log file in the job subfolder
-      print('%12s' % "[ DONE ]")
 
     # In case of an error specific to the configuration file, skip it and never deal with it again
     except errors.AbinError as error:
-      sys.stdout = original_stdout                   # Reset the standard output to its original value
+      sys.stdout = original_stdout                            # Reset the standard output to its original value
       print(error)
       print("Skipping config %s" % config_name)
-      os.remove(os.path.join(out_dir,log_name))      # Remove the log file since there was a problem
-      config_inp_list.remove(config_filename)        # Remove the problematic configuration file from the list, to not iterate over it again for the next molecules
-      check = False                                  # Flag to notify that a problem has occurred
+      os.remove(os.path.join(out_dir,log_name))               # Remove the log file since there was a problem
+      config_inp_list.remove(config_filename)                 # Remove the problematic configuration file from the list, to not iterate over it again for the next molecules
+      problem = True                                          # Flag to notify that a problem has occurred
       continue        
-    
-  os.remove(os.path.join(out_dir,mol_log_name))          # Remove the molecule log file since we've finished treating this molecule
+
+  # End of treatment for that molecule
+
+  os.remove(os.path.join(out_dir,mol_log_name))               # Remove the molecule log file since we've finished treating this molecule
 
   # Archive the molecule file in launched_dir if keep has not been set and there was no problem
-  if not keep and check:
-    launched_dir = os.path.join(mol_inp_path,"Launched")        # Folder where the molecule files will be put after having been treated by this script, path is relative to the directory where are all the molecule files.
+  if not keep and not problem:
+    launched_dir = os.path.join(mol_inp_path,"Launched")      # Folder where the molecule files will be put after having been treated by this script, path is relative to the directory where are all the molecule files.
     os.makedirs(launched_dir, exist_ok=True)
     if os.path.exists(os.path.join(launched_dir,mol_filename)):
       os.remove(os.path.join(launched_dir,mol_filename))
     shutil.move(os.path.join(mol_inp_path,mol_filename), launched_dir)
-    print("Molecule original structure file archived to %s" % launched_dir)
+    print("\nMolecule original structure file archived to %s" % launched_dir)
 
   console_message = "End of procedure for the molecule " + mol_name
   print("")

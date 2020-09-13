@@ -13,7 +13,7 @@ import errors
 #! - return a dictionary (file_data), following the pattern {'chemical_formula':{}, 'atomic_coordinates':[]}
 #!   * The first key of file_data is a dictionary stating the chemical formula of the molecule in the form {'atom type 1':number of type 1 atoms, 'atom type 2':number of type 2 atoms, ...}, ex: {'Si':17, 'O':4, 'H':28}
 #!   * The second key is a list containing all atomic coordinates, as they will be used in the input file of the ab initio program
-#! If a problem arises when scanning the molecule file, a MoleculeError exception should be raised with a proper error message (see errors.py for more informations)
+#! If a problem arises when scanning the molecule file, an AbinError exception should be raised with a proper error message (see errors.py for more informations)
 #! Otherwise, you will need to modify abin_launcher.py accordingly.
 
 def xyz_scan(mol_content:list):
