@@ -11,10 +11,10 @@ log_msg () {
 }
 
 # Define CECIHOME (might not be known by the crontab)
-CECIHOME = "/home/ulb/cqp/niacobel/CECIHOME"
+CECIHOME="/home/ulb/cqp/niacobel/CECIHOME"
 
 # Define the folder we want to scan
-WATCH_DIR = "${CECIHOME}/QCHEM_OUT"
+WATCH_DIR="${CECIHOME}/QCHEM_OUT"
 
 # Define the type of file we are looking for
 OUT_FILEPATH="${WATCH_DIR}/*.out"
@@ -36,9 +36,9 @@ else
     MOL_NAME=${filename%.*}
     mkdir -p ~/CONTROL
     python ${CECIHOME}/CHAINS/control_launcher/control_launcher.py -i ${filepath} -cf ${CECIHOME}/RESULTS/${MOL_NAME}/${MOL_NAME}.yml -o ~/CONTROL/ -ow  > ~/CONTROL/${MOL_NAME}.log
-    status = $?
+    status=$?
 
-    if [ status -eq 0 ]; then
+    if [ ${status} -eq 0 ]; then
       # If successful, archive the source file and the log file
       mv ~/CONTROL/${MOL_NAME}.log ~/CONTROL/${MOL_NAME}/${MOL_NAME}.log
       mkdir -p ${WATCH_DIR}/Launched

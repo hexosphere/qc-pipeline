@@ -11,10 +11,10 @@ log_msg () {
 }
 
 # Define CECIHOME (might not be known by the crontab)
-CECIHOME = "/home/ulb/cqp/niacobel/CECIHOME"
+CECIHOME="/home/ulb/cqp/niacobel/CECIHOME"
 
 # Define the folder we want to scan
-WATCH_DIR = "${CECIHOME}/ORCA_OUT"
+WATCH_DIR="${CECIHOME}/ORCA_OUT"
 
 # Define the type of file we are looking for
 XYZ_FILEPATH="${WATCH_DIR}/*.xyz"

@@ -278,7 +278,7 @@ for line in tmp_list:
     continue
 
 if final_list == []:
-  print("None of the lines were processed correctly")
+  print("ERROR: None of the lines were processed correctly")
   print("Aborting ...")
   exit(1)
 

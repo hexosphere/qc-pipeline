@@ -324,7 +324,7 @@ for mol_filename in mol_inp_list:
 
     file_data = eval("mol_scan." + scan_fct)(mol_content)
 
-    #! The file_data variable is a dictionary of the form {'chemical_formula':{}, 'atomic_coordinates':[]}
+    #! The file_data variable is a dictionary of the form {'chemical_formula':{}, 'atomic_coordinates':[]} (you can add additional keys if you want)
     #! The first key of file_data is a dictionary stating the chemical formula of the molecule in the form {'atom type 1':number of type 1 atoms, 'atom type 2':number of type 2 atoms, ...}, ex: {'Si':17, 'O':4, 'H':28}
     #! The second key is a list containing all atomic coordinates, as they will be used in the input file of the ab initio program
     #! If a problem arises when scanning the molecule file, an AbinError exception should be raised with a proper error message (see errors.py for more informations)
@@ -474,14 +474,35 @@ for mol_filename in mol_inp_list:
         config = yaml.load(f_config, Loader=yaml.FullLoader)
       print('%12s' % "[ DONE ]")
 
-      # Check if the program exists in the config file. 
+    
+      # Build a dictionary that will contain all information related to the job
 
-      if prog not in config:
-        raise errors.AbinError("ERROR: No information provided for this program in the YAML config file")
+      job_specs = {
+        "prog" : prog,
+        "scaling_fct" : scaling_fct,
+        "scale_index" : scale_index,
+        "cluster_name" : cluster_name,
+        "scale_label" : jobscale["label"],
+        "scale_limit" : jobscale_limit,
+        "partition" : job_partition,
+        "walltime" : job_walltime,
+        "cores" : job_cores,
+        "mem_per_cpu" : job_mem_per_cpu
+      }
+
+      # Build a dictionary containing the additional variables that might be needed by the rendering function
+      # If your rendering function needs anything else, you can add it in this dictionary
+
+      misc = {  
+          "code_dir" : code_dir,
+          "path_tpl_dir" : path_tpl_dir,
+          "mol_name" : mol_name,
+          "config_name" : config_name
+          }
 
       # Dynamically call the inputs render function for the given program
 
-      rendered_content = eval("renderer." + render_fct)(locals())  # Dictionary containing the text of all the rendered files in the form of <filename>: <rendered_content>
+      rendered_content = eval("renderer." + render_fct)(mendeleev, clusters_cfg, config, file_data, job_specs, misc)  # Dictionary containing the text of all the rendered files in the form of <filename>: <rendered_content>
       
       # =========================================================
       # The end step

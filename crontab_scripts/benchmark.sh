@@ -15,10 +15,10 @@ log_msg () {
 }
 
 # Define CECIHOME (might not be known by the crontab)
-CECIHOME = "/home/ulb/cqp/niacobel/CECIHOME"
+CECIHOME="/home/ulb/cqp/niacobel/CECIHOME"
 
 # Define the tmp file we want to scan
-WATCH_FILE = "${CECIHOME}/BENCHMARK/benchmark_${PROGRAM}_${CLUSTER_NAME}_tmp.csv"
+WATCH_FILE="${CECIHOME}/BENCHMARK/benchmark_${PROGRAM}_${CLUSTER_NAME}_tmp.csv"
 
 # Define the folder where the tmp file will be archived
 ARCHIVE="${CECIHOME}/BENCHMARK/archive"
