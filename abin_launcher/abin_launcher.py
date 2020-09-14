@@ -47,7 +47,8 @@ required.add_argument("-o","--out_dir", type=str, help="Path to the directory wh
 optional = parser.add_argument_group('Optional arguments')
 optional.add_argument('-h','--help',action='help',default=argparse.SUPPRESS,help='Show this help message and exit')
 optional.add_argument("-ow","--overwrite",action="store_true",help="Overwrite files if they already exists")
-optional.add_argument("-k","--keep",action="store_true",help="Do not archive launched molecule files and leave them where they are")
+optional.add_argument("-km","--keep_mol",action="store_true",help="Do not archive launched molecule files and leave them where they are")
+optional.add_argument("-kc","--keep_cf",action="store_true",help="Do not archive launched configuration files and leave them where they are")
 optional.add_argument('-cl', '--clusters', type=str, help="Path to the YAML clusters file, default is this_script_directory/clusters.yml")
 
 args = parser.parse_args()
@@ -60,7 +61,8 @@ config_inp = args.config                 # YAML configuration file or folder con
 out_dir = args.out_dir                   # Folder where all jobs subfolders will be created
 
 overwrite = args.overwrite               # Flag for overwriting the files
-keep = args.keep                         # Flag for keeping the molecule files where they are
+keep_mol = args.keep_mol                 # Flag for keeping the molecule files where they are
+keep_cf = args.keep_cf                   # Flag for keeping the configuration files where they are
 clusters_file = args.clusters            # YAML file containing all informations about the clusters
 
 # Other important variables that could become arguments if the need arises
@@ -284,6 +286,8 @@ print(''.center(105, '-'))
 # ===================================================================
 # ===================================================================
 
+problem_cf = [] # Empty list that will contain the names of the configuration files for which a problem has occurred (those configuration files will not be archived)
+
 for mol_filename in mol_inp_list:
 
   # =========================================================
@@ -424,6 +428,8 @@ for mol_filename in mol_inp_list:
   # =========================================================
   # =========================================================
 
+  keep_mol = args.keep_mol                 # Redefine keep_mol to its original value (this flag will be defined to True if there is a problem with one of the configuration files, as to not archive the molecule file)
+
   # We are still inside the molecule files "for" loop and we are going to iterate over each configuration file with that molecule
   for config_filename in config_inp_list: 
 
@@ -437,7 +443,8 @@ for mol_filename in mol_inp_list:
       if os.path.exists(os.path.join(out_dir,mol_name + "_" + config_name)) and not overwrite:
         print("\nERROR: A folder for the %s molecule with the '%s' configuration already exists in %s !" % (mol_name, config_name, out_dir))
         print("Skipping this configuration")
-        problem = True                                 # Flag to notify that a problem has occurred
+        keep_mol = True                                 # Flag to notify that a problem has occurred and to not archive the molecule file
+        problem_cf.append(config_filename)              # Add the name of this configuration file to the list as to not archive it
         continue
 
       # Create an output log file for each molecule - config combination, using the mol_log file as a basis
@@ -542,17 +549,17 @@ for mol_filename in mol_inp_list:
       print(error)
       print("Skipping config %s" % config_name)
       os.remove(os.path.join(out_dir,log_name))               # Remove the log file since there was a problem
-      config_inp_list.remove(config_filename)                 # Remove the problematic configuration file from the list, to not iterate over it again for the next molecules
-      problem = True                                          # Flag to notify that a problem has occurred
+      problem_cf.append(config_filename)                      # Add the name of this configuration file to the list as to not archive it
+      keep_mol = True                                         # Flag to notify that a problem has occurred and to not archive the molecule file
       continue        
 
   # End of treatment for that molecule
 
   os.remove(os.path.join(out_dir,mol_log_name))               # Remove the molecule log file since we've finished treating this molecule
 
-  # Archive the molecule file in launched_dir if keep has not been set and there was no problem
-  if not keep and not problem:
-    launched_dir = os.path.join(mol_inp_path,"Launched")      # Folder where the molecule files will be put after having been treated by this script, path is relative to the directory where are all the molecule files.
+  # Archive the molecule file if keep has not been set and there was no problem
+  if not keep_mol:
+    launched_dir = os.path.join(mol_inp_path,"Launched")      # Folder where the molecule files will be put after having been treated by this script, it will be created inside the directory where were all the molecule files.
     os.makedirs(launched_dir, exist_ok=True)
     if os.path.exists(os.path.join(launched_dir,mol_filename)):
       os.remove(os.path.join(launched_dir,mol_filename))
@@ -564,6 +571,17 @@ for mol_filename in mol_inp_list:
   print(''.center(len(console_message)+10, '*'))
   print(console_message.center(len(console_message)+10))
   print(''.center(len(console_message)+10, '*'))
+
+# After all molecules have been treated, archive the configuration files if keep has not been set and there was no problem
+if not keep_cf:
+  for config_filename in config_inp_list:
+    if config_filename not in problem_cf:
+      launched_dir = os.path.join(config_inp_path,"Launched")      # Folder where the configuration files will be put after having been treated by this script, it will be created inside the directory where were all the configuration files.
+      os.makedirs(launched_dir, exist_ok=True)
+      if os.path.exists(os.path.join(launched_dir,config_filename)):
+        os.remove(os.path.join(launched_dir,config_filename))
+      shutil.move(os.path.join(config_inp_path,config_filename), launched_dir)
+      print("\nThe '%s' config file has been archived to %s" % (config_filename,launched_dir))
 
 print("")
 print("".center(columns,"*"))

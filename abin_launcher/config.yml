@@ -32,7 +32,7 @@ qchem:
   basis-set: def2-tzvp
   cis-n-roots: 4
 # Folder where the q-chem output files needed for the next step will be sent.
-  output-folder: $CECIHOME/Q-CHEM_OUT             
+  output-folder: $CECIHOME/QCHEM_OUT             
 
 # QOCT-RA information
 qoct-ra:

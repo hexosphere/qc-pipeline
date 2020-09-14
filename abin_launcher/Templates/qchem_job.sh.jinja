@@ -66,7 +66,7 @@ mkdir -p {{  results_folder  }}/{{  mol_name  }}/QCHEM
 cp {{  mol_name  }}.in {{  mol_name  }}.out {{  job_manifest  }} slurm_output.log {{  mol_name  }}_{{ config_file  }}.log {{  results_folder  }}/{{  mol_name  }}/QCHEM/
 
 {# Job instructions for compiling data about the job for benchmarking. #}
-{% include "../benchmark_slurm/benchmark.sh.jinja" if benchmark %}
+{% include "benchmark.sh.jinja" if benchmark %}
 
 echo -e "\n******************************************************************************"
 echo -e "*****************************   End of the job   *****************************"

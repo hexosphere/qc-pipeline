@@ -71,7 +71,6 @@ required.add_argument('-cf', '--config', type=str, help="Path to the YAML config
 optional = parser.add_argument_group('Optional arguments')
 optional.add_argument('-h','--help',action='help',default=argparse.SUPPRESS,help='Show this help message and exit')
 optional.add_argument("-ow","--overwrite",action="store_true",help="Overwrite files if they already exists")
-optional.add_argument("-k","--keep",action="store_true",help="Do not archive the treated source file and leave it where it is")
 optional.add_argument('-cl', '--clusters', type=str, help="Path to the YAML clusters file, default is abin_launcher/clusters.yml")
 
 args = parser.parse_args()
@@ -83,7 +82,6 @@ out_dir = args.out_dir                   # Folder where all jobs subfolders will
 config_file = args.config                # Main configuration file
 
 overwrite = args.overwrite               # Flag for overwriting the files
-keep = args.keep                         # Flag for keeping the source file where it is
 clusters_file = args.clusters            # YAML file containing all informations about the clusters
 
 # Other important variable
@@ -812,16 +810,6 @@ for state in states_list:
       exit(1)
     print('%12s' % "[ DONE ]")
     
-# Archive the source file in launched_dir if keep has not been set
-    
-if not keep:
-  launched_dir = os.path.join(source_path,"Launched")                             # Folder where the source file will be put after having been treated by this script, path is relative to the directory of the source file.
-  os.makedirs(launched_dir, exist_ok=True)
-  if os.path.exists(os.path.join(launched_dir,source_filename)):
-    os.remove(os.path.join(launched_dir,source_filename))
-  shutil.move(os.path.join(source_path,source_filename), launched_dir)
-  print("\nOriginal source file archived to %s" % launched_dir)
-
 print("")
 print("".center(columns,"*"))
 print("")

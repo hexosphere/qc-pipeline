@@ -6,34 +6,43 @@
 #########################################################################################################
 
 # Pretty print for log messages
-
 log_msg () {
   echo -e "$(date +"%Y-%m-%d %T")\t$1"
 }
 
-# Define important files and folders
+# Define CECIHOME (might not be known by the crontab)
+CECIHOME = "/home/ulb/cqp/niacobel/CECIHOME"
 
-OUT_FILEPATH="/home/ulb/cqp/niacobel/CECIHOME/Q-CHEM_OUT/*.out"
+# Define the folder we want to scan
+WATCH_DIR = "${CECIHOME}/QCHEM_OUT"
+
+# Define the type of file we are looking for
+OUT_FILEPATH="${WATCH_DIR}/*.out"
 
 # Exit immediately if there's no file to process
-
 if [ $(ls $OUT_FILEPATH 2>/dev/null | wc -l) -eq 0 ]; then
   exit
 
-# Otherwise execute abin_launcher.py for each file present in the ORCA_OUT folder
+# Otherwise execute control_launcher.py for each file present in the WATCH_DIR folder
 
 else
 
   file_list=$(ls $OUT_FILEPATH 2>/dev/null)
-  source /home/ulb/cqp/niacobel/CECIHOME/CHAINS/load_modules.sh
+  source ${CECIHOME}/CHAINS/load_modules.sh
 
   for filepath in $file_list
   do
     filename="$(basename -- $filepath)"
     MOL_NAME=${filename%.*}
     mkdir -p ~/CONTROL
-    python ~/CHAINS/control_launcher/control_launcher.py -i ${filepath} -cf /home/ulb/cqp/niacobel/CECIHOME/RESULTS/${MOL_NAME}/${MOL_NAME}.yml -o ~/CONTROL/ -ow  > ~/CONTROL/${MOL_NAME}.log
-    mv ~/CONTROL/${MOL_NAME}.log ~/CONTROL/${MOL_NAME}/${MOL_NAME}.log
+    python ${CECIHOME}/CHAINS/control_launcher/control_launcher.py -i ${filepath} -cf ${CECIHOME}/RESULTS/${MOL_NAME}/${MOL_NAME}.yml -o ~/CONTROL/ -ow  > ~/CONTROL/${MOL_NAME}.log
+    status = $?
+
+    if [ status -eq 0 ]; then
+      # If successful, archive the source file and the log file
+      mv ~/CONTROL/${MOL_NAME}.log ~/CONTROL/${MOL_NAME}/${MOL_NAME}.log
+      mkdir -p ${WATCH_DIR}/Launched
+      mv ${filepath} Launched/
   done
 
   log_msg "INFO - Successfully processed:\n$file_list"
