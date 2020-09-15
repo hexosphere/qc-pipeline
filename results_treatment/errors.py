@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
 ################################################################################################################################################
-##                                       Errors and exceptions of QOCT-RA Input Builder & Job Launcher                                        ##
+##                                                Errors and exceptions of Results Treatments                                                 ##
 ##                                                                                                                                            ##
 ##                            This script contains all the custom exceptions and functions built to handle errors                             ##
-##                               of the QOCT-RA Input Builder & Job Launcher python script and its subscripts.                                ##
+##                                         of the Results Treatment python script and its subscripts.                                         ##
 ################################################################################################################################################
 
 import os
@@ -19,7 +19,7 @@ class Error(Exception):
     """Base class for exceptions in this module."""
     pass
 
-class ControlError(Error):
+class ResultsError(Error):
     """Exception raised for errors specific to certain instructions in our scripts.
 
     Attributes:
@@ -54,22 +54,22 @@ def check_abspath(path,type="either"):
 
     if type not in ["file","folder","either"]:
       # Not in try/except structure because the full error message will be need in this case
-      raise ControlError ("The specified type for which the check_abspath function has been called is not one of 'file', 'folder' or 'either'")
+      raise ResultsError ("The specified type for which the check_abspath function has been called is not one of 'file', 'folder' or 'either'")
 
     # For more informations on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
     try:
       if not os.path.exists(path):
-        raise ControlError ("ERROR: The argument %s does not seem to exist." % path)
+        raise ResultsError ("ERROR: The argument %s does not seem to exist." % path)
       elif type == "file":
         if not os.path.isfile(path):
-          raise ControlError ("ERROR: The argument %s is not a file" % path)
+          raise ResultsError ("ERROR: The argument %s is not a file" % path)
       elif type == "folder":
         if not os.path.isdir(path):
-          raise ControlError ("ERROR: The argument %s is not a directory" % path)
+          raise ResultsError ("ERROR: The argument %s is not a directory" % path)
       elif type == "either":
         if not os.path.isdir(path) and not os.path.isfile(path):
-          raise ControlError ("ERROR: The argument %s is neither a file nor a directory" % path)
-    except ControlError as error:
+          raise ResultsError ("ERROR: The argument %s is neither a file nor a directory" % path)
+    except ResultsError as error:
       print(error)
       exit(1)
 

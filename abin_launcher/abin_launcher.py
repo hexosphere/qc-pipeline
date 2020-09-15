@@ -46,10 +46,11 @@ required.add_argument("-o","--out_dir", type=str, help="Path to the directory wh
 
 optional = parser.add_argument_group('Optional arguments')
 optional.add_argument('-h','--help',action='help',default=argparse.SUPPRESS,help='Show this help message and exit')
+optional.add_argument('-cl', '--clusters', type=str, help="Path to the YAML clusters file, default is this_script_directory/clusters.yml")
 optional.add_argument("-ow","--overwrite",action="store_true",help="Overwrite files if they already exists")
+optional.add_argument('--max', type=int, help="Maximum number of molecule or configuration files that will be treated.")
 optional.add_argument("-km","--keep_mol",action="store_true",help="Do not archive launched molecule files and leave them where they are")
 optional.add_argument("-kc","--keep_cf",action="store_true",help="Do not archive launched configuration files and leave them where they are")
-optional.add_argument('-cl', '--clusters', type=str, help="Path to the YAML clusters file, default is this_script_directory/clusters.yml")
 
 args = parser.parse_args()
 
@@ -60,10 +61,11 @@ mol_inp = args.mol_inp                   # Molecule file or folder containing th
 config_inp = args.config                 # YAML configuration file or folder containing the YAML configuration files
 out_dir = args.out_dir                   # Folder where all jobs subfolders will be created
 
+clusters_file = args.clusters            # YAML file containing all informations about the clusters
 overwrite = args.overwrite               # Flag for overwriting the files
+max = args.max                           # Maximum number of molecule or configuration files that will be treated
 keep_mol = args.keep_mol                 # Flag for keeping the molecule files where they are
 keep_cf = args.keep_cf                   # Flag for keeping the configuration files where they are
-clusters_file = args.clusters            # YAML file containing all informations about the clusters
 
 # Other important variables that could become arguments if the need arises
 
@@ -108,6 +110,23 @@ code_dir = os.path.dirname(os.path.realpath(os.path.abspath(getsourcefile(lambda
 print ("{:<40} {:<100}".format('\nCodes directory:',code_dir))
 
 # =========================================================
+# Check arguments
+# =========================================================
+
+out_dir = errors.check_abspath(out_dir,"folder")
+print ("{:<40} {:<100}".format('\nJobs main directory:',out_dir))
+
+if clusters_file: 
+  clusters_file = errors.check_abspath(clusters_file,"file")
+else:
+  # If no value has been provided through the command line, take the clusters.yml file in the same directory as this script 
+  clusters_file = os.path.join(code_dir,"clusters.yml")
+
+if max != None and max <= 0:
+  print("\nERROR : The specified max value (%s) must be a non-zero positive integer" % max)
+  exit(1)
+
+# =========================================================
 # Check molecule file(s)
 # =========================================================
 
@@ -124,6 +143,8 @@ if os.path.isdir(mol_inp):
   if mol_inp_list == []:
     print("\nERROR: Can't find any molecule of the %s format in %s" % (mol_ext,mol_inp_path))
     exit(1)
+  if max:
+    mol_inp_list = mol_inp_list[0:max]
   print('%12s' % "[ DONE ]")
 
 else:
@@ -154,6 +175,8 @@ if os.path.isdir(config_inp):
   if config_inp_list == []:
     print("\nERROR: Can't find any YAML config file with the .yml or .yaml extension in %s" % config_inp_path)
     exit(1)
+  if max:
+    config_inp_list = config_inp_list[0:max]
   print('%12s' % "[ DONE ]")
 
 else:
@@ -165,19 +188,6 @@ else:
   config_inp_path = os.path.dirname(config_inp)
   config_inp_file = os.path.basename(config_inp)
   config_inp_list = [config_inp_file]
-
-# =========================================================
-# Check other arguments (program will be checked later)
-# =========================================================
-
-out_dir = errors.check_abspath(out_dir,"folder")
-print ("{:<40} {:<100}".format('\nJobs main directory:',out_dir))
-
-if clusters_file: 
-  clusters_file = errors.check_abspath(clusters_file,"file")
-else:
-  # If no value has been provided through the command line, take the clusters.yml file in the same directory as this script 
-  clusters_file = os.path.join(code_dir,"clusters.yml")
 
 # =========================================================
 # Load YAML files (except config)
@@ -198,45 +208,38 @@ with open(os.path.join(code_dir,'mendeleev.yml'), 'r') as periodic_table:
 print('%12s' % "[ DONE ]")
 
 # =========================================================
-# Define the name of our subfunctions
-# =========================================================
-
-# Name of the scanning function that will extract informations about the molecule from the molecule file (depends on the file format) - defined in mol_scan.py
-scan_fct = mol_fmt + "_scan"
-
-# Name of the scaling function that will determine the scale_index of the molecule (necessary for determining the job scale) - defined in scaling_fcts.py
-scaling_fct = clusters_cfg[cluster_name]["progs"][prog]["scaling_function"]
-
-# Name of the render function that will render the job manifest and the input file (depends on the program)  - defined in renderer.py
-render_fct = prog + "_render"
-
-# =========================================================
 # Check program and subfunctions
 # =========================================================
 
 # Check if the program exists in our clusters database. 
 
 if prog not in clusters_cfg[cluster_name]["progs"]:
-  print("\nERROR: Program unknown on this cluster. Possible program(s) include" , ', '.join(program for program in clusters_cfg[cluster_name]["progs"].keys()))
-  print("Please use one of those, change cluster or add informations for this program to the YAML cluster file.")
+  print("\nERROR: The specified program (%s) is unknown on this cluster. Possible programs include:" % prog, ', '.join(program for program in clusters_cfg[cluster_name]["progs"].keys()))
+  print("Please use one of those, change cluster or add information for this program to the YAML cluster file.")
   exit(3) 
 
-# Check if a rendering function has been defined for the program
+# Define the scanning function that will extract informations about the molecule from the molecule file (depends on the file format) - defined in mol_scan.py
 
-if (render_fct) not in dir(renderer) or not callable(getattr(renderer, render_fct)):
-  print("\nERROR: There is no function defined for the %s program in renderer.py." % prog)
-  exit(3) 
-
-# Check if a scanning function has been defined for the given format of the molecule file(s)
+scan_fct = mol_fmt + "_scan"
 
 if (scan_fct) not in dir(mol_scan) or not callable(getattr(mol_scan, scan_fct)):
   print("\nERROR: There is no function defined for the %s format in mol_scan.py." % mol_fmt)
   exit(3) 
 
-# Check if the chosen scaling function has been defined in scaling_fcts.py
+# Define the scaling function that will determine the scale_index of the molecule (necessary for determining the job scale) - defined in scaling_fcts.py
+
+scaling_fct = clusters_cfg[cluster_name]["progs"][prog]["scaling_function"]
 
 if (scaling_fct) not in dir(scaling_fcts) or not callable(getattr(scaling_fcts, scaling_fct)):
   print("\nERROR: There is no scaling function named %s defined in scaling_fcts.py." % scaling_fct)
+  exit(3) 
+
+# Define the rendering function that will render the job manifest and the input file (depends on the program)  - defined in renderer.py
+
+render_fct = prog + "_render"
+
+if (render_fct) not in dir(renderer) or not callable(getattr(renderer, render_fct)):
+  print("\nERROR: There is no function defined for the %s program in renderer.py." % prog)
   exit(3) 
 
 # =========================================================
@@ -336,12 +339,8 @@ for mol_filename in mol_inp_list:
     # =========================================================
 
     for atom in file_data['chemical_formula'].keys():
-      match = False
-      for element in mendeleev:
-        if element['symbol'] == atom:
-          match = True
-          break
-      if not match:
+      # Scan mendeleev looking for the atom symbol. If there is no match, returns None thus raises an exception (see https://stackoverflow.com/questions/8653516/python-list-of-dictionaries-search for more details)
+      if not next((element for element in mendeleev if element["symbol"] == atom), None):
         raise errors.AbinError ("ERROR: Element %s is not defined in AlexGustafsson's Mendeleev Table YAML file (mendeleev.yml)" % atom)
     
     # =========================================================
@@ -473,7 +472,6 @@ for mol_filename in mol_inp_list:
       with open(os.path.join(config_inp_path,config_filename), 'r') as f_config:
         config = yaml.load(f_config, Loader=yaml.FullLoader)
       print('%12s' % "[ DONE ]")
-
     
       # Build a dictionary that will contain all information related to the job
 
@@ -516,7 +514,7 @@ for mol_filename in mol_inp_list:
       print(section_title.center(len(section_title)+10))
       print(''.center(len(section_title)+10, '*'))
 
-      # Creating the molecule subfolder where the job will be launched and creating all the relevant files in it.
+      # Creating the job subfolder where the job will be launched and creating all the relevant files in it.
     
       job_dir = os.path.join(out_dir,mol_name + "_" + config_name)
 
@@ -527,7 +525,7 @@ for mol_filename in mol_inp_list:
 
       print("\nThe %s subfolder has been created at %s" % (mol_name + "_" + config_name, out_dir))
       
-      # Copying the config file and the molecule file into the molecule subfolder
+      # Copying the config file and the molecule file into the job subfolder
       
       shutil.copy(os.path.join(mol_inp_path,mol_filename), job_dir)
       shutil.copy(os.path.join(config_inp_path,config_filename), job_dir)
@@ -553,7 +551,7 @@ for mol_filename in mol_inp_list:
       launch_command = subcommand + " " + delay_command + " " + manifest
       retcode = os.system(launch_command)
       if retcode != 0 :
-        sys.stdout = original_stdout                 # Reset the standard output to its original value
+        sys.stdout = original_stdout                          # Reset the standard output to its original value
         print("Job submit encountered an issue")
         print("Aborting ...")
         exit(5)
@@ -597,7 +595,7 @@ for mol_filename in mol_inp_list:
 if not keep_cf:
   for config_filename in config_inp_list:
     if config_filename not in problem_cf:
-      launched_dir = os.path.join(config_inp_path,"Launched")      # Folder where the configuration files will be put after having been treated by this script, it will be created inside the directory where were all the configuration files.
+      launched_dir = os.path.join(config_inp_path,"Launched") # Folder where the configuration files will be put after having been treated by this script, it will be created inside the directory where were all the configuration files.
       os.makedirs(launched_dir, exist_ok=True)
       if os.path.exists(os.path.join(launched_dir,config_filename)):
         os.remove(os.path.join(launched_dir,config_filename))
