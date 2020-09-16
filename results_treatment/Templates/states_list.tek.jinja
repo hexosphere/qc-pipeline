@@ -1,0 +1,8 @@
+{# Jinja template for the list of excited states #}
+\begin{tabular}{|c|c|c|c|c|c|}
+\# & Multiplicité & Etiquette & Energie (eV) & Energie (cm\up{-1}) & Energie (nm) \\
+\hline
+{ % for state in states_list -% }
+{{  state['Number']  }} & {{  state['Multiplicity']  }} & {{  state['Label']  }} & {{  state['Energy (ev)']  }} & {{  state['Energy (cm-1)']  }} & {{  state['Energy (nm)']  }} \\
+{ % endfor -% }
+\end{tabular}

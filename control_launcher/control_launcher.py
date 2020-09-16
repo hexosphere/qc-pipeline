@@ -86,7 +86,7 @@ clusters_file = args.clusters            # YAML file containing all informations
 
 # Other important variable
 
-prog = "qoct-ra"                         # Name of the blocks that appear in the clusters and config YAML files
+prog = "qoctra"                         # Name of the blocks that appear in the clusters and config YAML files
 
 # ===================================================================
 # ===================================================================
@@ -658,9 +658,11 @@ print('%12s' % "[ DONE ]")
 print('')
 proj_file = config[prog]['created_files']['projectors']
 target_state = config[prog]['target_state'] # The type of states that will be targeted by the control
+targets_list = [] # List of target states
 
 for state in states_list:
   if state[1] == target_state:
+    targets_list.append(state[3])
     print("{:<59}".format("Creating %s file ..." % (proj_file + state[3])), end="")
     proj = np.zeros((len(states_list),len(states_list)),dtype=complex)
     proj[state[0],state[0]] = 1+0j
@@ -741,8 +743,10 @@ manifest_render_vars = {
   "partition" : job_partition,     
   "set_env" : clusters_cfg[cluster_name]['progs'][prog]['set_env'],       
   "command" : clusters_cfg[cluster_name]['progs'][prog]['command'],
+  "mol_dir" : mol_dir,
+  "nb_targets" : len(targets_list),
   "output_folder" : config[prog]['output-folder'],
-  "results_folder" : config['general']['results-folder'],
+  "results_folder" : config['results']['main_folder'],
   "data_dir" : data_dir,
   "job_manifest" : rnd_manifest,
   "niter" : niter
@@ -756,9 +760,7 @@ print('%12s' % "[ DONE ]")
 
 # For each projector, render the parameters file and run the corresponding job
 
-for state in states_list:
-  if state[1] == target_state:
-    target = state[3]
+for target in targets_list:
     print("\nPreparing to launch job with %s as the target state ..." % target)
 
     # Create the job folder for that specific target

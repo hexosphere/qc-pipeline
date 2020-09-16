@@ -34,7 +34,7 @@ shared:
         cores: 8 
         mem_per_cpu: 200 # in MB
         delay_command:
-    qoct-ra: 
+    qoctra: 
       jinja: &qoctra_jinja
         # Names of the jinja templates, those files must be put in the Templates folder.
         templates:
@@ -88,7 +88,7 @@ dragon1:
           cores: 8
           mem_per_cpu: 4000 # in MB  
           delay_command: --begin=now+120
-    qoct-ra:
+    qoctra:
       jinja: *qoctra_jinja
       set_env:
       command:
@@ -133,7 +133,7 @@ dragon2:
           cores: 8  
           mem_per_cpu: 4000 # in MB
           delay_command: --begin=now+120
-    qoct-ra:
+    qoctra:
       jinja: *qoctra_jinja
       set_env:
       command:
@@ -175,7 +175,7 @@ lemaitre3:
           cores: 8
           mem_per_cpu: 4000 # in MB
           delay_command: --begin=now+120
-    qoct-ra:
+    qoctra:
       jinja: *qoctra_jinja
       set_env:
         - module --force purge
@@ -214,7 +214,7 @@ vega:
           cores: 8
           mem_per_cpu: 2000 # in MB
           delay_command: --begin=now+120
-    qoct-ra:
+    qoctra:
       jinja: *qoctra_jinja
       set_env:
       command:
