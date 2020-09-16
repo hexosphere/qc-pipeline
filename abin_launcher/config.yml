@@ -41,7 +41,6 @@ qoctra:
 # Define here the names of the files that will be created in the molecule folder (in a "data" subfolder)
   created_files: 
     mime_file: mime
-    states_file: states
     energies_file: energies
     mat_et0: mat_et0                      # corresponds to the eigenvectors matrix of the MIME diagonalization
     mat_0te: mat_0te                      # corresponds to the eigenvectors transpose matrix of the MIME diagonalization

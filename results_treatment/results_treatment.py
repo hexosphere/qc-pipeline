@@ -179,7 +179,9 @@ path_tpl_dir = os.path.join(code_dir,"Templates")
 # Define the names of the jinja templates
 
 jinja_tpl = {
-"states_list_tpl" : "states_list.tek.jinja"
+"states_list_tpl" : "states_list.tek.jinja",
+"coupling_list_tpl" : "soc_list.tek.jinja",
+"momdip_list_tpl" : "momdip_list.tek.jinja"
 }
 
 # Check if all the files specified in the jinja_tpl dictionary exists in the Templates folder of results_treatment.
@@ -237,8 +239,14 @@ for mol_name in mol_inp_list:
     qoctra_dir = os.path.join(mol_dir, config['results']['qoctra']['folder_name'])
     data_dir = errors.check_abspath(os.path.join(qoctra_dir, "data"),"Data folder created by control_launcher.py","folder",False)
 
-    states_file = config['qoctra']['created_files']['states_file']
+    states_file = "states.csv"
     states_file = errors.check_abspath(os.path.join(data_dir, states_file),"List of excited states","file",False)
+
+    coupling_file = "coupling_list.csv"
+    coupling_file = errors.check_abspath(os.path.join(data_dir, coupling_file),"List of spin-orbit couplings (cm-1)","file",False)
+
+    momdip_file = "momdip_list.csv"
+    momdip_file = errors.check_abspath(os.path.join(data_dir, momdip_file),"List of transition dipole moments (in atomic units)","file",False)
 
     mime_file = config['qoctra']['created_files']['mime_file']
     mime_file = errors.check_abspath(os.path.join(data_dir, mime_file),"MIME file","file",False)
@@ -343,14 +351,15 @@ for mol_name in mol_inp_list:
     # Converting the energies from cm-1 to nm and eV
 
     for state in states_list:
-      print (state['Energy (cm-1)'])
+      print (state)
       if float(state['Energy (cm-1)']) == 0: # Ground state
-        state['Energy (cm-1)'] = "-"
-        state['Energy (ev)'] = "-"
-        state['Energy (nm)'] = "-"
+        state['Energy (cm-1)'] = None
+        state['Energy (ev)'] = None
+        state['Energy (nm)'] = None
       else:
-        state['Energy (ev)'] = float(state['Energy (cm-1)']) / 8065.6
-        state['Energy (nm)'] = 10000000 / float(state['Energy (cm-1)'])
+        state['Energy (cm-1)'] = float(state['Energy (cm-1)'])
+        state['Energy (ev)'] = state['Energy (cm-1)'] / 8065.6
+        state['Energy (nm)'] = 10000000 / state['Energy (cm-1)']
     
     # Rendering the jinja template for the states list
 
@@ -368,6 +377,82 @@ for mol_name in mol_inp_list:
     print('%12s' % "[ DONE ]")
 
     print(rendered_content[rnd_states])
+
+    # =========================================================
+    # List of spin-orbit couplings
+    # =========================================================    
+
+    # Load coupling_file
+
+    print("\nScanning coupling file {} ... ".format(coupling_file))
+    with open(coupling_file, 'r', newline='') as f_coupling:
+      coupling_content = csv.DictReader(f_coupling, delimiter=';')
+      coupling_list = list(coupling_content)
+      coupling_header = coupling_content.fieldnames
+      print("    Detected CSV header in coupling file : {}".format(coupling_header))
+
+    # Translating state numbers into state labels
+
+    for coupling in coupling_list:
+      coupling['State 1'] = states_list[int(coupling['State 1'])]["Label"]
+      coupling['State 2'] = states_list[int(coupling['State 2'])]["Label"]
+      coupling['Energy (cm-1)'] = float(coupling['Energy (cm-1)'])
+
+     # Rendering the jinja template for the states list
+
+    tpl_coupling = jinja_tpl["coupling_list_tpl"] # Name of the template file
+    rnd_coupling = mol_name + "_soc.tek"          # Name of the rendered file
+
+    print("\nRendering the jinja template for the coupling list ...", end="")
+  
+    render_vars = {
+        "coupling_list" : coupling_list
+        }
+
+    rendered_content[rnd_coupling] = jinja_render(path_tpl_dir, tpl_coupling, render_vars)
+
+    print('%12s' % "[ DONE ]")
+
+    print(rendered_content[rnd_coupling])
+   
+    # =========================================================
+    # List of transition dipole moment
+    # =========================================================    
+
+    # Load momdip_file
+
+    print("\nScanning momdip file {} ... ".format(momdip_file))
+    with open(momdip_file, 'r', newline='') as f_momdip:
+      momdip_content = csv.DictReader(f_momdip, delimiter=';')
+      momdip_list = list(momdip_content)
+      momdip_header = momdip_content.fieldnames
+      print("    Detected CSV header in momdip file : {}".format(momdip_header))
+
+    # Translating state numbers into state labels
+
+    for momdip in momdip_list:
+      momdip['State 1'] = states_list[int(momdip['State 1'])]["Label"]
+      momdip['State 2'] = states_list[int(momdip['State 2'])]["Label"]
+      momdip['Dipole (a.u.)'] = float(momdip['Dipole (a.u.)'])
+
+     # Rendering the jinja template for the states list
+
+    tpl_momdip = jinja_tpl["momdip_list_tpl"]      # Name of the template file
+    rnd_momdip = mol_name + "_momdip.tek"          # Name of the rendered file
+
+    print("\nRendering the jinja template for the momdip list ...", end="")
+  
+    render_vars = {
+        "momdip_list" : momdip_list
+        }
+
+    rendered_content[rnd_momdip] = jinja_render(path_tpl_dir, tpl_momdip, render_vars)
+
+    print('%12s' % "[ DONE ]")
+
+    print(rendered_content[rnd_momdip])    
+    
+   
 
   except errors.ResultsError as error:
     sys.stdout = original_stdout                       # Reset the standard output to its original value

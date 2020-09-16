@@ -2,7 +2,11 @@
 \begin{tabular}{|c|c|c|c|c|c|}
 \# & Multiplicité & Etiquette & Energie (eV) & Energie (cm\up{-1}) & Energie (nm) \\
 \hline
-{ % for state in states_list -% }
+{% for state in states_list -%}
+{%- if state['Energy (ev)'] is none -%}
+{{  state['Number']  }} & {{  state['Multiplicity']  }} & {{  state['Label']  }} & - & - & - \\
+{%- else -%}
 {{  state['Number']  }} & {{  state['Multiplicity']  }} & {{  state['Label']  }} & {{  state['Energy (ev)']  }} & {{  state['Energy (cm-1)']  }} & {{  state['Energy (nm)']  }} \\
-{ % endfor -% }
+{%- endif %}
+{% endfor -%}
 \end{tabular}

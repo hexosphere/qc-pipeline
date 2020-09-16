@@ -11,6 +11,7 @@
 ########################################################################################################################################################
 
 import argparse
+import copy
 import importlib
 import os
 import shutil
@@ -401,12 +402,16 @@ print("\nBuilding the MIME ...     ", end="")
 mime = np.zeros((len(states_list), len(states_list)))  # Quick init of a zero-filled matrix
 
 # Add energies (in cm-1) to the tuple list (those will be placed on the diagonal of the MIME)
+
+ori_coupling_list = copy.deepcopy(coupling_list)       # Save the original coupling_list to print it to a file later (using deepcopy as to not be affected by future changes on coupling_list)
+
 for state in states_list:
   # Reminder : state[0] is the state number and state[2] is the state energy
   tpl = (state[0], state[0], state[2])
   coupling_list.append(tpl)
 
 # Creation of the MIME
+
 for coupling in coupling_list:
   k1 = coupling[0]
   k2 = coupling[1]
@@ -566,22 +571,37 @@ print("\nThe data subfolder has been created at %s" % data_dir)
 # Writing already calculated values to files
 # =========================================================
 
+# Values obtained through the parser script (in CSV format)
+
+print("{:<60}".format('\nCreating states.csv file ... '), end="")
+with open(os.path.join(data_dir, "states.csv"), "w") as f:
+  print("Number;Multiplicity;Energy (cm-1);Label", file = f)
+  for state in states_list:
+    # Print every item in state, separated by ";"
+    print(";".join(map(str,state)), file = f)
+print('%12s' % "[ DONE ]")
+
+print("{:<60}".format('\nCreating coupling_list.csv file ... '), end="")
+with open(os.path.join(data_dir, "coupling_list.csv"), "w") as f:
+  print("State 1;State 2;Energy (cm-1)", file = f)
+  for line in ori_coupling_list:
+    # Print every item in line, separated by ";"
+    print(";".join(map(str,line)), file = f)
+print('%12s' % "[ DONE ]")
+
+print("{:<60}".format('\nCreating momdip_list.csv file ... '), end="")
+with open(os.path.join(data_dir, "momdip_list.csv"), "w") as f:
+  print("State 1;State 2;Dipole (a.u.)", file = f)
+  for line in momdip_list:
+    # Print every item in line, separated by ";"
+    print(";".join(map(str,line)), file = f)
+print('%12s' % "[ DONE ]")
+
 # MIME
 
 mime_file = config[prog]['created_files']['mime_file']
 print("{:<60}".format('\nCreating %s file ... ' % mime_file), end="")
 np.savetxt(os.path.join(data_dir,mime_file),mime,fmt='% 18.10e')
-print('%12s' % "[ DONE ]")
-
-# States List (not neeeded for QOCT-RA but useful to know) in CSV format
-
-states_file = config[prog]['created_files']['states_file']
-print("{:<60}".format('\nCreating %s file ... ' % states_file), end="")
-with open(os.path.join(data_dir, states_file), "w") as f:
-  print("Number;Multiplicity;Energy (cm-1);Label", file = f)
-  for state in states_list:
-    # Print every item in state, separated by ";"
-    print(";".join(map(str,state)), file = f)
 print('%12s' % "[ DONE ]")
 
 # Energies

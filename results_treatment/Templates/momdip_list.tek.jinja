@@ -1,0 +1,8 @@
+{# Jinja template for the list of transition dipole moments #}
+\begin{tabular}{|c|c|c|}
+Etat 1 & Etat 2 & Dipole (a.u.)\\
+\hline
+{% for momdip in momdip_list if not momdip['Dipole (a.u.)']|float == 0.0 -%}
+{{  momdip['State 1']  }} & {{  momdip['State 2']  }} & {{  momdip['Dipole (a.u.)']  }} \\
+{% endfor -%}
+\end{tabular}
