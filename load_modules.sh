@@ -8,6 +8,12 @@ module --force purge
 #	- jinja2	2 and later		(in case of required upgrade, load python 3 module then issue in cmdline: python -m pip install --user -U Jinja2)
 #	- yaml		5.1 and later	(in case of required upgrade, load python 3 module then issue in cmdline: python -m pip install --user -U pyyaml)
 
+# Specifically for control_launcher
+#   - numpy     1.14 and later  (in case of required upgrade, load python 3 module then issue in cmdline: python -m pip install --user -U numpy)
+
+# Specifically for results_treatment
+#   - gnuplot   5 .0 and later    
+
 if   [ "$CLUSTER_NAME" = "dragon1" ]; then
     module load python/3.5.4-GCC-4.9.2
 	
@@ -18,10 +24,12 @@ elif [ "$CLUSTER_NAME" = "dragon2" ]; then
 elif [ "$CLUSTER_NAME" = "vega" ]; then
     module load Python/3.7.4-GCCcore-8.3.0
     module load PyYAML/5.1.2-GCCcore-8.3.0
+    module load gnuplot/5.0.3-intel-2016a
 
 elif [ "$CLUSTER_NAME" = "lemaitre3" ]; then
 	module load releases/2018b
 	module load Python/3.6.6-foss-2018b
+    module load gnuplot/5.2.5-foss-2018b
 
 elif [ "$CLUSTER_NAME" = "hercules" ]; then
     module load Python/3.5.2-foss-2016b

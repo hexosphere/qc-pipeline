@@ -743,7 +743,7 @@ param_render_vars = {
   "threshold" : config[prog]['param_nml']['control']['threshold'],
   "alpha0" : config[prog]['param_nml']['control']['alpha0'],
   "ndump" : config[prog]['param_nml']['control']['ndump'],
-  "ndump2" : config[prog]['param_nml']['post-control']['ndump2'],
+  "ndump2" : config[prog]['param_nml']['post_control']['ndump2'],
   "mat_et0_path" : os.path.join(data_dir,mat_et0),
   "numericincrements" : config[prog]['param_nml']['guess_pulse']['numericincrements'],
   "numberofpixels" : config[prog]['param_nml']['guess_pulse']['numberofpixels'],

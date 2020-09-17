@@ -97,7 +97,7 @@ mol_inp.add_argument("-m","--multiple", type=str, help="Folder containing multip
 
 optional = parser.add_argument_group('Optional arguments')
 optional.add_argument('-h','--help',action='help',default=argparse.SUPPRESS,help='Show this help message and exit')
-optional.add_argument("-ow","--overwrite",action="store_true",help="Overwrite files if they already exists")
+optional.add_argument('-cf', '--config', type=str, help="Path to the YAML configuration file, default is this_script_directory/results_config.yml")
 
 args = parser.parse_args()
 
@@ -108,7 +108,7 @@ out_dir = args.out_dir                   # Folder where all jobs subfolders will
 single_mol = args.single                 # Molecule folder containing the results files that need to be processed.
 multiple_mol = args.multiple             # Folder containing multiple molecule folders.
 
-overwrite = args.overwrite               # Flag for overwriting the files
+config_file = args.config                # YAML configuration file
 
 # ===================================================================
 # ===================================================================
@@ -116,13 +116,13 @@ overwrite = args.overwrite               # Flag for overwriting the files
 # ===================================================================
 # ===================================================================
 
-# Save a reference to the original standard output as it will be modified later on (see https://stackabuse.com/writing-to-a-file-with-pythons-print-function/ for reference)
-
-original_stdout = sys.stdout
-
 # Get the size of the terminal in order to have a prettier output, if you need something more robust, go check http://granitosaurus.rocks/getting-terminal-size.html
 
 columns, rows = shutil.get_terminal_size()
+
+# Create a list to keep track of the files we've been creating
+
+created_files = [] 
 
 # Output Header
 
@@ -139,6 +139,54 @@ print("".center(columns,"*"))
 # Codes directory (determined by getting the path to the directory where this script is)
 code_dir = os.path.dirname(os.path.realpath(os.path.abspath(getsourcefile(lambda:0))))
 print ("{:<40} {:<100}".format('\nCodes directory:',code_dir))
+
+# =========================================================
+# Check other arguments
+# =========================================================
+
+out_dir = errors.check_abspath(out_dir,"Command line argument -o / --out_dir","folder")
+print ("{:<40} {:<100}".format('\nFigures directory:',out_dir))
+
+# =========================================================
+# Load config file
+# =========================================================
+
+if config_file: 
+  config_file = errors.check_abspath(config_file,"Command line argument -cf / --config","file")
+else:
+  # If no value has been provided through the command line, take the results_config.yml file in the same directory as this script 
+  config_file = os.path.join(code_dir, "results_config.yml")
+
+print ("{:<40} {:<99}".format('\nLoading the configuration file',config_file + " ..."), end="")
+with open(config_file, 'r') as f_config:
+  config = yaml.load(f_config, Loader=yaml.FullLoader)
+print('%12s' % "[ DONE ]")
+
+# =========================================================
+# Check jinja templates
+# =========================================================
+
+# Get the path to jinja templates folder (a folder named "Templates" in the same folder as this script)
+path_tpl_dir = os.path.join(code_dir,"Templates")
+
+# Check if all the files specified in the config file exist in the Templates folder of results_treatment.
+for filename in config["jinja_templates"].values():
+  errors.check_abspath(os.path.join(path_tpl_dir,filename),"Jinja template","file")
+
+# =========================================================
+# Check gnuplot scripts
+# =========================================================
+
+# Check if all the files specified in the config file exist in the same folder as this script.
+for filename in config["gnuplot_scripts"].values():
+  errors.check_abspath(os.path.join(code_dir,filename),"Gnuplot script","file")
+
+# =========================================================
+# Determine other important variables
+# =========================================================
+
+quality_treshold = config["other"]["quality_treshold"]
+nb_points = config["other"]["nb_points"]
 
 # =========================================================
 # Check molecule folder(s)
@@ -162,39 +210,6 @@ else:
   mol_name = os.path.basename(single_mol)
   mol_inp_list = [mol_name]
  
-# =========================================================
-# Check other arguments
-# =========================================================
-
-out_dir = errors.check_abspath(out_dir,"Command line argument -o / --out_dir","folder")
-print ("{:<40} {:<100}".format('\nFigures directory:',out_dir))
-
-# =========================================================
-# Check jinja templates
-# =========================================================
-
-# Get the path to jinja templates folder (a folder named "Templates" in the same folder as this script)
-path_tpl_dir = os.path.join(code_dir,"Templates")
-
-# Define the names of the jinja templates
-
-jinja_tpl = {
-"states_list_tpl" : "states_list.tek.jinja",
-"coupling_list_tpl" : "soc_list.tek.jinja",
-"momdip_list_tpl" : "momdip_list.tek.jinja"
-}
-
-# Check if all the files specified in the jinja_tpl dictionary exists in the Templates folder of results_treatment.
-
-for filename in jinja_tpl.values():
-  errors.check_abspath(os.path.join(path_tpl_dir,filename),"file")
-
-# =========================================================
-# Check gnuplot scripts
-# =========================================================
-
-#TODO
-
 # ===================================================================
 # ===================================================================
 #                   FILES MANIPULATION & GENERATION
@@ -215,14 +230,14 @@ for mol_name in mol_inp_list:
     print(''.center(len(console_message)+11, '*'))
 
     # =========================================================
-    # Load config file
+    # Load molecule config file
     # =========================================================
 
-    config_file = os.path.join(mol_dir, mol_name + ".yml")
-    config_file = errors.check_abspath(config_file,"file")
-    print ("{:<40} {:<100}".format('\nLoading the configuration file',config_file + " ..."), end="")
-    with open(config_file, 'r') as f_config:
-      config = yaml.load(f_config, Loader=yaml.FullLoader)
+    mol_config_file = os.path.join(mol_dir, mol_name + ".yml")
+    mol_config_file = errors.check_abspath(mol_config_file,"file")
+    print ("{:<40} {:<99}".format('\nLoading the configuration file',mol_config_file + " ..."), end="")
+    with open(mol_config_file, 'r') as f_config:
+      mol_config = yaml.load(f_config, Loader=yaml.FullLoader)
     print('%12s' % "[ DONE ]")
 
     # =========================================================
@@ -231,12 +246,12 @@ for mol_name in mol_inp_list:
 
     # Optimized geometry
 
-    orca_dir = os.path.join(mol_dir, config['results']['orca']['folder_name'])
+    orca_dir = os.path.join(mol_dir, mol_config['results']['orca']['folder_name'])
     opt_geom_file = errors.check_abspath(os.path.join(orca_dir, mol_name + ".xyz"),"Optimized geometry file","file",False)
 
     # Data extracted from the qchem output by control_launcher and the diagonalization of the MIME
 
-    qoctra_dir = os.path.join(mol_dir, config['results']['qoctra']['folder_name'])
+    qoctra_dir = os.path.join(mol_dir, mol_config['results']['qoctra']['folder_name'])
     data_dir = errors.check_abspath(os.path.join(qoctra_dir, "data"),"Data folder created by control_launcher.py","folder",False)
 
     states_file = "states.csv"
@@ -248,65 +263,117 @@ for mol_name in mol_inp_list:
     momdip_file = "momdip_list.csv"
     momdip_file = errors.check_abspath(os.path.join(data_dir, momdip_file),"List of transition dipole moments (in atomic units)","file",False)
 
-    mime_file = config['qoctra']['created_files']['mime_file']
+    mime_file = mol_config['qoctra']['created_files']['mime_file']
     mime_file = errors.check_abspath(os.path.join(data_dir, mime_file),"MIME file","file",False)
 
-    momdip_0 = config['qoctra']['created_files']['momdip_zero']
+    momdip_0 = mol_config['qoctra']['created_files']['momdip_zero']
     momdip_0 = errors.check_abspath(os.path.join(data_dir, momdip_0),"Transition dipole moments matrix (in atomic units)","file",False)
 
-    mat_et0 = config['qoctra']['created_files']['mat_et0']
+    mat_et0 = mol_config['qoctra']['created_files']['mat_et0']
     mat_et0 = errors.check_abspath(os.path.join(data_dir, mat_et0),"Eigenvectors matrix (mat_et0)","file",False)
 
-    energies_file = config['qoctra']['created_files']['energies_file']
+    energies_file = mol_config['qoctra']['created_files']['energies_file']
     energies_file = errors.check_abspath(os.path.join(data_dir, energies_file + "_cm-1"),"List of eigenstates energies in cm-1 (eigenvalues from the diagonalization of the MIME)","file",False)
 
     # Projectors files and folders
 
-    proj_generic_name = config['qoctra']['created_files']['projectors']
+    proj_generic_name = mol_config['qoctra']['created_files']['projectors']
     # Get the list of projector folders
     proj_dirs = [dir.name for dir in os.scandir(qoctra_dir) if dir.is_dir() and dir.name.startswith(proj_generic_name)]
     # Get the list of projector files (all the files in data_dir which begins by "proj_generic_name") minus the "_1" part
     proj_files = [proj.rpartition('_')[0] for proj in os.listdir(data_dir) if os.path.isfile(os.path.join(data_dir,proj)) and proj.startswith(proj_generic_name)] 
 
     if sorted(proj_files) != sorted(proj_dirs):
-      raise errors.ResultsError ("The projector files ({}) do not match the projector directories ({}).".format(proj_files,proj_dirs))
+      raise errors.ResultsError ("ERROR: The projector files ({}) do not match the projector directories ({}).".format(proj_files,proj_dirs))
 
     # QOCT-RA results (pulses and populations)
 
+    proj_info = [] # Initialize a list that will host the dictionaries containing all the information related to each projector 
+
     for proj_dir in proj_dirs:
 
-      proj_path = os.path.join(qoctra_dir,proj_dir)
+      proj_dict = {} # Intialize a dictionary that will contain all the information related to the projector
 
-      fidelity = os.path.join(proj_path,config['results']['qoctra']['fidelity'])
-      fidelity = errors.check_abspath(fidelity,"Fidelity file for the %s of %s" % (proj_dir,mol_name),"file",False)
+      proj_path = os.path.join(qoctra_dir,proj_dir)
+      proj_dict["main_path"] = proj_path
+
+      # Get the target state from the projector name (e.g. projectorT1 => T1)
+
+      target = proj_dir.partition(proj_generic_name)[2] 
+      proj_dict["target"] = target
+
+      # Get the path to the iterations file and its content
+
+      iter_file = os.path.join(proj_path,mol_config['results']['qoctra']['fidelity'])
+      iter_file = errors.check_abspath(iter_file,"Fidelity file for the %s of %s" % (proj_dir,mol_name),"file",False)
+      proj_dict["iter_file"] = iter_file
+
+      # Replace all occurrences of D by E (from Fortran's float format to Python's)
+      command = "sed -i 's/D/E/g' " + iter_file
+      retcode = os.system(command)
+      if retcode != 0:
+        raise errors.ResultsError ("ERROR: Unable to edit %s to replace all occurrences of D by E" % iter_file)
+
+      # Go straight to the last line of the iterations file (see https://stackoverflow.com/questions/46258499/read-the-last-line-of-a-file-in-python for reference)
+      with open(iter_file, 'rb') as f:
+        f.seek(-2, os.SEEK_END)
+        while f.read(1) != b'\n':
+            f.seek(-2, os.SEEK_CUR)
+        last_line = f.readline().decode()
+
+      print (last_line)
+      # Define how the lines of the iterations file must look like, here it is for example "    300     2  2sec |Proba_moy  0.000000E+00 |Fidelity(U)  0.000000E+00 |Chp  0.123802E+00 -0.119953E+00 |Aire  0.140871E-03 |Fluence  0.530022E+01 |Recou(i)  0.000000E+00 |Tr_dist(i) -0.500000E+00 |Tr(rho)(i)  0.100000E+01 |Tr(rho^2)(i)  0.100000E+01 |Projector  0.479527E-13"
+      template_iter_file = re.compile(r"^\s+(?P<niter>\d+)\s+\d+\s+\d+sec\s|Proba_moy\s+\d.\d+E[+-]\d+\s|Fidelity\(U\)\s+\d.\d+E[+-]\d+\s|Chp\s+\d.\d+E[+-]\d+\s-*\d.\d+E[+-]\d+\s|Aire\s+\d.\d+E[+-]\d+\s|Fluence\s+\d.\d+E[+-]\d+\s|Recou\(i\)\s+\d.\d+E[+-]\d+\s|Tr_dist\(i\)\s+-*\d.\d+E[+-]\d+\s|Tr\(rho\)\(i\)\s+\d.\d+E[+-]\d+\s|Tr\(rho\^2\)\(i\)\s+\d.\d+E[+-]\d+\s|Projector\s+(?P<projector>\d.\d+E[+-]\d+)\s+")
+
+      # Get the number of iterations and the last fidelity from the last line
+      content = template_iter_file.match(last_line)
+      if content is not None:
+        proj_dict["niter"] = content.group("niter")
+        proj_dict["fidelity"] = content.group("projector")
+        print (content.group("projector"))
+        print (content.group("niter"))
+      else:
+        raise errors.ResultsError ("ERROR: Unable to get information from the last line of %s" % iter_file)
 
       # Pulse folder
 
-      pulse_dir = os.path.join(proj_path,config['results']['qoctra']['pulse_folder']['folder_name'])
+      pulse_dir = os.path.join(proj_path,mol_config['results']['qoctra']['pulse_folder']['folder_name'])
       pulse_dir = errors.check_abspath(pulse_dir,"Folder containing the pulses for the %s of %s" % (proj_dir,mol_name),"folder",False)
+      proj_dict["pulse_dir"] = pulse_dir
 
-      guess_pulse = config['results']['qoctra']['pulse_folder']['guess_pulse']
+      guess_pulse = mol_config['results']['qoctra']['pulse_folder']['guess_pulse']
       guess_pulse = errors.check_abspath(os.path.join(pulse_dir, guess_pulse),"Guess pulse file for the %s of %s" % (proj_dir,mol_name),"file",False)
+      proj_dict["guess_pulse"] = guess_pulse
 
-      guess_pulse_param = config['results']['qoctra']['pulse_folder']['guess_pulse_param']
+      guess_pulse_param = mol_config['results']['qoctra']['pulse_folder']['guess_pulse_param']
       guess_pulse_param = errors.check_abspath(os.path.join(pulse_dir, guess_pulse_param),"Guess pulse parameters file for the %s of %s" % (proj_dir,mol_name),"file",False)
+      proj_dict["guess_pulse_param"] = guess_pulse_param
 
-      final_pulse = config['results']['qoctra']['pulse_folder']['final_pulse']
+      final_pulse = mol_config['results']['qoctra']['pulse_folder']['final_pulse']
       final_pulse = errors.check_abspath(os.path.join(pulse_dir, final_pulse),"Final pulse file for the %s of %s" % (proj_dir,mol_name),"file",False)
+      proj_dict["final_pulse"] = final_pulse
 
-      final_pulse_param = config['results']['qoctra']['pulse_folder']['final_pulse_param']
+      final_pulse_param = mol_config['results']['qoctra']['pulse_folder']['final_pulse_param']
       final_pulse_param = errors.check_abspath(os.path.join(pulse_dir, final_pulse_param),"Final pulse parameters file for the %s of %s" % (proj_dir,mol_name),"file",False)
+      proj_dict["final_pulse_param"] = final_pulse_param
 
-      final_pulse_heat = config['results']['qoctra']['pulse_folder']['final_pulse_heat']
+      final_pulse_heat = mol_config['results']['qoctra']['pulse_folder']['final_pulse_heat']
       final_pulse_heat = errors.check_abspath(os.path.join(pulse_dir, final_pulse_heat),"Final pulse pixel heat file for the %s of %s" % (proj_dir,mol_name),"file",False)
+      proj_dict["final_pulse_heat"] = final_pulse_heat
 
       # Post-control with pulse (PCP) folder
 
-      pcp_dir = os.path.join(proj_path,config['results']['qoctra']['pcp_folder']['folder_name'])
+      pcp_dir = os.path.join(proj_path,mol_config['results']['qoctra']['pcp_folder']['folder_name'])
       pcp_dir = errors.check_abspath(pcp_dir,"Folder containing the PCP populations for the %s of %s" % (proj_dir,mol_name),"folder",False)
+      proj_dict["pcp_dir"] = pcp_dir
 
-      pop_zero = config['results']['qoctra']['pcp_folder']['pop_zero']
+      pop_zero = mol_config['results']['qoctra']['pcp_folder']['pop_zero']
       pop_zero = errors.check_abspath(os.path.join(pcp_dir, pop_zero),"PCP population file for the %s of %s" % (proj_dir,mol_name),"file",False)
+      proj_dict["pop_zero"] = pop_zero
+
+      # Save the dictionary to the proj_info list
+
+      proj_info.append(proj_dict)
 
     # =========================================================
     # Check if the fidelity is high enough
@@ -314,26 +381,22 @@ for mol_name in mol_inp_list:
 
     #TODO
 
-    # =========================================================
-    # Create log file
-    # =========================================================
+    print("")
+    print(''.center(30, '-'))
+    print("{:<15} {:<15}".format('Target State','Fidelity'))
+    print(''.center(30, '-'))
+    for projector in proj_info:
+      target = projector["target"]
+      fidelity = projector["fidelity"]
+      print(target, fidelity)
+    print(''.center(30, '-'))
 
-    # Create a output log file containing all the information about the molecule results treatment
-    mol_log_name = mol_name + ".log"
-    mol_log = open(os.path.join(out_dir, mol_log_name), 'w', encoding='utf-8')
-
-    # Redirect standard output to the mol_log file (see https://stackabuse.com/writing-to-a-file-with-pythons-print-function/ for reference)
-    #sys.stdout = mol_log
 
     # =========================================================
     # =========================================================
     #                    TABLES GENERATION
     # =========================================================
     # =========================================================
-
-    # Initialize the dictionary that will contain all the text of the rendered files
-
-    rendered_content = {}  
 
     # =========================================================
     # List of excited states
@@ -351,7 +414,6 @@ for mol_name in mol_inp_list:
     # Converting the energies from cm-1 to nm and eV
 
     for state in states_list:
-      print (state)
       if float(state['Energy (cm-1)']) == 0: # Ground state
         state['Energy (cm-1)'] = None
         state['Energy (ev)'] = None
@@ -363,20 +425,22 @@ for mol_name in mol_inp_list:
     
     # Rendering the jinja template for the states list
 
-    tpl_states = jinja_tpl["states_list_tpl"] # Name of the template file
+    tpl_states = config["jinja_templates"]["states_list"] # Name of the template file
     rnd_states = mol_name + "_states.tek"     # Name of the rendered file
 
-    print("\nRendering the jinja template for the states list ...", end="")
+    print("{:140}".format("\nCreating the states list %s file ... " % rnd_states), end="")
   
     render_vars = {
         "states_list" : states_list
         }
 
-    rendered_content[rnd_states] = jinja_render(path_tpl_dir, tpl_states, render_vars)
+    rendered_file_path = os.path.join(out_dir, rnd_states)
+    with open(rendered_file_path, "w", encoding='utf-8') as result_file:
+      result_file.write(jinja_render(path_tpl_dir, tpl_states, render_vars))
+
+    created_files.append(rnd_states)
 
     print('%12s' % "[ DONE ]")
-
-    print(rendered_content[rnd_states])
 
     # =========================================================
     # List of spin-orbit couplings
@@ -400,20 +464,22 @@ for mol_name in mol_inp_list:
 
      # Rendering the jinja template for the states list
 
-    tpl_coupling = jinja_tpl["coupling_list_tpl"] # Name of the template file
+    tpl_coupling = config["jinja_templates"]["coupling_list"] # Name of the template file
     rnd_coupling = mol_name + "_soc.tek"          # Name of the rendered file
 
-    print("\nRendering the jinja template for the coupling list ...", end="")
+    print("{:140}".format("\nCreating the coupling list %s file ... " % rnd_coupling), end="")
   
     render_vars = {
         "coupling_list" : coupling_list
         }
 
-    rendered_content[rnd_coupling] = jinja_render(path_tpl_dir, tpl_coupling, render_vars)
+    rendered_file_path = os.path.join(out_dir, rnd_coupling)
+    with open(rendered_file_path, "w", encoding='utf-8') as result_file:
+      result_file.write(jinja_render(path_tpl_dir, tpl_coupling, render_vars))
+
+    created_files.append(rnd_coupling)
 
     print('%12s' % "[ DONE ]")
-
-    print(rendered_content[rnd_coupling])
    
     # =========================================================
     # List of transition dipole moment
@@ -437,26 +503,93 @@ for mol_name in mol_inp_list:
 
      # Rendering the jinja template for the states list
 
-    tpl_momdip = jinja_tpl["momdip_list_tpl"]      # Name of the template file
+    tpl_momdip = config["jinja_templates"]["momdip_list"]      # Name of the template file
     rnd_momdip = mol_name + "_momdip.tek"          # Name of the rendered file
 
-    print("\nRendering the jinja template for the momdip list ...", end="")
+    print("{:140}".format("\nCreating the momdip list %s file ... " % rnd_momdip), end="")
   
     render_vars = {
         "momdip_list" : momdip_list
         }
 
-    rendered_content[rnd_momdip] = jinja_render(path_tpl_dir, tpl_momdip, render_vars)
+    rendered_file_path = os.path.join(out_dir, rnd_momdip)
+    with open(rendered_file_path, "w", encoding='utf-8') as result_file:
+      result_file.write(jinja_render(path_tpl_dir, tpl_momdip, render_vars))
+
+    created_files.append(rnd_momdip)
 
     print('%12s' % "[ DONE ]")
 
-    print(rendered_content[rnd_momdip])    
-    
+    # =========================================================
+    # =========================================================
+    #                    GRAPHS GENERATION
+    # =========================================================
+    # =========================================================   
    
+    for projector in proj_info:
+
+      print("\nTreating the %s projector ..." % projector["target"])
+
+      # =========================================================
+      # Evolution of fidelity over the iterations
+      # =========================================================      
+
+      fidelity_script = os.path.join(code_dir,config["gnuplot_scripts"]["fidelity"])
+      fidelity_graph = mol_name + "_" + projector["target"] + "_fidelity.tex"
+      print("{:139}".format("    Creating the graph presenting the evolution of fidelity over the iterations (%s) ... " % fidelity_graph), end="")
+
+      command = "gnuplot -c {} {} {} {} {}".format(fidelity_script,projector["iter_file"],os.path.join(out_dir,fidelity_graph),projector["niter"],nb_points)
+      retcode = os.system(command)
+      if retcode != 0 :
+        raise errors.ResultsError ("ERROR: The %s gnuplot script encountered an issue" % fidelity_script)
+
+      created_files.append(fidelity_graph)
+
+      print('%12s' % "[ DONE ]")
+  
+      # =========================================================
+      # Evolution of the states population over time
+      # =========================================================      
+
+      pop_script = os.path.join(code_dir,config["gnuplot_scripts"]["population"])
+      pop_graph = mol_name + "_" + projector["target"] + "_pop.tex"
+      print("{:139}".format("    Creating the graph presenting the evolution of the states population over time (%s) ... " % pop_graph), end="")
+
+      # Count the number of lines in the population file
+      with open(projector["pop_zero"]) as f:
+          for i, l in enumerate(f):
+              pass
+      nb_lines = i + 1
+
+      command = "gnuplot -c {} {} {} {} {} {}".format(pop_script,projector["pop_zero"],os.path.join(out_dir,pop_graph),nb_lines,nb_points,len(states_list))
+      retcode = os.system(command)
+      if retcode != 0 :
+        raise errors.ResultsError ("ERROR: The %s gnuplot script encountered an issue" % pop_script)
+
+      created_files.append(pop_graph)
+
+      print('%12s' % "[ DONE ]")
+
 
   except errors.ResultsError as error:
-    sys.stdout = original_stdout                       # Reset the standard output to its original value
-    print(error)
+    print("\n",error)
+    print("Removing the files that have been created so far ...")
+    for filename in created_files:
+      os.remove(os.path.join(out_dir,filename))
+      print("    Removing %s file" % filename)
+    print("[ DONE ]")
     print("Skipping %s molecule" % mol_name)
-    os.remove(os.path.join(out_dir,mol_log_name))      # Remove the log file since there was a problem
     continue
+
+  console_message = "End of procedure for the molecule " + mol_name
+  print("")
+  print(''.center(len(console_message)+10, '*'))
+  print(console_message.center(len(console_message)+10))
+  print(''.center(len(console_message)+10, '*'))
+
+print("")
+print("".center(columns,"*"))
+print("")
+print("END OF EXECUTION".center(columns))
+print("")
+print("".center(columns,"*"))

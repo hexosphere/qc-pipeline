@@ -63,7 +63,7 @@ qoctra:
       numberofpixels: 128                           # Number of pixels (pixel width = 2 / total time)
       inputenergy: 900.0                            # Total energy of the input pulse in the shaper (in micro Joules per cm squared)
       widthhalfmax: 1000.0                          # Full Width at Half Maximum of the input pulse (in cm-1)
-    post-control:
+    post_control:
       ndump2: 1000                                  # Number of steps between each analysis of the populations, phases, positions and energies
 # Folder where the qoct-ra output files will be sent for data treatment and final results presentation.
   output-folder: $CECIHOME/CONTROL_OUT   

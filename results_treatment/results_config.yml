@@ -1,0 +1,18 @@
+# This is the configuration file for the results treatment, this file will contain every information you need to provide to resuls_treatment.py (outside of any specific molecule data).
+# This is a YAML database, see https://yaml.org/ for more informations
+
+# Define here the name of the jinja template files (and only those), they must be located inside the Templates folder of results_treatment
+jinja_templates:
+  states_list: states_list.tek.jinja
+  coupling_list: soc_list.tek.jinja
+  momdip_list: momdip_list.tek.jinja
+
+# Define here the name of the gnuplot scripts files (and only those), they must be located inside the results_treatment folder
+gnuplot_scripts:
+  fidelity: fidelity.plt
+  population: pop.plt
+
+# Define here any additionnal info
+other:
+  quality_treshold: 0   # Minimum fidelity value to consider plotting graphs and writing tables
+  nb_points: 1000       # Max number of points to be plotted by gnuplot scripts
