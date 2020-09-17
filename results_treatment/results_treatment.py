@@ -538,7 +538,8 @@ for mol_name in mol_inp_list:
       fidelity_graph = mol_name + "_" + projector["target"] + "_fidelity.tex"
       print("{:139}".format("    Creating the graph presenting the evolution of fidelity over the iterations (%s) ... " % fidelity_graph), end="")
 
-      command = "gnuplot -c {} {} {} {} {}".format(fidelity_script,projector["iter_file"],os.path.join(out_dir,fidelity_graph),projector["niter"],nb_points)
+      os.chdir(out_dir)
+      command = "gnuplot -c {} {} {} {} {}".format(fidelity_script,projector["iter_file"],fidelity_graph,projector["niter"],nb_points)
       retcode = os.system(command)
       if retcode != 0 :
         raise errors.ResultsError ("ERROR: The %s gnuplot script encountered an issue" % fidelity_script)
@@ -561,7 +562,8 @@ for mol_name in mol_inp_list:
               pass
       nb_lines = i + 1
 
-      command = "gnuplot -c {} {} {} {} {} {}".format(pop_script,projector["pop_zero"],os.path.join(out_dir,pop_graph),nb_lines,nb_points,len(states_list))
+      os.chdir(out_dir)
+      command = "gnuplot -c {} {} {} {} {} {}".format(pop_script,projector["pop_zero"],pop_graph,nb_lines,nb_points,len(states_list))
       retcode = os.system(command)
       if retcode != 0 :
         raise errors.ResultsError ("ERROR: The %s gnuplot script encountered an issue" % pop_script)
