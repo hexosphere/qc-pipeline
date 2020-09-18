@@ -3,14 +3,15 @@
 
 # Define here the name of the jinja template files (and only those), they must be located inside the Templates folder of results_treatment
 jinja_templates:
-  states_list: states_list.tek.jinja
-  coupling_list: soc_list.tek.jinja
-  momdip_list: momdip_list.tek.jinja
+  states_list: states_list.tex.jinja
+  coupling_list: soc_list.tex.jinja
+  momdip_list: momdip_list.tex.jinja
+  pop_gnuplot: pop.plt.jinja
 
 # Define here the name of the gnuplot scripts files (and only those), they must be located inside the results_treatment folder
 gnuplot_scripts:
   fidelity: fidelity.plt
-  population: pop.plt
+  
 
 # Define here any additionnal info
 other:

@@ -1,0 +1,58 @@
+{# Jinja template for the gnuplot script creating the graph presenting the evolution of the states population over time #}
+# Determine the frequency of the plotting (how much data is skipped between two points)
+skip = {{  nb_lines  }}/{{  nb_points  }}
+if (skip < 1) skip = 1 ; else skip = floor(skip)
+
+# Set a LaTeX terminal to let LaTex process all the text parts
+set terminal cairolatex pdf
+set output "{{  output_file  }}"
+
+# color cycle 1, dt 1 = solid line
+set linetype  1 lc rgb "dark-violet" lw 1 dt 1 pt 0
+set linetype  2 lc rgb "sea-green"   lw 1 dt 1 pt 7
+set linetype  3 lc rgb "cyan"        lw 1 dt 1 pt 6 pi -1
+set linetype  4 lc rgb "dark-red"    lw 1 dt 1 pt 5 pi -1
+set linetype  5 lc rgb "blue"        lw 1 dt 1 pt 8
+set linetype  6 lc rgb "dark-orange" lw 1 dt 1 pt 3
+set linetype  7 lc rgb "black"       lw 1 dt 1 pt 11
+set linetype  8 lc rgb "goldenrod"   lw 1 dt 1
+# color cycle 2, dt 3 = dot line
+set linetype  9 lc rgb "dark-violet" lw 1 dt 3 pt 0
+set linetype 10 lc rgb "sea-green"   lw 1 dt 3 pt 7
+set linetype 11 lc rgb "cyan"        lw 1 dt 3 pt 6 pi -1
+set linetype 12 lc rgb "dark-red"    lw 1 dt 3 pt 5 pi -1
+set linetype 13 lc rgb "blue"        lw 1 dt 3 pt 8
+set linetype 14 lc rgb "dark-orange" lw 1 dt 3 pt 3
+set linetype 15 lc rgb "black"       lw 1 dt 3 pt 11
+set linetype 16 lc rgb "goldenrod"   lw 1 dt 3
+#
+set linetype cycle 16
+
+# Name of the axes
+set xlabel 'Temps ($10{{ '\\up{' }}{{  exponent  }}{{ '}' }}$ s)'
+set ylabel "Population"
+
+# No legend
+set key center rmargin
+set key title "Etats"
+set key spacing 1.5
+
+# Grid
+set grid
+
+# Y axis range and labels
+#set yrange [0:1]
+#set ytic 0,0.1,1
+
+{% raw %}set format xy '$\numprint{%g}$'{% endraw %}
+
+# Plot values
+plot\
+{% for state in states_list if state['Label'] != "S0" -%}
+"{{  input_file  }}" using ($1*{{  time_conv  }}/(10**{{  exponent  }})):{{  state['Number']|int + 2 }} every skip title '{{  state['Label']  }}' with lines linetype {{  state['Number']|int + 1 }},\
+{% endfor -%}
+
+
+# Close everything before leaving
+set output
+set terminal pop

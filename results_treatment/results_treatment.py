@@ -124,6 +124,10 @@ columns, rows = shutil.get_terminal_size()
 
 created_files = [] 
 
+# Conversion factor for the time data given by QOCT-RA
+
+time_conv = 2.4188843265857e-17
+
 # Output Header
 
 print("".center(columns,"*"))
@@ -185,8 +189,8 @@ for filename in config["gnuplot_scripts"].values():
 # Determine other important variables
 # =========================================================
 
-quality_treshold = config["other"]["quality_treshold"]
-nb_points = config["other"]["nb_points"]
+quality_treshold = float(config["other"]["quality_treshold"])
+nb_points = int(config["other"]["nb_points"])
 
 # =========================================================
 # Check molecule folder(s)
@@ -243,6 +247,8 @@ for mol_name in mol_inp_list:
     # =========================================================
     # Check if all the necessary files are present
     # =========================================================
+
+    print ("{:<140}".format('\nChecking if all the necessary files are present ...'), end="")
 
     # Optimized geometry
 
@@ -321,19 +327,25 @@ for mol_name in mol_inp_list:
             f.seek(-2, os.SEEK_CUR)
         last_line = f.readline().decode()
 
-      print (last_line)
-      # Define how the lines of the iterations file must look like, here it is for example "    300     2  2sec |Proba_moy  0.000000E+00 |Fidelity(U)  0.000000E+00 |Chp  0.123802E+00 -0.119953E+00 |Aire  0.140871E-03 |Fluence  0.530022E+01 |Recou(i)  0.000000E+00 |Tr_dist(i) -0.500000E+00 |Tr(rho)(i)  0.100000E+01 |Tr(rho^2)(i)  0.100000E+01 |Projector  0.479527E-13"
-      template_iter_file = re.compile(r"^\s+(?P<niter>\d+)\s+\d+\s+\d+sec\s|Proba_moy\s+\d.\d+E[+-]\d+\s|Fidelity\(U\)\s+\d.\d+E[+-]\d+\s|Chp\s+\d.\d+E[+-]\d+\s-*\d.\d+E[+-]\d+\s|Aire\s+\d.\d+E[+-]\d+\s|Fluence\s+\d.\d+E[+-]\d+\s|Recou\(i\)\s+\d.\d+E[+-]\d+\s|Tr_dist\(i\)\s+-*\d.\d+E[+-]\d+\s|Tr\(rho\)\(i\)\s+\d.\d+E[+-]\d+\s|Tr\(rho\^2\)\(i\)\s+\d.\d+E[+-]\d+\s|Projector\s+(?P<projector>\d.\d+E[+-]\d+)\s+")
+      # print (last_line)
+      # # Define how the lines of the iterations file must look like, here it is for example "    300     2  2sec |Proba_moy  0.000000E+00 |Fidelity(U)  0.000000E+00 |Chp  0.123802E+00 -0.119953E+00 |Aire  0.140871E-03 |Fluence  0.530022E+01 |Recou(i)  0.000000E+00 |Tr_dist(i) -0.500000E+00 |Tr(rho)(i)  0.100000E+01 |Tr(rho^2)(i)  0.100000E+01 |Projector  0.479527E-13"
+      # template_iter_file = re.compile(r"^\s+(?P<niter>\d+)\s+\d+\s+\d+sec\s|Proba_moy\s+\d.\d+E[+-]\d+\s|Fidelity\(U\)\s+\d.\d+E[+-]\d+\s|Chp\s+\d.\d+E[+-]\d+\s-*\d.\d+E[+-]\d+\s|Aire\s+\d.\d+E[+-]\d+\s|Fluence\s+\d.\d+E[+-]\d+\s|Recou\(i\)\s+\d.\d+E[+-]\d+\s|Tr_dist\(i\)\s+-*\d.\d+E[+-]\d+\s|Tr\(rho\)\(i\)\s+\d.\d+E[+-]\d+\s|Tr\(rho\^2\)\(i\)\s+\d.\d+E[+-]\d+\s|Projector\s+(?P<projector>\d.\d+E[+-]\d+)\s+")
+
+      # # Get the number of iterations and the last fidelity from the last line
+      # content = template_iter_file.match(last_line)
+      # if content is not None:
+      #   proj_dict["niter"] = content.group("niter")
+      #   proj_dict["fidelity"] = content.group("projector")
+      #   print (content.group("projector"))
+      #   print (content.group("niter"))
+      # else:
+      #   raise errors.ResultsError ("ERROR: Unable to get information from the last line of %s" % iter_file) 
 
       # Get the number of iterations and the last fidelity from the last line
-      content = template_iter_file.match(last_line)
-      if content is not None:
-        proj_dict["niter"] = content.group("niter")
-        proj_dict["fidelity"] = content.group("projector")
-        print (content.group("projector"))
-        print (content.group("niter"))
-      else:
-        raise errors.ResultsError ("ERROR: Unable to get information from the last line of %s" % iter_file)
+
+      splitted = [value for value in last_line.split(' ') if value != '']
+      proj_dict["niter"] = int(splitted[0])
+      proj_dict["fidelity"] = float(splitted[-1])
 
       # Pulse folder
 
@@ -375,22 +387,37 @@ for mol_name in mol_inp_list:
 
       proj_info.append(proj_dict)
 
+    print('%12s' % "[ DONE ]")
+
     # =========================================================
     # Check if the fidelity is high enough
     # =========================================================
 
-    #TODO
+    print("{:<40} {:<99}".format("\nQuality threshold",quality_treshold))
+    to_remove = [] # List of the projectors that will be removed due to not meeting the quality threshold
 
     print("")
-    print(''.center(30, '-'))
-    print("{:<15} {:<15}".format('Target State','Fidelity'))
-    print(''.center(30, '-'))
+    print(''.center(45, '-'))
+    print("{:<15} {:<15} {:<15}".format('Target State','Fidelity','Good ?'))
+    print(''.center(45, '-'))
     for projector in proj_info:
       target = projector["target"]
       fidelity = projector["fidelity"]
-      print(target, fidelity)
-    print(''.center(30, '-'))
+      good = "Yes" if fidelity >= quality_treshold else "No"
+      print("{:<15} {:<15} {:<15}".format(target, fidelity, good))
+      if fidelity < quality_treshold:
+        to_remove.append(os.path.basename(projector["main_path"]))
+    print(''.center(45, '-'))
 
+    if to_remove != []:
+      print('')
+      print("The fidelity of the following projectors are too low, graphs will not be generated for those datas:")
+      for projector in to_remove:  
+        print("    -",projector)
+      proj_info = [projector for projector in proj_info if os.path.basename(projector["main_path"]) not in to_remove] # Reconstruct proj_info omitting all projectors mentionned in to_remove
+
+    if proj_info == []:
+      raise errors.ResultsError ("None of the pulses associated with %s have a high enough fidelity. Graphs and tables will not be generated for this molecule." % mol_name)
 
     # =========================================================
     # =========================================================
@@ -426,7 +453,7 @@ for mol_name in mol_inp_list:
     # Rendering the jinja template for the states list
 
     tpl_states = config["jinja_templates"]["states_list"] # Name of the template file
-    rnd_states = mol_name + "_states.tek"     # Name of the rendered file
+    rnd_states = mol_name + "_states.tex"     # Name of the rendered file
 
     print("{:140}".format("\nCreating the states list %s file ... " % rnd_states), end="")
   
@@ -465,7 +492,7 @@ for mol_name in mol_inp_list:
      # Rendering the jinja template for the states list
 
     tpl_coupling = config["jinja_templates"]["coupling_list"] # Name of the template file
-    rnd_coupling = mol_name + "_soc.tek"          # Name of the rendered file
+    rnd_coupling = mol_name + "_soc.tex"          # Name of the rendered file
 
     print("{:140}".format("\nCreating the coupling list %s file ... " % rnd_coupling), end="")
   
@@ -504,7 +531,7 @@ for mol_name in mol_inp_list:
      # Rendering the jinja template for the states list
 
     tpl_momdip = config["jinja_templates"]["momdip_list"]      # Name of the template file
-    rnd_momdip = mol_name + "_momdip.tek"          # Name of the rendered file
+    rnd_momdip = mol_name + "_momdip.tex"          # Name of the rendered file
 
     print("{:140}".format("\nCreating the momdip list %s file ... " % rnd_momdip), end="")
   
@@ -552,34 +579,77 @@ for mol_name in mol_inp_list:
       # Evolution of the states population over time
       # =========================================================      
 
-      pop_script = os.path.join(code_dir,config["gnuplot_scripts"]["population"])
       pop_graph = mol_name + "_" + projector["target"] + "_pop.tex"
       print("{:139}".format("    Creating the graph presenting the evolution of the states population over time (%s) ... " % pop_graph), end="")
 
       # Count the number of lines in the population file
+
       with open(projector["pop_zero"]) as f:
           for i, l in enumerate(f):
               pass
       nb_lines = i + 1
 
+      # Go straight to the last line of the populations file (see https://stackoverflow.com/questions/46258499/read-the-last-line-of-a-file-in-python for reference)
+
+      with open(projector["pop_zero"], 'rb') as f:
+        f.seek(-2, os.SEEK_END)
+        while f.read(1) != b'\n':
+            f.seek(-2, os.SEEK_CUR)
+        last_line = f.readline().decode()
+
+      # Extract the exponent from the time scale
+
+      last_time = [value for value in last_line.split(' ') if value != ''][0]       # Get the first value of the last line, which corresponds to the last data point for time
+      conversion = float(last_time) * time_conv                                     # Convert from u.a. to seconds
+      exponent = re.split(r'[Ee]', str(conversion))[1]                              # Get the exponent only from the scientific notation
+
+      # Rendering the jinja template for the gnuplot script
+
+      tpl_pop = config["jinja_templates"]["pop_gnuplot"]      # Name of the template file
+      pop_script = "pop.plt"                                  # Name of the rendered file
+  
+      render_vars = {
+          "input_file" : projector["pop_zero"],
+          "output_file" : pop_graph,
+          "nb_lines" : nb_lines,
+          "nb_points" : nb_points,
+          "exponent" : exponent,
+          "states_list" : states_list,
+          "time_conv" : time_conv
+          }
+
+      rendered_file_path = os.path.join(out_dir, pop_script)
+      with open(rendered_file_path, "w", encoding='utf-8') as result_file:
+        result_file.write(jinja_render(path_tpl_dir, tpl_pop, render_vars))
+
+      created_files.append(pop_script)
+
+      # Executing the newly created gnuplot script
+
       os.chdir(out_dir)
-      command = "gnuplot -c {} {} {} {} {} {}".format(pop_script,projector["pop_zero"],pop_graph,nb_lines,nb_points,len(states_list))
+      command = "gnuplot " + pop_script
       retcode = os.system(command)
       if retcode != 0 :
-        raise errors.ResultsError ("ERROR: The %s gnuplot script encountered an issue" % pop_script)
+        raise errors.ResultsError ("ERROR: The %s gnuplot script rendered through the %s jinja template encountered an issue" % (pop_script,tpl_pop))
 
       created_files.append(pop_graph)
 
       print('%12s' % "[ DONE ]")
 
+      # Removing the newly created gnuplot script since it has done its job
+
+      os.remove(os.path.join(out_dir, pop_script))
+      created_files.remove(pop_script)
+
 
   except errors.ResultsError as error:
     print("\n",error)
-    print("Removing the files that have been created so far ...")
-    for filename in created_files:
-      os.remove(os.path.join(out_dir,filename))
-      print("    Removing %s file" % filename)
-    print("[ DONE ]")
+    if created_files != []:
+      print("Removing the files that have been created so far ...")
+      for filename in created_files:
+        os.remove(os.path.join(out_dir,filename))
+        print("    Removing %s file" % filename)
+      print("[ DONE ]")
     print("Skipping %s molecule" % mol_name)
     continue
 
