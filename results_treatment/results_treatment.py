@@ -526,7 +526,7 @@ for mol_name in mol_inp_list:
     for momdip in momdip_list:
       momdip['State 1'] = states_list[int(momdip['State 1'])]["Label"]
       momdip['State 2'] = states_list[int(momdip['State 2'])]["Label"]
-      momdip['Dipole (a.u.)'] = float(momdip['Dipole (a.u.)'])
+      momdip['Dipole (a.u.)'] = "{:e}".format(float(momdip['Dipole (a.u.)']))
 
      # Rendering the jinja template for the states list
 
