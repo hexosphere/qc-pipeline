@@ -6,7 +6,8 @@
 ##                               This script scans one or more molecule folders containing all the information                                ##
 ##                    obtained through CHAINS, ORCA, QCHEM and QOCT-RA and generates the corresponding tables and graphs.                     ##
 ##                                                                                                                                            ##
-##   /!\ In order to run, this script requires Python 3.5+ as well as YAML and Jinja2. Ask your cluster(s) administrator(s) if needed. /!\    ##
+##                    /!\ In order to run, this script requires Python 3.5+ as well as YAML, Jinja2 and GNUplot 5+. /!\                       ##
+##                                          /!\ Ask your cluster(s) administrator(s) if needed. /!\                                           ##
 ################################################################################################################################################
 
 import argparse
@@ -18,7 +19,7 @@ import shutil
 import sys
 from inspect import getsourcefile
 
-import jinja2  # Only needed in the renderer subscript, it is loaded here to check if your python installation does support jinja2
+import jinja2 
 import yaml
 
 import errors
@@ -120,14 +121,6 @@ config_file = args.config                # YAML configuration file
 
 columns, rows = shutil.get_terminal_size()
 
-# Create a list to keep track of the files we've been creating
-
-created_files = [] 
-
-# Conversion factor for the time data given by QOCT-RA
-
-time_conv = 2.4188843265857e-17
-
 # Output Header
 
 print("".center(columns,"*"))
@@ -191,6 +184,8 @@ for filename in config["gnuplot_scripts"].values():
 
 quality_treshold = float(config["other"]["quality_treshold"])
 nb_points = int(config["other"]["nb_points"])
+created_files = []                                               # Create a list to keep track of the files we've been creating (in order to remove them more easily if a problem occurs)
+time_conv = 2.4188843265857e-17                                  # Conversion factor for the time data given by QOCT-RA
 
 # =========================================================
 # Check molecule folder(s)
@@ -253,33 +248,33 @@ for mol_name in mol_inp_list:
     # Optimized geometry
 
     orca_dir = os.path.join(mol_dir, mol_config['results']['orca']['folder_name'])
-    opt_geom_file = errors.check_abspath(os.path.join(orca_dir, mol_name + ".xyz"),"Optimized geometry file","file",False)
+    opt_geom_file = errors.check_abspath(os.path.join(orca_dir, mol_name + ".xyz"),"Optimized geometry file","file",True)
 
     # Data extracted from the qchem output by control_launcher and the diagonalization of the MIME
 
     qoctra_dir = os.path.join(mol_dir, mol_config['results']['qoctra']['folder_name'])
-    data_dir = errors.check_abspath(os.path.join(qoctra_dir, "data"),"Data folder created by control_launcher.py","folder",False)
+    data_dir = errors.check_abspath(os.path.join(qoctra_dir, "data"),"Data folder created by control_launcher.py","folder",True)
 
     states_file = "states.csv"
-    states_file = errors.check_abspath(os.path.join(data_dir, states_file),"List of excited states","file",False)
+    states_file = errors.check_abspath(os.path.join(data_dir, states_file),"List of excited states","file",True)
 
     coupling_file = "coupling_list.csv"
-    coupling_file = errors.check_abspath(os.path.join(data_dir, coupling_file),"List of spin-orbit couplings (cm-1)","file",False)
+    coupling_file = errors.check_abspath(os.path.join(data_dir, coupling_file),"List of spin-orbit couplings (cm-1)","file",True)
 
     momdip_file = "momdip_list.csv"
-    momdip_file = errors.check_abspath(os.path.join(data_dir, momdip_file),"List of transition dipole moments (in atomic units)","file",False)
+    momdip_file = errors.check_abspath(os.path.join(data_dir, momdip_file),"List of transition dipole moments (in atomic units)","file",True)
 
     mime_file = mol_config['qoctra']['created_files']['mime_file']
-    mime_file = errors.check_abspath(os.path.join(data_dir, mime_file),"MIME file","file",False)
+    mime_file = errors.check_abspath(os.path.join(data_dir, mime_file),"MIME file","file",True)
 
     momdip_0 = mol_config['qoctra']['created_files']['momdip_zero']
-    momdip_0 = errors.check_abspath(os.path.join(data_dir, momdip_0),"Transition dipole moments matrix (in atomic units)","file",False)
+    momdip_0 = errors.check_abspath(os.path.join(data_dir, momdip_0),"Transition dipole moments matrix (in atomic units)","file",True)
 
     mat_et0 = mol_config['qoctra']['created_files']['mat_et0']
-    mat_et0 = errors.check_abspath(os.path.join(data_dir, mat_et0),"Eigenvectors matrix (mat_et0)","file",False)
+    mat_et0 = errors.check_abspath(os.path.join(data_dir, mat_et0),"Eigenvectors matrix (mat_et0)","file",True)
 
     energies_file = mol_config['qoctra']['created_files']['energies_file']
-    energies_file = errors.check_abspath(os.path.join(data_dir, energies_file + "_cm-1"),"List of eigenstates energies in cm-1 (eigenvalues from the diagonalization of the MIME)","file",False)
+    energies_file = errors.check_abspath(os.path.join(data_dir, energies_file + "_cm-1"),"List of eigenstates energies in cm-1 (eigenvalues from the diagonalization of the MIME)","file",True)
 
     # Projectors files and folders
 
@@ -311,7 +306,7 @@ for mol_name in mol_inp_list:
       # Get the path to the iterations file and its content
 
       iter_file = os.path.join(proj_path,mol_config['results']['qoctra']['fidelity'])
-      iter_file = errors.check_abspath(iter_file,"Fidelity file for the %s of %s" % (proj_dir,mol_name),"file",False)
+      iter_file = errors.check_abspath(iter_file,"Fidelity file for the %s of %s" % (proj_dir,mol_name),"file",True)
       proj_dict["iter_file"] = iter_file
 
       # Replace all occurrences of D by E (from Fortran's float format to Python's)
@@ -327,60 +322,57 @@ for mol_name in mol_inp_list:
             f.seek(-2, os.SEEK_CUR)
         last_line = f.readline().decode()
 
-      # print (last_line)
-      # # Define how the lines of the iterations file must look like, here it is for example "    300     2  2sec |Proba_moy  0.000000E+00 |Fidelity(U)  0.000000E+00 |Chp  0.123802E+00 -0.119953E+00 |Aire  0.140871E-03 |Fluence  0.530022E+01 |Recou(i)  0.000000E+00 |Tr_dist(i) -0.500000E+00 |Tr(rho)(i)  0.100000E+01 |Tr(rho^2)(i)  0.100000E+01 |Projector  0.479527E-13"
-      # template_iter_file = re.compile(r"^\s+(?P<niter>\d+)\s+\d+\s+\d+sec\s|Proba_moy\s+\d.\d+E[+-]\d+\s|Fidelity\(U\)\s+\d.\d+E[+-]\d+\s|Chp\s+\d.\d+E[+-]\d+\s-*\d.\d+E[+-]\d+\s|Aire\s+\d.\d+E[+-]\d+\s|Fluence\s+\d.\d+E[+-]\d+\s|Recou\(i\)\s+\d.\d+E[+-]\d+\s|Tr_dist\(i\)\s+-*\d.\d+E[+-]\d+\s|Tr\(rho\)\(i\)\s+\d.\d+E[+-]\d+\s|Tr\(rho\^2\)\(i\)\s+\d.\d+E[+-]\d+\s|Projector\s+(?P<projector>\d.\d+E[+-]\d+)\s+")
-
-      # # Get the number of iterations and the last fidelity from the last line
-      # content = template_iter_file.match(last_line)
-      # if content is not None:
-      #   proj_dict["niter"] = content.group("niter")
-      #   proj_dict["fidelity"] = content.group("projector")
-      #   print (content.group("projector"))
-      #   print (content.group("niter"))
-      # else:
-      #   raise errors.ResultsError ("ERROR: Unable to get information from the last line of %s" % iter_file) 
+      # Define how the lines of the iterations file must look like, here it is for example "    300     2  2sec |Proba_moy  0.000000E+00 |Fidelity(U)  0.000000E+00 |Chp  0.123802E+00 -0.119953E+00 |Aire  0.140871E-03 |Fluence  0.530022E+01 |Recou(i)  0.000000E+00 |Tr_dist(i) -0.500000E+00 |Tr(rho)(i)  0.100000E+01 |Tr(rho^2)(i)  0.100000E+01 |Projector  0.479527E-13"
+      template_iter_file = re.compile(r"^\s+(?P<niter>\d+)\s+\d+\s+\d+sec\s\|Proba_moy\s+\d.\d+E[+-]\d+\s\|Fidelity\(U\)\s+\d.\d+E[+-]\d+\s\|Chp\s+\d.\d+E[+-]\d+\s+-?\d.\d+E[+-]\d+\s\|Aire\s+\d.\d+E[+-]\d+\s\|Fluence\s+\d.\d+E[+-]\d+\s\|Recou\(i\)\s+\d.\d+E[+-]\d+\s\|Tr_dist\(i\)\s+-*\d.\d+E[+-]\d+\s\|Tr\(rho\)\(i\)\s+\d.\d+E[+-]\d+\s\|Tr\(rho\^2\)\(i\)\s+\d.\d+E[+-]\d+\s\|Projector\s+(?P<projector>\d.\d+E[+-]\d+)")
 
       # Get the number of iterations and the last fidelity from the last line
+      content = template_iter_file.match(last_line)
+      if content is not None:
+        proj_dict["niter"] = content.group("niter")
+        proj_dict["fidelity"] = content.group("projector")
+      else:
+        raise errors.ResultsError ("ERROR: Unable to get information from the last line of %s" % iter_file) 
 
-      splitted = [value for value in last_line.split(' ') if value != '']
-      proj_dict["niter"] = int(splitted[0])
-      proj_dict["fidelity"] = float(splitted[-1])
+      # # Get the number of iterations and the last fidelity from the last line
+
+      # splitted = [value for value in last_line.split(' ') if value != '']
+      # proj_dict["niter"] = int(splitted[0])
+      # proj_dict["fidelity"] = float(splitted[-1])
 
       # Pulse folder
 
       pulse_dir = os.path.join(proj_path,mol_config['results']['qoctra']['pulse_folder']['folder_name'])
-      pulse_dir = errors.check_abspath(pulse_dir,"Folder containing the pulses for the %s of %s" % (proj_dir,mol_name),"folder",False)
+      pulse_dir = errors.check_abspath(pulse_dir,"Folder containing the pulses for the %s of %s" % (proj_dir,mol_name),"folder",True)
       proj_dict["pulse_dir"] = pulse_dir
 
       guess_pulse = mol_config['results']['qoctra']['pulse_folder']['guess_pulse']
-      guess_pulse = errors.check_abspath(os.path.join(pulse_dir, guess_pulse),"Guess pulse file for the %s of %s" % (proj_dir,mol_name),"file",False)
+      guess_pulse = errors.check_abspath(os.path.join(pulse_dir, guess_pulse),"Guess pulse file for the %s of %s" % (proj_dir,mol_name),"file",True)
       proj_dict["guess_pulse"] = guess_pulse
 
       guess_pulse_param = mol_config['results']['qoctra']['pulse_folder']['guess_pulse_param']
-      guess_pulse_param = errors.check_abspath(os.path.join(pulse_dir, guess_pulse_param),"Guess pulse parameters file for the %s of %s" % (proj_dir,mol_name),"file",False)
+      guess_pulse_param = errors.check_abspath(os.path.join(pulse_dir, guess_pulse_param),"Guess pulse parameters file for the %s of %s" % (proj_dir,mol_name),"file",True)
       proj_dict["guess_pulse_param"] = guess_pulse_param
 
       final_pulse = mol_config['results']['qoctra']['pulse_folder']['final_pulse']
-      final_pulse = errors.check_abspath(os.path.join(pulse_dir, final_pulse),"Final pulse file for the %s of %s" % (proj_dir,mol_name),"file",False)
+      final_pulse = errors.check_abspath(os.path.join(pulse_dir, final_pulse),"Final pulse file for the %s of %s" % (proj_dir,mol_name),"file",True)
       proj_dict["final_pulse"] = final_pulse
 
       final_pulse_param = mol_config['results']['qoctra']['pulse_folder']['final_pulse_param']
-      final_pulse_param = errors.check_abspath(os.path.join(pulse_dir, final_pulse_param),"Final pulse parameters file for the %s of %s" % (proj_dir,mol_name),"file",False)
+      final_pulse_param = errors.check_abspath(os.path.join(pulse_dir, final_pulse_param),"Final pulse parameters file for the %s of %s" % (proj_dir,mol_name),"file",True)
       proj_dict["final_pulse_param"] = final_pulse_param
 
       final_pulse_heat = mol_config['results']['qoctra']['pulse_folder']['final_pulse_heat']
-      final_pulse_heat = errors.check_abspath(os.path.join(pulse_dir, final_pulse_heat),"Final pulse pixel heat file for the %s of %s" % (proj_dir,mol_name),"file",False)
+      final_pulse_heat = errors.check_abspath(os.path.join(pulse_dir, final_pulse_heat),"Final pulse pixel heat file for the %s of %s" % (proj_dir,mol_name),"file",True)
       proj_dict["final_pulse_heat"] = final_pulse_heat
 
       # Post-control with pulse (PCP) folder
 
       pcp_dir = os.path.join(proj_path,mol_config['results']['qoctra']['pcp_folder']['folder_name'])
-      pcp_dir = errors.check_abspath(pcp_dir,"Folder containing the PCP populations for the %s of %s" % (proj_dir,mol_name),"folder",False)
+      pcp_dir = errors.check_abspath(pcp_dir,"Folder containing the PCP populations for the %s of %s" % (proj_dir,mol_name),"folder",True)
       proj_dict["pcp_dir"] = pcp_dir
 
       pop_zero = mol_config['results']['qoctra']['pcp_folder']['pop_zero']
-      pop_zero = errors.check_abspath(os.path.join(pcp_dir, pop_zero),"PCP population file for the %s of %s" % (proj_dir,mol_name),"file",False)
+      pop_zero = errors.check_abspath(os.path.join(pcp_dir, pop_zero),"PCP population file for the %s of %s" % (proj_dir,mol_name),"file",True)
       proj_dict["pop_zero"] = pop_zero
 
       # Save the dictionary to the proj_info list
@@ -583,7 +575,7 @@ for mol_name in mol_inp_list:
       print("{:139}".format("    Creating the graph presenting the evolution of the states population over time (%s) ... " % pop_graph), end="")
 
       # Count the number of lines in the population file
-
+      #TODO: Use wccount (https://stackoverflow.com/questions/845058/how-to-get-line-count-of-a-large-file-cheaply-in-python/850962#850962)
       with open(projector["pop_zero"]) as f:
           for i, l in enumerate(f):
               pass
@@ -599,6 +591,7 @@ for mol_name in mol_inp_list:
 
       # Extract the exponent from the time scale
 
+      #TODO: Do it with a regex
       last_time = [value for value in last_line.split(' ') if value != ''][0]       # Get the first value of the last line, which corresponds to the last data point for time
       conversion = float(last_time) * time_conv                                     # Convert from u.a. to seconds
       exponent = re.split(r'[Ee]', str(conversion))[1]                              # Get the exponent only from the scientific notation

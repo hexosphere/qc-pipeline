@@ -73,6 +73,7 @@ optional = parser.add_argument_group('Optional arguments')
 optional.add_argument('-h','--help',action='help',default=argparse.SUPPRESS,help='Show this help message and exit')
 optional.add_argument("-ow","--overwrite",action="store_true",help="Overwrite files if they already exists")
 optional.add_argument('-cl', '--clusters', type=str, help="Path to the YAML clusters file, default is abin_launcher/clusters.yml")
+optional.add_argument("-d","--dry_run",action="store_true",help="Do not launch the jobs, just create the files.")
 
 args = parser.parse_args()
 
@@ -84,6 +85,7 @@ config_file = args.config                # Main configuration file
 
 overwrite = args.overwrite               # Flag for overwriting the files
 clusters_file = args.clusters            # YAML file containing all informations about the clusters
+dry_run = args.dry_run                   # Flag to not launch the jobs and just create the files
 
 # Other important variable
 
@@ -134,16 +136,16 @@ print ("{:<40} {:<100}".format('\nCodes directory:',code_dir))
 # Check arguments
 # =========================================================
 
-source = errors.check_abspath(source,"file")
+source = errors.check_abspath(source,"Command line argument -i / --source","file")
 print ("{:<40} {:<100}".format('\nSource file:',source))
 
-out_dir = errors.check_abspath(out_dir,"folder")
+out_dir = errors.check_abspath(out_dir,"Command line argument -o / --out_dir","folder")
 print ("{:<40} {:<100}".format('\nJobs main directory:',out_dir))
 
-config_file = errors.check_abspath(config_file,"file")
+config_file = errors.check_abspath(config_file,"Command line argument -cf / --config","file")
 
 if clusters_file: 
-  clusters_file = errors.check_abspath(clusters_file,"file")
+  clusters_file = errors.check_abspath(clusters_file,"Command line argument -cl / --clusters","file")
 else:
   # If no value has been provided through the command line, take the clusters.yml file in the abin_launcher directory of CHAINS
   chains_dir = os.path.dirname(code_dir) 
@@ -193,7 +195,7 @@ path_tpl_dir = os.path.join(code_dir,"Templates")
 
 for filename in clusters_cfg[cluster_name]['progs'][prog]['jinja']['templates'].values():
   # Check if all the files specified in the clusters YAML file exists in the Templates folder of control_launcher.
-  errors.check_abspath(os.path.join(path_tpl_dir,filename),"file")
+  errors.check_abspath(os.path.join(path_tpl_dir,filename),"Jinja template","file")
 
 # =========================================================
 # Establishing the different job scales
@@ -822,15 +824,16 @@ for target in targets_list:
     print('%12s' % "[ DONE ]")
     
     # Launch the job
-    print("{:<80}".format("    Launching the job ..."), end="")
-    os.chdir(job_dir)
-    launch_command = clusters_cfg[cluster_name]['subcommand'] + " " + rnd_manifest
-    retcode = os.system(launch_command)
-    if retcode != 0 :
-      print("ALERT: Job submit encountered an issue")
-      print("Aborting ...")
-      exit(1)
-    print('%12s' % "[ DONE ]")
+    if not dry_run:
+      print("{:<80}".format("    Launching the job ..."), end="")
+      os.chdir(job_dir)
+      launch_command = clusters_cfg[cluster_name]['subcommand'] + " " + rnd_manifest
+      retcode = os.system(launch_command)
+      if retcode != 0 :
+        print("ALERT: Job submit encountered an issue")
+        print("Aborting ...")
+        exit(1)
+      print('%12s' % "[ DONE ]")
     
 print("")
 print("".center(columns,"*"))

@@ -35,16 +35,21 @@ class ControlError(Error):
 # ===================================================================
 # ===================================================================
 
-def check_abspath(path,type="either"):
+def check_abspath(path:str,context:str,type="either",SkipError=False):
     """Checks if a path towards a file or folder exists and makes sure it's absolute.
 
     Parameters
     ----------
     path : str
         The path towards the file or directory you want to test
+    context : str
+        Message to show on screen to give more information in case of an exception (e.g. the role of the folder or file that was checked, where the checked path was given, etc.)
     type : str (optional)
         The type of element for which you would like to test the path (file, folder or either)
         By default, checks if the path leads to either a file or a folder (type = either)
+    SkipError : bool (optional)
+        By default, ControlError exceptions will be caught and will cause the function to exit the script.
+        Specify True to skip the error treatment and simply raise the exception.
     
     Returns
     -------
@@ -52,26 +57,29 @@ def check_abspath(path,type="either"):
         Normalized absolutized version of the path
     """
 
-    if type not in ["file","folder","either"]:
-      # Not in try/except structure because the full error message will be need in this case
-      raise ControlError ("The specified type for which the check_abspath function has been called is not one of 'file', 'folder' or 'either'")
-
     # For more informations on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
     try:
+      if type not in ["file","folder","either"]:
+        raise ValueError ("The specified type for which the check_abspath function has been called is not one of 'file', 'folder' or 'either'")
       if not os.path.exists(path):
-        raise ControlError ("ERROR: The argument %s does not seem to exist." % path)
+        raise ControlError ("ERROR: %s does not seem to exist." % path)
       elif type == "file":
         if not os.path.isfile(path):
-          raise ControlError ("ERROR: The argument %s is not a file" % path)
+          raise ControlError ("ERROR: %s is not a file" % path)
       elif type == "folder":
         if not os.path.isdir(path):
-          raise ControlError ("ERROR: The argument %s is not a directory" % path)
+          raise ControlError ("ERROR: %s is not a directory" % path)
       elif type == "either":
         if not os.path.isdir(path) and not os.path.isfile(path):
-          raise ControlError ("ERROR: The argument %s is neither a file nor a directory" % path)
+          raise ControlError ("ERROR: %s is neither a file nor a directory" % path)
     except ControlError as error:
-      print(error)
-      exit(1)
+        print("Something went wrong when checking the path ", path)
+        print("Context: ",context)
+        if not SkipError:
+          print(error)
+          exit(1)
+        else:
+          raise
 
     # If everything went well, get the normalized absolutized version of the path
     abspath = os.path.abspath(path)

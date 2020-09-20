@@ -35,7 +35,7 @@ class ResultsError(Error):
 # ===================================================================
 # ===================================================================
 
-def check_abspath(path:str,context:str,type="either",catch=True):
+def check_abspath(path:str,context:str,type="either",SkipError=False):
     """Checks if a path towards a file or folder exists and makes sure it's absolute.
 
     Parameters
@@ -47,9 +47,9 @@ def check_abspath(path:str,context:str,type="either",catch=True):
     type : str (optional)
         The type of element for which you would like to test the path (file, folder or either)
         By default, checks if the path leads to either a file or a folder (type = either)
-    catch : bool (optional)
+    SkipError : bool (optional)
         By default, ResultsError exceptions will be caught and will cause the function to exit the script.
-        Specify False to turn off and simply raise the exception.
+        Specify True to skip the error treatment and simply raise the exception.
     
     Returns
     -------
@@ -75,7 +75,7 @@ def check_abspath(path:str,context:str,type="either",catch=True):
     except ResultsError as error:
         print("Something went wrong when checking the path ", path)
         print("Context: ",context)
-        if catch:
+        if not SkipError:
           print(error)
           exit(1)
         else:

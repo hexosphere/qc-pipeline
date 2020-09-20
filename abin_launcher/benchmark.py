@@ -9,7 +9,6 @@
 
 import argparse
 import csv
-import datetime
 import fileinput
 import os
 import shutil
@@ -167,14 +166,6 @@ with open(csv_tmp, 'r', newline='') as inputfile:
   print("    Detected CSV dialect in tmp file: {}".format(dialect))
   print("    Detected CSV header in tmp file : {}".format(csv_tmp_header))
 
-# Rename the tmp file with the time_stamp to preserve it if needed (if keep has not been set)
-
-if not keep:
-  current_date = datetime.datetime.today().strftime('_%Y-%m-%d_%H-%M-%S')
-  new_name = os.path.splitext(csv_tmp)[0] + str(current_date) + os.path.splitext(csv_tmp)[1]
-  os.rename(csv_tmp,new_name)
-  print("    CSV tmp file has been renamed to {}".format(new_name))
-
 # ===================================================================
 # ===================================================================
 #                         GETTING THE VALUES
@@ -271,7 +262,6 @@ for line in tmp_list:
     # Add informations to our final CSV
 
     final_list.append(line)
-    tmp_list.remove(line)
 
   except Exception as error:
     print(error)

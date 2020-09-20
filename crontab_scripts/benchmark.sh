@@ -9,6 +9,9 @@
 PROGRAM = $1
 CLUSTER_NAME = $2
 
+# Define the timestamp
+timestamp=$(date +"%Y%m%d_%H%M%S")
+
 # Pretty print for log messages
 log_msg () {
   echo -e "$(date +"%Y-%m-%d %T")\t$1"
@@ -33,14 +36,14 @@ if [ ! -f "${WATCH_FILE}" ]; then
 # Otherwise execute benchmark.py
 else
 
-  # Archive the original tmp file (it will be renamed by benchmark.py)
+  # Archive the original tmp file
   mkdir -p ${ARCHIVE}
-  mv ${WATCH_FILE} ${ARCHIVE}/
+  mv ${WATCH_FILE} ${ARCHIVE}/${WATCH_FILE%.*}_$(timestamp).csv
 
   # Execute benchmark.py
   mkdir -p ${BENCH_LOGS}
   source ${CECIHOME}/CHAINS/load_modules.sh
-  python ${CECIHOME}/CHAINS/abin_launcher/benchmark.py --tmp ${ARCHIVE}/benchmark_${PROGRAM}_${CLUSTER_NAME}_tmp.csv --final benchmark_${PROGRAM}_${CLUSTER_NAME}.csv > ${BENCH_LOGS}/${PROGRAM}_${CLUSTER_NAME}_$(date +"%Y%m%d_%H%M%S").log
+  python ${CECIHOME}/CHAINS/abin_launcher/benchmark.py --tmp ${ARCHIVE}/${WATCH_FILE%.*}_$(timestamp).csv --final benchmark_${PROGRAM}_${CLUSTER_NAME}.csv > ${BENCH_LOGS}/${PROGRAM}_${CLUSTER_NAME}_$(timestamp).log
 
   log_msg "INFO - Processed new lines in ${WATCH_FILE}"
 

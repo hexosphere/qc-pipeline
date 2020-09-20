@@ -51,6 +51,7 @@ optional.add_argument("-ow","--overwrite",action="store_true",help="Overwrite fi
 optional.add_argument('--max', type=int, help="Maximum number of molecule or configuration files that will be treated.")
 optional.add_argument("-km","--keep_mol",action="store_true",help="Do not archive launched molecule files and leave them where they are")
 optional.add_argument("-kc","--keep_cf",action="store_true",help="Do not archive launched configuration files and leave them where they are")
+optional.add_argument("-d","--dry_run",action="store_true",help="Do not launch the jobs, just create the files.")
 
 args = parser.parse_args()
 
@@ -66,6 +67,7 @@ overwrite = args.overwrite               # Flag for overwriting the files
 max = args.max                           # Maximum number of molecule or configuration files that will be treated
 keep_mol = args.keep_mol                 # Flag for keeping the molecule files where they are
 keep_cf = args.keep_cf                   # Flag for keeping the configuration files where they are
+dry_run = args.dry_run                   # Flag to not launch the jobs and just create the files
 
 # Other important variables that could become arguments if the need arises
 
@@ -113,11 +115,11 @@ print ("{:<40} {:<100}".format('\nCodes directory:',code_dir))
 # Check arguments
 # =========================================================
 
-out_dir = errors.check_abspath(out_dir,"folder")
+out_dir = errors.check_abspath(out_dir,"Command line argument -o / --out_dir","folder")
 print ("{:<40} {:<100}".format('\nJobs main directory:',out_dir))
 
 if clusters_file: 
-  clusters_file = errors.check_abspath(clusters_file,"file")
+  clusters_file = errors.check_abspath(clusters_file,"Command line argument -cl / --clusters","file")
 else:
   # If no value has been provided through the command line, take the clusters.yml file in the same directory as this script 
   clusters_file = os.path.join(code_dir,"clusters.yml")
@@ -130,7 +132,7 @@ if max != None and max <= 0:
 # Check molecule file(s)
 # =========================================================
 
-mol_inp = errors.check_abspath(mol_inp)
+mol_inp = errors.check_abspath(mol_inp,"Command line argument -m / --mol_inp")
 
 if os.path.isdir(mol_inp):
   # If the argument mol_inp is a folder, we need to look for every molecule file with the given format in that folder.
@@ -161,7 +163,7 @@ else:
 # Check config file(s)
 # =========================================================
 
-config_inp = errors.check_abspath(config_inp)
+config_inp = errors.check_abspath(config_inp,"Command line argument -cf / --config")
 
 if os.path.isdir(config_inp):
   # If the argument config_inp is a folder, we need to look for every YAML configuration file in that folder.
@@ -251,7 +253,7 @@ path_tpl_dir = os.path.join(code_dir,"Templates")
 
 for filename in clusters_cfg[cluster_name]['progs'][prog]['jinja']['templates'].values():
   # Check if all the files specified in the clusters YAML file exists in the Templates folder of abin_launcher.
-  errors.check_abspath(os.path.join(path_tpl_dir,filename),"file")
+  errors.check_abspath(os.path.join(path_tpl_dir,filename),"Jinja template","file")
 
 # =========================================================
 # Establishing the different job scales
@@ -438,14 +440,6 @@ for mol_filename in mol_inp_list:
       config_name = str(config_filename.split('.')[0])
       print("{:<80}".format("\nTreating %s molecule with '%s' configuration ..." % (mol_name, config_name)), end="")
       
-      # Check if a folder already exists for that molecule - config combination
-      if os.path.exists(os.path.join(out_dir,mol_name + "_" + config_name)) and not overwrite:
-        print("\nERROR: A folder for the %s molecule with the '%s' configuration already exists in %s !" % (mol_name, config_name, out_dir))
-        print("Skipping this configuration")
-        keep_mol = True                                 # Flag to notify that a problem has occurred and to not archive the molecule file
-        problem_cf.append(config_filename)              # Add the name of this configuration file to the list as to not archive it
-        continue
-
       # Create an output log file for each molecule - config combination, using the mol_log file as a basis
       log_name = mol_name + "_" + config_name + ".log"
       shutil.copy(os.path.join(out_dir,mol_log_name),os.path.join(out_dir,log_name))
@@ -454,6 +448,10 @@ for mol_filename in mol_inp_list:
       # Redirect standard output to the log file (see https://stackabuse.com/writing-to-a-file-with-pythons-print-function/ for reference)
       sys.stdout = log
       
+      # Check if a folder already exists for that molecule - config combination
+      if os.path.exists(os.path.join(out_dir,mol_name + "_" + config_name)) and not overwrite:
+        raise errors.AbinError ("ERROR: A folder for the %s molecule with the '%s' configuration already exists in %s !" % (mol_name, config_name, out_dir))
+
       # =========================================================
       # Rendering the needed input files
       # =========================================================
@@ -543,18 +541,19 @@ for mol_filename in mol_inp_list:
 
       # Launch the job
       
-      print("\nLaunching the job ...")
-      os.chdir(job_dir)
-      subcommand = clusters_cfg[cluster_name]['subcommand']
-      delay_command = str(jobscale["delay_command"] or '')
-      manifest = clusters_cfg[cluster_name]['progs'][prog]['jinja']['renders']['job_manifest']
-      launch_command = subcommand + " " + delay_command + " " + manifest
-      retcode = os.system(launch_command)
-      if retcode != 0 :
-        sys.stdout = original_stdout                          # Reset the standard output to its original value
-        print("Job submit encountered an issue")
-        print("Aborting ...")
-        exit(5)
+      if not dry_run:
+        print("\nLaunching the job ...")
+        os.chdir(job_dir)
+        subcommand = clusters_cfg[cluster_name]['subcommand']
+        delay_command = str(jobscale["delay_command"] or '')
+        manifest = clusters_cfg[cluster_name]['progs'][prog]['jinja']['renders']['job_manifest']
+        launch_command = subcommand + " " + delay_command + " " + manifest
+        retcode = os.system(launch_command)
+        if retcode != 0 :
+          sys.stdout = original_stdout                          # Reset the standard output to its original value
+          print("Job submit encountered an issue")
+          print("Aborting ...")
+          exit(5)
       
       # End of treatment for that particular molecule - config combination
 
