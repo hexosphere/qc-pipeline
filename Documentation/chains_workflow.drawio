@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2020-09-22T16:12:33.489Z" agent="5.0 (Windows)" etag="XcjiLnVWY44_DND59nWb" version="13.7.4" type="github">
+<mxfile host="app.diagrams.net" modified="2020-09-22T16:17:36.944Z" agent="5.0 (Windows)" etag="IrBGE04TgFo1_mMYa8vk" version="13.7.4" type="github">
   <diagram name="Page-1" id="5f0bae14-7c28-e335-631c-24af17079c00">
     <mxGraphModel dx="2062" dy="1311" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="1200" background="#ffffff" math="0" shadow="0">
       <root>
@@ -114,8 +114,8 @@
         <mxCell id="rE8TUq6kTED-Fyb9pCzD-32" value="Automates all the connections between steps" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;sketch=1;" parent="1" vertex="1">
           <mxGeometry x="657" y="457" width="165" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="rE8TUq6kTED-Fyb9pCzD-48" value="First Step: ORCA" style="swimlane;fontSize=18;sketch=1;" parent="1" vertex="1">
-          <mxGeometry x="222" y="200" width="270" height="280" as="geometry" />
+        <mxCell id="rE8TUq6kTED-Fyb9pCzD-48" value="First Job (through ORCA)" style="swimlane;fontSize=18;sketch=1;" parent="1" vertex="1">
+          <mxGeometry x="210" y="200" width="282" height="280" as="geometry" />
         </mxCell>
         <mxCell id="rE8TUq6kTED-Fyb9pCzD-43" value="Geometry Optimization&lt;br&gt;(DFT B3LYP/def2-TZVP)" style="ellipse;whiteSpace=wrap;html=1;align=center;newEdgeStyle={&quot;edgeStyle&quot;:&quot;entityRelationEdgeStyle&quot;,&quot;startArrow&quot;:&quot;none&quot;,&quot;endArrow&quot;:&quot;none&quot;,&quot;segment&quot;:10,&quot;curved&quot;:1};treeFolding=1;treeMoving=1;sketch=1;" parent="rE8TUq6kTED-Fyb9pCzD-48" vertex="1">
           <mxGeometry x="38.75" y="62" width="192.5" height="78" as="geometry" />
@@ -143,8 +143,8 @@
             <mxPoint x="1050" y="390" as="sourcePoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rE8TUq6kTED-Fyb9pCzD-69" value="Third Step: QOCT-RA" style="swimlane;fontSize=18;sketch=1;" parent="1" vertex="1">
-          <mxGeometry x="222" y="757" width="270" height="280" as="geometry" />
+        <mxCell id="rE8TUq6kTED-Fyb9pCzD-69" value="Third Job (through  QOCT-RA)" style="swimlane;fontSize=18;sketch=1;" parent="1" vertex="1">
+          <mxGeometry x="210" y="757" width="282" height="280" as="geometry" />
         </mxCell>
         <mxCell id="rE8TUq6kTED-Fyb9pCzD-70" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;fontSize=18;fillColor=#ffe6cc;strokeColor=#d79b00;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;sketch=1;" parent="rE8TUq6kTED-Fyb9pCzD-69" source="rE8TUq6kTED-Fyb9pCzD-71" target="LPeQ8OQHkjZ68hT7cEdK-25" edge="1">
           <mxGeometry relative="1" as="geometry">
@@ -166,8 +166,8 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="rE8TUq6kTED-Fyb9pCzD-91" value="Second Step: Q-CHEM" style="swimlane;fontSize=18;sketch=1;" parent="1" vertex="1">
-          <mxGeometry x="992" y="201" width="270" height="280" as="geometry">
+        <mxCell id="rE8TUq6kTED-Fyb9pCzD-91" value="Second Job (through  Q-CHEM)" style="swimlane;fontSize=18;sketch=1;" parent="1" vertex="1">
+          <mxGeometry x="992" y="201" width="278" height="280" as="geometry">
             <mxRectangle x="1030" y="160" width="230" height="30" as="alternateBounds" />
           </mxGeometry>
         </mxCell>
