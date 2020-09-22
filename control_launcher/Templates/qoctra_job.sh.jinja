@@ -90,13 +90,16 @@ if [ $(cat {{  mol_dir  }}/finish_list.end | wc -l) -eq {{  nb_targets  }} ]; th
   cp {{  mol_dir  }}/finish_list.end {{  output_folder  }}/{{  mol_name  }}.end
 fi
 
-# Copying other important files
+# Copying data files
 
-echo -e "\nCopying data files to {{  results_folder  }}/{{  mol_name  }}/CONTROL."
-mkdir -p {{  results_folder  }}/{{  mol_name  }}/CONTROL
-cp -rf  {{  data_dir  }} {{  results_folder  }}/{{  mol_name  }}/CONTROL/
+res_data_dir="{{  results_folder  }}/{{  mol_name  }}{{  results_subfolder  }}"
+echo -e "\nCopying data files to $res_data_dir."
+mkdir -p $res_data_dir
+cp -rf  {{  data_dir  }} $res_data_dir
 
-res_dir="{{  results_folder  }}/{{  mol_name  }}/CONTROL/{{ job_dirname  }}"
+# Copying results file
+
+res_dir="{{  results_folder  }}/{{  mol_name  }}{{  results_subfolder  }}/{{ job_dirname  }}"
 
 echo -e "\nCopying job files to ${res_dir}."
 mkdir -p $res_dir

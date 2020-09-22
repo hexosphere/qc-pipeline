@@ -769,6 +769,7 @@ manifest_render_vars = {
   "nb_targets" : len(targets_list),
   "output_folder" : config[prog]['output-folder'],
   "results_folder" : config['results']['main_folder'],
+  "results_subfolder" : config['results'][prog]['folder_name'],
   "data_dir" : data_dir,
   "job_manifest" : rnd_manifest,
   "niter" : niter
