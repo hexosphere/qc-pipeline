@@ -227,7 +227,7 @@ for line in tmp_list:
 
     maxRSS = get_MaxRSS(jobID)
     print("{:>20}: {:<} MB".format("MaxRSS",maxRSS))
-    line['Max RSS'] = maxRSS
+    line['Max RSS (MB)'] = maxRSS
 
     nb_cpus = get_ReqCPUs(jobID)
     mem_per_cpu = get_ReqMem(jobID)
@@ -291,7 +291,7 @@ print("")
 
 # Define the final CSV header
 
-csv_final_header = csv_tmp_header + ["Reserved", "Elapsed", "Time Efficiency", "Max RSS", "RAM Efficiency", "Total CPU", "Wall CPU", "CPU Efficiency"]
+csv_final_header = csv_tmp_header + ["Reserved", "Elapsed", "Time Efficiency", "Max RSS (MB)", "RAM Efficiency", "Total CPU", "Wall CPU", "CPU Efficiency"]
 print("Used dialect in the final CSV file: {}".format(dialect))
 print("Header used in final CSV file: {}".format(csv_final_header))
 

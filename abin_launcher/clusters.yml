@@ -185,6 +185,8 @@ lemaitre3:
       job_scales:
         - <<: *unique_qoctra
 
+# Legacy, old decommissioned clusters
+
 vega:
   name: vega
   host: ULB
@@ -221,7 +223,6 @@ vega:
       job_scales:
         - <<: *unique_qoctra
 
-#Careful, not member of the CECI and uses Torque instead of SLURM
 hydra:
   name: hydra
   host: ULB

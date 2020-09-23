@@ -39,7 +39,7 @@ import scaling_fcts
 parser = argparse.ArgumentParser(add_help=False, description="For one or more molecule files and a given ab initio program, this script prepares the input files needed for each calculation and launches the corresponding job on the cluster.")
 
 required = parser.add_argument_group('Required arguments')
-required.add_argument("-p","--program", type=str, help="Program you wish to run jobs with, must be the same as the name mentioned in the clusters and configuration YAML files", required=True)
+required.add_argument("-p","--program", type=str, help="Program you wish to run jobs with, must be the same as the name mentioned in the clusters configuration YAML file", required=True)
 required.add_argument("-m","--mol_inp", type=str, help="Path to either a molecule file or a directory containing multiple molecule files", required=True)
 required.add_argument('-cf', '--config', type=str, help="Path to either a YAML config file or a directory containing multiple YAML config files", required=True)
 required.add_argument("-o","--out_dir", type=str, help="Path to the directory where you want to create the subdirectories for each job", required=True)
@@ -55,6 +55,7 @@ optional.add_argument("-d","--dry_run",action="store_true",help="Do not launch t
 
 args = parser.parse_args()
 
+#TODO: Give cluster_name manually (in case $CLUSTER_NAME isn't defined and there is no equivalent)
 # Define the variables corresponding to those arguments
 
 prog = args.program                      # Name of the program for which files need to be created

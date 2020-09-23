@@ -6,8 +6,8 @@
 #########################################################################################################
 
 # Command line arguments
-PROGRAM = $1
-CLUSTER_NAME = $2
+PROGRAM=$1
+CLUSTER_NAME=$2
 
 # Define the timestamp
 timestamp=$(date +"%Y%m%d_%H%M%S")
@@ -20,14 +20,17 @@ log_msg () {
 # Define CECIHOME (might not be known by the crontab)
 CECIHOME="/home/ulb/cqp/niacobel/CECIHOME"
 
+# Define the benchmark folder
+BENCHMARK="${CECIHOME}/BENCHMARK"
+
 # Define the tmp file we want to scan
-WATCH_FILE="${CECIHOME}/BENCHMARK/benchmark_${PROGRAM}_${CLUSTER_NAME}_tmp.csv"
+WATCH_FILE="${BENCHMARK}/benchmark_${PROGRAM}_${CLUSTER_NAME}_tmp.csv"
 
 # Define the folder where the tmp file will be archived
-ARCHIVE="${CECIHOME}/BENCHMARK/archive"
+ARCHIVE="${BENCHMARK}/archive"
 
 # Define the folder where the log files will be stored
-BENCH_LOGS="${CECIHOME}/BENCHMARK/bench_logs"
+BENCH_LOGS="${BENCHMARK}/bench_logs"
 
 # Exit immediately if there's no file to process
 if [ ! -f "${WATCH_FILE}" ]; then
@@ -37,13 +40,14 @@ if [ ! -f "${WATCH_FILE}" ]; then
 else
 
   # Archive the original tmp file
+  filename="$(basename -- ${WATCH_FILE})"
   mkdir -p ${ARCHIVE}
-  mv ${WATCH_FILE} ${ARCHIVE}/${WATCH_FILE%.*}_$(timestamp).csv
+  mv ${WATCH_FILE} ${ARCHIVE}/${filename%.*}_${timestamp}.csv
 
   # Execute benchmark.py
   mkdir -p ${BENCH_LOGS}
   source ${CECIHOME}/CHAINS/load_modules.sh
-  python ${CECIHOME}/CHAINS/abin_launcher/benchmark.py --tmp ${ARCHIVE}/${WATCH_FILE%.*}_$(timestamp).csv --final benchmark_${PROGRAM}_${CLUSTER_NAME}.csv > ${BENCH_LOGS}/${PROGRAM}_${CLUSTER_NAME}_$(timestamp).log
+  python ${CECIHOME}/CHAINS/abin_launcher/benchmark.py --tmp ${ARCHIVE}/${filename%.*}_${timestamp}.csv --final ${BENCHMARK}/benchmark_${PROGRAM}_${CLUSTER_NAME}.csv > ${BENCH_LOGS}/${PROGRAM}_${CLUSTER_NAME}_${timestamp}.log
 
   log_msg "INFO - Processed new lines in ${WATCH_FILE}"
 

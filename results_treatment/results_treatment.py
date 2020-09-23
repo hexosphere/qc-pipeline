@@ -421,6 +421,8 @@ for mol_name in mol_inp_list:
     # List of excited states
     # =========================================================
 
+#TODO: Add fidelities to this table
+
     # Load states_file
 
     print("\nScanning states file {} ... ".format(states_file))
