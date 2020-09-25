@@ -5,13 +5,16 @@
 ###      This script will be called via a cron task to execute control_launcher.py (with QOCT-RA)     ###
 #########################################################################################################
 
+# Command line arguments
+export CLUSTER_NAME=$1
+
 # Pretty print for log messages
 log_msg () {
   echo -e "$(date +"%Y-%m-%d %T")\t$1"
 }
 
 # Define CECIHOME (might not be known by the crontab)
-CECIHOME="/home/ulb/cqp/niacobel/CECIHOME"
+CECIHOME="/CECI/home/ulb/cqp/niacobel"
 
 # Define the folder we want to scan
 WATCH_DIR="${CECIHOME}/QCHEM_OUT"
@@ -35,7 +38,7 @@ else
     filename="$(basename -- $filepath)"
     MOL_NAME=${filename%.*}
     mkdir -p ~/CONTROL
-    python ${CECIHOME}/CHAINS/control_launcher/control_launcher.py -i ${filepath} -cf ${CECIHOME}/RESULTS/${MOL_NAME}/${MOL_NAME}.yml -o ~/CONTROL/ -ow  > ~/CONTROL/${MOL_NAME}.log
+    python ${CECIHOME}/CHAINS/control_launcher/control_launcher.py -i ${filepath} -cf ${CECIHOME}/RESULTS/${MOL_NAME}/config.yml -o ~/CONTROL/ -ow  > ~/CONTROL/${MOL_NAME}.log
     status=$?
 
     if [ ${status} -eq 0 ]; then

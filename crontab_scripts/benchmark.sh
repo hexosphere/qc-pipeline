@@ -7,7 +7,7 @@
 
 # Command line arguments
 PROGRAM=$1
-CLUSTER_NAME=$2
+export CLUSTER_NAME=$2
 
 # Define the timestamp
 timestamp=$(date +"%Y%m%d_%H%M%S")
@@ -18,7 +18,7 @@ log_msg () {
 }
 
 # Define CECIHOME (might not be known by the crontab)
-CECIHOME="/home/ulb/cqp/niacobel/CECIHOME"
+CECIHOME="/CECI/home/ulb/cqp/niacobel"
 
 # Define the benchmark folder
 BENCHMARK="${CECIHOME}/BENCHMARK"

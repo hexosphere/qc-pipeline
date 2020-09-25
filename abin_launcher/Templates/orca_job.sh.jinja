@@ -67,7 +67,7 @@ cp {{  mol_name  }}.xyz {{  output_folder  }}/
 
 echo -e "\nCopying and renaming main configuration file to {{  results_folder  }}/{{  mol_name  }}."
 mkdir -p {{  results_folder  }}/{{  mol_name  }}
-cp {{ config_file  }}.yml {{  results_folder  }}/{{  mol_name  }}/{{  mol_name  }}.yml
+cp {{ config_file  }}.yml {{  results_folder  }}/{{  mol_name  }}/config.yml
 
 res_dir="{{  results_folder  }}/{{  mol_name  }}/{{  results_subfolder  }}"
 echo -e "\nCopying output files to $res_dir."

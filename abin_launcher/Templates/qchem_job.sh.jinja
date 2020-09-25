@@ -6,7 +6,7 @@
 #SBATCH --mail-user={{  user_email  }}
 #SBATCH --mail-type={{  mail_type  }}
 #SBATCH --time={{  job_walltime  }}
-#SBATCH --ntasks={{  job_cores  }}
+#SBATCH --cpus-per-task={{  job_cores  }}
 #SBATCH --mem-per-cpu={{  job_mem_per_cpu  }}
 {% if partition != "default" %}
 #SBATCH --partition={{  partition  }}
