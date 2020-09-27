@@ -48,3 +48,7 @@ venv/Scripts/*
 ### VisualStudioCode Patch ###
 # Ignore all local history of files
 .history
+
+
+### ReadTheDocs/Sphinx ###
+docs/build
