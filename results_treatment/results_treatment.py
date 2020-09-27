@@ -323,7 +323,8 @@ for mol_name in mol_inp_list:
         last_line = f.readline().decode()
 
       # Define how the lines of the iterations file must look like, here it is for example "    300     2  2sec |Proba_moy  0.000000E+00 |Fidelity(U)  0.000000E+00 |Chp  0.123802E+00 -0.119953E+00 |Aire  0.140871E-03 |Fluence  0.530022E+01 |Recou(i)  0.000000E+00 |Tr_dist(i) -0.500000E+00 |Tr(rho)(i)  0.100000E+01 |Tr(rho^2)(i)  0.100000E+01 |Projector  0.479527E-13"
-      template_iter_file = re.compile(r"^\s+(?P<niter>\d+)\s+\d+\s+\d+sec\s\|Proba_moy\s+\d.\d+E[+-]\d+\s\|Fidelity\(U\)\s+\d.\d+E[+-]\d+\s\|Chp\s+\d.\d+E[+-]\d+\s+-?\d.\d+E[+-]\d+\s\|Aire\s+\d.\d+E[+-]\d+\s\|Fluence\s+\d.\d+E[+-]\d+\s\|Recou\(i\)\s+\d.\d+E[+-]\d+\s\|Tr_dist\(i\)\s+-*\d.\d+E[+-]\d+\s\|Tr\(rho\)\(i\)\s+\d.\d+E[+-]\d+\s\|Tr\(rho\^2\)\(i\)\s+\d.\d+E[+-]\d+\s\|Projector\s+(?P<projector>\d.\d+E[+-]\d+)")
+      # template_iter_file = re.compile(r"^\s+(?P<niter>\d+)\s+\d+\s+\d+sec\s\|Proba_moy\s+\d.\d+E[+-]\d+\s\|Fidelity\(U\)\s+\d.\d+E[+-]\d+\s\|Chp\s+\d.\d+E[+-]\d+\s+-?\d.\d+E[+-]\d+\s\|Aire\s+\d.\d+E[+-]\d+\s\|Fluence\s+\d.\d+E[+-]\d+\s\|Recou\(i\)\s+\d.\d+E[+-]\d+\s\|Tr_dist\(i\)\s+-*\d.\d+E[+-]\d+\s\|Tr\(rho\)\(i\)\s+\d.\d+E[+-]\d+\s\|Tr\(rho\^2\)\(i\)\s+\d.\d+E[+-]\d+\s\|Projector\s+(?P<projector>\d.\d+E[+-]\d+)")
+      template_iter_file = re.compile(r"^\s+(?P<niter>\d+)\s+\d+\s+\d+sec\s\|Proba_moy\s+\d\.\d+E[+-]\d+\s\|Fidelity\(U\)\s+\d\.\d+E[+-]\d+\s\|Chp\s+\d\.\d+E[+-]\d+\s+-?\d\.\d+E[+-]\d+\s\|Aire\s+\d\.\d+E[+-]\d+\s\|Fluence\s+\d\.\d+E[+-]\d+\s\|Recou\(i\)\s+\d\.\d+E[+-]\d+\s\|Tr_dist\(i\)\s+-*\d\.\d+E[+-]\d+\s\|Tr\(rho\)\(i\)\s+\d\.\d+E[+-]\d+\s\|Tr\(rho\^2\)\(i\)\s+\d\.\d+E[+-]\d+\s\|Projector\s+(?P<projector>\d\.\d+E[+-]\d+)")
 
       # Get the number of iterations and the last fidelity from the last line
       content = template_iter_file.match(last_line)
@@ -573,19 +574,20 @@ for mol_name in mol_inp_list:
       # Evolution of the states population over time
       # =========================================================      
 
+      pop_file = projector["pop_zero"]
       pop_graph = mol_name + "_" + projector["target"] + "_pop.tex"
       print("{:139}".format("    Creating the graph presenting the evolution of the states population over time (%s) ... " % pop_graph), end="")
 
       # Count the number of lines in the population file
       #TODO: Use wccount (https://stackoverflow.com/questions/845058/how-to-get-line-count-of-a-large-file-cheaply-in-python/850962#850962)
-      with open(projector["pop_zero"]) as f:
+      with open(pop_file) as f:
           for i, l in enumerate(f):
               pass
       nb_lines = i + 1
 
       # Go straight to the last line of the populations file (see https://stackoverflow.com/questions/46258499/read-the-last-line-of-a-file-in-python for reference)
 
-      with open(projector["pop_zero"], 'rb') as f:
+      with open(pop_file, 'rb') as f:
         f.seek(-2, os.SEEK_END)
         while f.read(1) != b'\n':
             f.seek(-2, os.SEEK_CUR)
@@ -593,8 +595,14 @@ for mol_name in mol_inp_list:
 
       # Extract the exponent from the time scale
 
-      #TODO: Do it with a regex
-      last_time = [value for value in last_line.split(' ') if value != ''][0]       # Get the first value of the last line, which corresponds to the last data point for time
+      template_pop_file = re.compile(r"^\s+(?P<last_time>\d\.\d+E[+-]\d+)(\s+\d\.\d+E[+-]\d+){3,}$")
+      content = template_pop_file.match(last_line)
+      if content is not None:
+        last_time = content.group("last_time")
+      else:
+        raise errors.ResultsError ("ERROR: Unable to get information from the last line of %s" % pop_file) 
+
+      #last_time = [value for value in last_line.split(' ') if value != ''][0]       # Get the first value of the last line, which corresponds to the last data point for time
       conversion = float(last_time) * time_conv                                     # Convert from u.a. to seconds
       exponent = re.split(r'[Ee]', str(conversion))[1]                              # Get the exponent only from the scientific notation
 
@@ -604,7 +612,7 @@ for mol_name in mol_inp_list:
       pop_script = "pop.plt"                                  # Name of the rendered file
   
       render_vars = {
-          "input_file" : projector["pop_zero"],
+          "input_file" : pop_file,
           "output_file" : pop_graph,
           "nb_lines" : nb_lines,
           "nb_points" : nb_points,
