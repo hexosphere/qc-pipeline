@@ -1,4 +1,5 @@
 ! {{  method  }} {{  basis_set  }} {{  aux_basis_set  }} {{  job_type  }} {{  other  }} xyzfile 
+%maxcore {{  orca_mem_per_cpu  }} {# It is recommended to set this value to 75% of the physical memory available (see https://sites.google.com/site/orcainputlibrary/orca-common-problems) #}
 %pal 
 nprocs {{  job_cores  }}
 end

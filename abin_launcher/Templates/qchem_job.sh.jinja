@@ -1,46 +1,74 @@
-#!/bin/bash -l
+#!/bin/bash
 
-{# Parameters for the job scheduler Torque, see https://support.ceci-hpc.be/doc/_contents/QuickStart/SubmittingJobs/SlurmTutorial.html #}
-#PBS -N {{  mol_name  }}
-#PBS -M {{  user_email  }}
-#PBS -m {{  mail_type  }}
-#PBS -l nodes=1:ppn={{  job_cores  }}
-#PBS -l walltime={{  job_duration  }}
+{# Parameters for the job scheduler SLURM, see https://support.ceci-hpc.be/doc/_contents/QuickStart/SubmittingJobs/SlurmTutorial.html #}
+#SBATCH --output=slurm_output.log
+#SBATCH --job-name={{  mol_name  }}_qchem
+#SBATCH --mail-user={{  user_email  }}
+#SBATCH --mail-type={{  mail_type  }}
+#SBATCH --time={{  job_walltime  }}
+#SBATCH --cpus-per-task={{  job_cores  }}
+#SBATCH --mem-per-cpu={{  job_mem_per_cpu  }}
+{% if partition != "default" %}
+#SBATCH --partition={{  partition  }}
+{% endif %}
 
-{# Job instructions for loading and running Q-CHEM, and defining the Q-CHEM input and output files. #}
+echo -e "******************************************************************************"
+echo -e "**************************   Beginning of the job   **************************"
+echo -e "******************************************************************************\n"
 
-echo "============================================================================="
-echo "======================  Q-CHEM execution begins now  ========================"
-echo "============================================================================="
+echo -e "===================================================================="
+echo -e "========================   Running Q-CHEM   ========================"
+echo -e "===================================================================="
+
+# A temporary directory (SCRATCH) is created on the node where the job is running, for handling temporary files. 
+# See https://support.ceci-hpc.be/doc/_contents/SubmittingJobs/SlurmFAQ.html#q11-how-do-i-use-the-local-scratch-space for more details.
+
+SCRATCH=$LOCALSCRATCH/$SLURM_JOB_ID
+
+echo -e "\nCreating temporary folder $SCRATCH for handling temporary files."
+srun mkdir -p $SCRATCH || exit $?
+srun -n $SLURM_NNODES --ntasks-per-node=1 cp -rf $SLURM_SUBMIT_DIR/{{  mol_name  }}.in $SCRATCH/ || exit $?
+
+cd $SCRATCH
+
+echo -e "\n================= Q-CHEM execution begins now =================="
 
 {% for set_env_line in set_env -%}
 {{  set_env_line  }}
 {% endfor -%}
+{{  command  }} {{  mol_name  }}.in $SLURM_SUBMIT_DIR/{{  mol_name  }}.out  || (srun rm -rf $SCRATCH ; exit $?)
 
-ulimit -s unlimited
+echo -e "\n=================  Q-CHEM execution ends now  =================="
 
-cd $PBS_O_WORKDIR
+echo -e "\nCopying Q-CHEM output files to the submit folder."
+cp -r  $SCRATCH/* $SLURM_SUBMIT_DIR/  || exit $?
 
-input="${PBS_JOBNAME}.in"
-output="${PBS_JOBNAME}.out"
+echo -e "\nRemoving $SCRATCH folder."
+srun -n $SLURM_NNODES --ntasks-per-node=1 rm -rf $SCRATCH || echo "A problem might have occurred when trying to remove temporary files."
 
-{{  command  }} {{  job_cores  }} $input $output
+echo -e "\n===================================================================="
+echo -e "==============   Post-calculation files manipulation   ============="
+echo -e "===================================================================="
 
-echo "============================================================================="
-echo "========================  Q-CHEM execution ends now  ========================"
-echo "============================================================================="
+# Quality control (was there any problem with Q-CHEM?)
+cd $SLURM_SUBMIT_DIR
+source {{  chains_folder  }}/load_modules.sh
+python {{  check_folder  }}/qchem_check.py {{  mol_name  }}.out  || exit $?
 
-{# Quality control (was there any problem with Q-CHEM?) #}
-cd $PBS_O_WORKDIR
-source {{  codes_folder  }}/load_modules.sh
-python {{  codes_folder  }}/{{  check_script  }} $output  || exit $?
+# Copying important files
 
-{# Job instructions for sending the qchem output to the qchem output folder for use in the next step. #}
-echo "Copying optimized geometry to ~/Q-CHEM/qchem_out_queue."
-mkdir -p ~/Q-CHEM/qchem_out_queue
-cp $output ~/Q-CHEM/qchem_out_queue/
+echo -e "\nCopying Q-CHEM output file to {{  output_folder  }}."
+mkdir -p {{  output_folder  }}
+cp {{  mol_name  }}.out {{  output_folder  }}/
 
-{# Job instructions for archiving the results into the temporary results folder on Hydra. #}
-echo "Archiving output files to ~/FINAL/${PBS_JOBNAME}/Q-CHEM."
-mkdir -p ~/FINAL/${PBS_JOBNAME}/Q-CHEM
-cp ./* ~/FINAL/${PBS_JOBNAME}/Q-CHEM
+res_dir="{{  results_folder  }}/{{  mol_name  }}/{{  results_subfolder  }}"
+echo -e "\nCopying output files to $res_dir."
+mkdir -p $res_dir
+cp {{  mol_name  }}.in {{  mol_name  }}.out {{  job_manifest  }} slurm_output.log {{  mol_name  }}_{{ config_file  }}.log $res_dir
+
+{# Job instructions for compiling data about the job for benchmarking. #}
+{% include "benchmark.sh.jinja" if benchmark %}
+
+echo -e "\n******************************************************************************"
+echo -e "*****************************   End of the job   *****************************"
+echo -e "******************************************************************************"

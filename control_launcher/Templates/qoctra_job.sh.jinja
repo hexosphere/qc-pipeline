@@ -1,0 +1,123 @@
+#!/bin/bash
+
+#SBATCH --output=slurm_output.log
+#SBATCH --job-name={{  mol_name  }}_{{ target  }}
+#SBATCH --mail-user={{  user_email  }}
+#SBATCH --mail-type={{  mail_type  }}
+#SBATCH --time={{  job_walltime  }}
+#SBATCH --ntasks=1
+#SBATCH --mem-per-cpu={{  job_mem_per_cpu  }}
+{% if partition != "default" %}
+#SBATCH --partition={{  partition  }}
+{% endif %}
+
+echo -e "******************************************************************************"
+echo -e "**************************   Beginning of the job   **************************"
+echo -e "******************************************************************************\n"
+
+cd $SLURM_SUBMIT_DIR
+
+# Define the QOCT-RA folder here
+QOCT_RA_DIR="${CECIHOME}/QOCT-RA"
+
+echo -e "======================================================================="
+echo -e "=========================   Running QOCT-RA   ========================="
+echo -e "======================================================================="
+
+# A temporary directory (SCRATCH) is created on the node where the job is running, for handling temporary files. 
+# See https://support.ceci-hpc.be/doc/_contents/SubmittingJobs/SlurmFAQ.html#q11-how-do-i-use-the-local-scratch-space for more details.
+
+SCRATCH=$LOCALSCRATCH/$SLURM_JOB_ID
+
+echo -e "Creating temporary folder $SCRATCH for handling temporary files."
+
+mkdir -p $SCRATCH || exit $?
+
+cp $SLURM_SUBMIT_DIR/{{  rnd_param  }} $SLURM_SUBMIT_DIR/{{  rnd_param_PCP  }} $SCRATCH/ || exit $?
+
+cd $SCRATCH
+
+# Load the necessary modules
+
+{% for set_env_line in set_env -%}
+{{  set_env_line  }}
+{% endfor -%}
+
+# Compile the code (cluster dependent)
+
+echo -e ">>> Start of QOCT-RA compilation"
+{{  command  }} $QOCT_RA_DIR/Sub/Fortran/mymod.f $QOCT_RA_DIR/Controle.f90 -o Controle.out
+rm mymod.mod  
+echo -e ">>> End of QOCT-RA compilation"
+
+# First execution to get the optimal pulse
+
+echo -e "\n================= First QOCT-RA execution begins now =================="
+./Controle.out {{  rnd_param  }} $QOCT_RA_DIR || (cp -r  $SCRATCH/* $SLURM_SUBMIT_DIR/ && echo "A problem has occcured during the first execution of QOCT-RA" && rm -rf $SCRATCH && exit $?)
+echo -e "\n================= First QOCT-RA execution ends now =================="
+
+# Second execution to test the optimal pulse (PCP mode)
+
+mkdir $SCRATCH/PCP
+mv Controle.out $SCRATCH/PCP/
+cd $SCRATCH/PCP/
+
+echo -e "\n================= PCP QOCT-RA execution begins now =================="
+./Controle.out $SCRATCH/{{  rnd_param_PCP  }} $QOCT_RA_DIR || (cp -r  $SCRATCH/* $SLURM_SUBMIT_DIR/ && echo "A problem has occcured during the PCP execution of QOCT-RA" && rm -rf $SCRATCH && exit $?)
+rm Controle.out
+echo -e "\n================= PCP QOCT-RA execution ends now =================="
+
+echo -e "\nCopying output files to the submit folder."
+cp -r  $SCRATCH/* $SLURM_SUBMIT_DIR/  || (echo "Unable to copy SCRATCH folder in the SLURM_SUBMIT_DIR" && exit $?)
+
+echo -e "\nRemoving $SCRATCH folder."
+rm -rf $SCRATCH || echo "A problem might have occurred when trying to remove temporary files."
+
+echo -e "\n===================================================================="
+echo -e "==============   Post-calculation files manipulation   ============="
+echo -e "===================================================================="
+
+cd $SLURM_SUBMIT_DIR
+
+# Add a notification line to finish_list.end and if it was the last job, copy it to {{  output_folder  }}
+
+echo -e "\nAdd notification line to {{  mol_dir  }}/finish_list.end"
+echo "Finished job with {{  target  }} as the target state" >> {{  mol_dir  }}/finish_list.end
+
+if [ $(cat {{  mol_dir  }}/finish_list.end | wc -l) -eq {{  nb_targets  }} ]; then
+  echo -e "\nAll jobs finished. Copying finish_list.end to {{  output_folder  }}."
+  mkdir -p {{  output_folder  }}
+  cp {{  mol_dir  }}/finish_list.end {{  output_folder  }}/{{  mol_name  }}.end
+fi
+
+# Copying data files
+
+res_data_dir="{{  results_folder  }}/{{  mol_name  }}{{  results_subfolder  }}"
+echo -e "\nCopying data files to $res_data_dir."
+mkdir -p $res_data_dir
+cp -rf  {{  data_dir  }} $res_data_dir
+
+# Copying results file
+
+res_dir="{{  results_folder  }}/{{  mol_name  }}{{  results_subfolder  }}/{{ job_dirname  }}"
+
+echo -e "\nCopying job files to ${res_dir}."
+mkdir -p $res_dir
+cp {{  rnd_param  }} {{  rnd_param_PCP  }} {{  job_manifest  }} slurm_output.log obj.res  $res_dir
+
+echo -e "\nCopying and renaming pulse files to ${res_dir}/Pulse."
+mkdir -p $res_dir/Pulse
+cd $SLURM_SUBMIT_DIR/Pulse/
+cp Pixel_heat{{  niter  }} Pulse_init Pulse_iter{{  niter  }} Pulse_param_init Pulse_param_iter{{  niter  }} $res_dir/Pulse
+mv $res_dir/Pulse/Pixel_heat{{  niter  }} $res_dir/Pulse/Pixel_heat_final
+mv $res_dir/Pulse/Pulse_iter{{  niter  }} $res_dir/Pulse/Pulse_final
+mv $res_dir/Pulse/Pulse_param_iter{{  niter  }} $res_dir/Pulse/Pulse_param_final
+
+echo -e "\nCopying PCP files to ${res_dir}/PCP."
+mkdir -p $res_dir/PCP
+cd $SLURM_SUBMIT_DIR/PCP/
+cp obj.res pop1 popzero1 popzero_Sch1 $res_dir/PCP/
+
+echo -e "\n******************************************************************************"
+echo -e "*****************************   End of the job   *****************************"
+echo -e "******************************************************************************"

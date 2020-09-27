@@ -1,124 +1,297 @@
 # CECI Clusters relevant informations, see http://www.ceci-hpc.be/clusters.html for more details 
 # This is a YAML database, see https://yaml.org/ for more informations
 
+#! Keep in mind the definition of your scaling function when assigning values to the scale_limit keys
+
+# Those keys are shared between the clusters, they will be used for information for which the cluster doesn't matter
+
+shared: 
+  progs:
+    orca:
+      jinja: &orca_jinja
+        # Names of the jinja templates, those files must be put in the Templates folder.
+        templates:
+          input: orca.inp.jinja                        # The rendered file will be named <mol_name>.inp, where <mol_name> is the name of the molecule file
+          job_manifest: orca_job.sh.jinja              
+        # Name of the files that will be rendered based on their jinja templates
+        renders:
+          job_manifest: orca_job.sh                    
+      scaling_function: &scl_fct total_nb_elec         # Name of your scaling function (must be defined in abin_launcher/scaling_fcts.py)
+      job_scales: &tiny_orca
+        label: tiny
+        scale_limit: 50
+        partition_name: default
+        time: 0-00:10:00
+        cores: 4 
+        mem_per_cpu: 500 # in MB
+        delay_command:
+    qchem: 
+      job_scales: &tiny_qchem
+        label: tiny
+        scale_limit: 50
+        partition_name: default
+        time: 0-00:10:00
+        cores: 4 
+        mem_per_cpu: 500 # in MB
+        delay_command:
+    qoctra: 
+      jinja: &qoctra_jinja
+        # Names of the jinja templates, those files must be put in the Templates folder.
+        templates:
+          parameters_file: param.nml.jinja             # The rendered file will be named param_<target>.nml, where <target> is the state label corresponding to the projector that will be used
+          job_manifest: qoctra_job.sh.jinja              
+        # Name of the files that will be rendered based on their jinja templates
+        renders:
+          job_manifest: qoctra_job.sh                    
+      job_scales: &unique_qoctra
+        label: unique
+        scale_limit: 100
+        partition_name: default
+        time: 0-10:00:00
+        mem_per_cpu: 2000 # in MB
+
+# Below are all the useful informations specific to each cluster and each program you wish to run on this cluster.
+
 dragon1:
-  name: dragon1
   host: UMons
   address: dragon1.umons.ac.be
   subcommand: sbatch
   progs:
     orca:
+      jinja: *orca_jinja
       set_env:
         - module --force purge
         - module load orca/4.0.1.2 
       command: /usr/local/orca/orca_4_0_1_2_linux_x86-64_openmpi202/orca
-      partition:                # needed to define the different calculation requirements depending on the size of the molecule, use the "sinfo" command on the cluster to see all partitions
-        small:
-          name: Def
+      scaling_function: *scl_fct
+      job_scales: 
+        - <<: *tiny_orca     
+        - label: small
+          scale_limit: 1000
+          partition_name: Def
           time: 5-00:00:00
           cores: 8
-        medium:
-          bigindex_limit: 1000
-          name: Def
+          mem_per_cpu: 1000 # in MB
+          delay_command:
+        - label: medium
+          scale_limit: 1500
+          partition_name: Def
           time: 5-00:00:00
-          cores: 16
-        big:
-          bigindex_limit: 1500
-          name: Long
+          cores: 8
+          mem_per_cpu: 2000 # in MB
+          delay_command: --begin=now+60
+        - label: big
+          scale_limit: 2000
+          partition_name: Long
           time: 15-00:00:00
-          cores: 32  
+          cores: 8
+          mem_per_cpu: 4000 # in MB  
+          delay_command: --begin=now+120
+    qoctra:
+      jinja: *qoctra_jinja
+      set_env:
+      command:
+      job_scales:
+        - <<: *unique_qoctra
 
 dragon2:
-  name: dragon2
   host: UMons
   address: dragon2.umons.ac.be  
   subcommand: sbatch
   progs:
     orca:
+      jinja: *orca_jinja
       set_env:
-        - module load ORCA/4.0.1-OpenMPI-2.0.2 
-      command: /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.0.1-OpenMPI-2.0.2/orca
-      partition:
-        small:
-          name: batch
+        - module --force purge
+        - module load releases/2019b
+        - module load ORCA/4.2.1-gompi-2019b 
+      command: /opt/cecisw/arch/easybuild/2019b/software/ORCA/4.2.1-gompi-2019b/orca
+      scaling_function: *scl_fct
+      job_scales:
+        - <<: *tiny_orca
+          partition_name: debug  
+        - label: small
+          scale_limit: 1000
+          partition_name: batch
+          time: 2-00:00:00
+          cores: 8
+          mem_per_cpu: 1000 # in MB
+          delay_command: 
+        - label: medium
+          scale_limit: 1500
+          partition_name: batch
           time: 5-00:00:00
           cores: 8
-        medium:
-          bigindex_limit: 1000
-          name: batch
-          time: 5-00:00:00
-          cores: 16
-        big:
-          bigindex_limit: 1500
-          name: long
+          mem_per_cpu: 2000 # in MB
+          delay_command: --begin=now+60
+        - label: big
+          scale_limit: 2000
+          partition_name: long
           time: 15-00:00:00
-          cores: 32
+          cores: 8  
+          mem_per_cpu: 4000 # in MB
+          delay_command: --begin=now+120
+    qoctra:
+      jinja: *qoctra_jinja
+      set_env:
+      command:
+      job_scales:
+        - <<: *unique_qoctra
 
 lemaitre3:
-  name: lemaitre3
   host: UCL
   address: lemaitre3.cism.ucl.ac.be
   subcommand: sbatch
   progs:
     orca:
+      jinja: *orca_jinja
       set_env: 
         - module load ORCA/4.1.0-OpenMPI-3.1.3
       command: /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.1.0-OpenMPI-3.1.3/orca
-      partition:
-        small:
-          name: batch
+      scaling_function: *scl_fct
+      job_scales:
+        - <<: *tiny_orca  
+        - label: small
+          scale_limit: 1000
+          partition_name: batch
           time: 2-00:00:00
+          cores: 8
+          mem_per_cpu: 1000 # in MB
+          delay_command:
+        - label: medium
+          scale_limit: 1500
+          partition_name: batch
+          time: 2-00:00:00
+          cores: 8
+          mem_per_cpu: 2000 # in MB
+          delay_command: --begin=now+60
+        - label: big
+          scale_limit: 2000
+          partition_name: batch
+          time: 2-00:00:00
+          cores: 8
+          mem_per_cpu: 4000 # in MB
+          delay_command: --begin=now+120
+    qoctra:
+      jinja: *qoctra_jinja
+      set_env:
+        - module --force purge
+        - module load releases/2019b
+        - module load OpenBLAS/0.3.7-GCC-8.3.0
+      command: gfortran -lopenblas -O3 -ffast-math -funroll-loops -fwhole-program -flto -fexternal-blas -fdefault-integer-8 -m64
+      job_scales:
+        - <<: *unique_qoctra
+
+hercules:
+  host: UNamur
+  address: hercules2.ptci.unamur.be
+  subcommand: sbatch
+  progs:
+    qchem:
+      jinja:
+        # Names of the jinja templates, those files must be put in the Templates folder.
+        templates:
+          input: qchem.in.jinja                        # The rendered file will be named <mol_name>.inp, where <mol_name> is the name of the molecule file
+          job_manifest: qchem_job.sh.jinja              
+        # Name of the files that will be rendered based on their jinja templates
+        renders:
+          job_manifest: qchem_job.sh   
+      set_env: 
+        - module purge
+        - module load Q-Chem/5.3.0-SHMEM
+        - export QCSCRATCH=${TMPDIR}
+      command: srun qchem -nt ${SLURM_CPUS_PER_TASK}
+      scaling_function: *scl_fct
+      job_scales:
+        - <<: *tiny_qchem  
+        - label: small
+          scale_limit: 1000
+          partition_name: default
+          time: 2-00:00:00
+          cores: 8
+          mem_per_cpu: 4000 # in MB
+          delay_command:
+        - label: medium
+          scale_limit: 1500
+          partition_name: default
+          time: 5-00:00:00
           cores: 16
-        medium:
-          bigindex_limit: 1000
+          mem_per_cpu: 4000 # in MB
+          delay_command: --begin=now+60
+        - label: big
+          scale_limit: 2000
+          partition_name: default
+          time: 10-00:00:00
+          cores: 16
+          mem_per_cpu: 8000 # in MB
+          delay_command: --begin=now+120
+
+# Legacy, old decommissioned clusters
 
 vega:
-  name: vega
   host: ULB
   address: vega.ulb.ac.be
   subcommand: sbatch
   progs:
     orca:
+      jinja: *orca_jinja
       set_env: 
         - module purge
         - module load ORCA/4.0.0.2-OpenMPI-2.0.2
       command: /apps/brussel/interlagos/software/ORCA/4.0.0.2-OpenMPI-2.0.2/orca
-      partition:
-        small:
-          name: defq
+      scaling_function: *scl_fct
+      job_scales:
+        - <<: *tiny_orca  
+        - label: small
+          scale_limit: 1e3
+          partition_name: defq
           time: 5-00:00:00
           cores: 8
-        medium:
-          bigindex_limit: 1000
-          name: defq
-          time: 14-00:00:00
-          cores: 16
+          mem_per_cpu: 1000 # in MB
+          delay_command: --begin=now+60
+        - label: medium
+          scale_limit: 1.5e3
+          partition_name: defq
+          time: 10-00:00:00
+          cores: 8
+          mem_per_cpu: 2000 # in MB
+          delay_command: --begin=now+120
+    qoctra:
+      jinja: *qoctra_jinja
+      set_env:
+      command:
+      job_scales:
+        - <<: *unique_qoctra
 
-#Careful, not member of the CECI and uses Torque instead of SLURM
 hydra:
-  name: hydra
   host: ULB
   address: hydra.ulb.ac.be
   mail-type: a
   subcommand: qsub
   progs:
     qchem:
+      jinja:
+        # Names of the jinja templates, those files must be put in the Templates folder.
+        templates:
+          input: qchem.in.jinja                        # The rendered file will be named <mol_name>.inp, where <mol_name> is the name of the molecule file
+          job_manifest: qchem_job.sh.jinja              
+        # Name of the files that will be rendered based on their jinja templates
+        renders:
+          job_manifest: qchem_job.sh   
       set_env: 
         - module load Q-Chem/5.2.1-intel-2019a-mpich3
       command: qchem -nt
-      partition:
-        small:
+      scaling_function: *scl_fct
+      job_scales:
+        - <<: *tiny_qchem  
+        - label: small
+          scale_limit: 500
+          partition_name: dummy
           time: 120:00:00
           cores: 8
-        medium:
-          bigindex_limit: 500
+        - label: medium
+          scale_limit: 1000
+          partition_name: dummy
           time: 120:00:00
           cores: 16
-
-# Exception: for tiny jobs, the cluster doesn't matter, we just need to specify how much time and how many cores we want.
-dummy:
-  partition:
-    tiny:
-      bigindex_limit: 50     
-      time: 00:05:00
-      cores: 2
+  

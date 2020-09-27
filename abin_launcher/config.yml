@@ -1,35 +1,92 @@
 # This is the main configuration file, this file will contain every information you need to provide to the different scripts and programs your molecule will run through.
 # This is a YAML database, see https://yaml.org/ for more informations
 
-general:
+# General information that is not specific to any program in particular.
+general: 
   charge: 0
   multiplicity: 1
   user-email: niacobel@ulb.ac.be
   mail-type: FAIL
-  molecule-folder: /CECI/home/ulb/cqp/niacobel/INIT             # Folder where the .xyz file of the molecule is present
-  results-folder: /CECI/home/ulb/cqp/niacobel/FINAL             # Folder where all the results of this molecule will be sent (a subfolder with the name of the molecule will be created)
+# Benchmarking options
+  benchmark: True
+  benchmark-folder: $CECIHOME/BENCHMARK
 
+# Orca information
 orca:
-  output-folder: /CECI/home/ulb/cqp/niacobel/ORCA               # Folder where the orca output files needed for the next step will be sent.
-  manifest_name: orca_job.sh
 # The keywords you provide here are the keywords that will be used "as-is" in the keyword line of the ORCA input file, be sure that ORCA knows them! (see ORCA's manual for more informations)
   job-type: Opt
   method: B3LYP
   basis-set: def2-TZVP
   aux-basis-set: def2/J
-  other: RIJCOSX TightSCF
-  # add jinja files names
-  j2-templates:
-      - 
+  other: RIJCOSX
+# Folder where the orca output files needed for the next step will be sent.
+  output-folder: $CECIHOME/ORCA_OUT               
 
+# Q-Chem information
 qchem:
-  output-folder: /CECI/home/ulb/cqp/niacobel/Q-CHEM             # Folder where the q-chem output files needed for the next step will be sent.
-  manifest_name: qchem_job.sh
 # The keywords you provide here are the keywords that will be used "as-is" in the Q-CHEM input file, be sure that Q-CHEM knows them! (see Q-CHEM's manual for more informations)
   job-type: sp
   exchange: b3lyp
   basis-set: def2-tzvp
   cis-n-roots: 4
+# Folder where the q-chem output files needed for the next step will be sent.
+  output-folder: $CECIHOME/QCHEM_OUT             
 
-qoct-ra:
-  output-folder: /CECI/home/ulb/cqp/niacobel/QOCT-RA            # Folder where the qoct-ra output files will be sent for data treatment and final results presentation.
+# QOCT-RA information
+qoctra:
+# Name of the script that will be used to extract relevant informations for QOCT-RA (it must have an extension ".py" but don't include it in this value)
+  parser_script: qchem_parser
+ # Define here the type of states you want to target (must correspond with a type of value stored in the states_list at state[1])
+  target_state: Triplet
+# Define here the names of the files that will be created in the molecule folder (in a "data" subfolder)
+  created_files: 
+    mime_file: mime
+    energies_file: energies
+    mat_et0: mat_et0                      # corresponds to the eigenvectors matrix of the MIME diagonalization
+    mat_0te: mat_0te                      # corresponds to the eigenvectors transpose matrix of the MIME diagonalization
+    momdip_zero: momdip_0
+    momdip_eigen: momdip_e
+    init_pop: initial                     # will be followed by "_1"
+    final_pop: final                      # dummy file, will be followed by "_1"
+    projectors: projector                 # will be followed by the state label and "_1" (ex: projectorT2_1)
+# Define here the parameters that appear in the namelist parameters file
+  param_nml:
+    control:
+      nstep: 20000                                  # Number of time steps
+      dt: 7.d0                                      # Duration of a time step (a.u. of time)
+      niter: 300                                    # Number of iterations
+      threshold: 0.9999d0                           # Convergence threshold for the fidelity
+      alpha0: 250.0d0                               # Constraint on the field amplitude
+      ndump: 30                                     # Number of iterations between each writing of the field
+    guess_pulse:
+      numericincrements: 8                          # Type of shape (in terms of bits, there are 2^number of increments for phase and amplitude) If set to 0 then it is not used
+      numberofpixels: 128                           # Number of pixels (pixel width = 2 / total time)
+      inputenergy: 900.0                            # Total energy of the input pulse in the shaper (in micro Joules per cm squared)
+      widthhalfmax: 1000.0                          # Full Width at Half Maximum of the input pulse (in cm-1)
+    post_control:
+      ndump2: 1000                                  # Number of steps between each analysis of the populations, phases, positions and energies
+# Folder where the qoct-ra output files will be sent for data treatment and final results presentation.
+  output-folder: $CECIHOME/CONTROL_OUT   
+
+# Name of the files and folders containing the results
+results:
+  main_folder: $CECIHOME/RESULTS                    # Folder where all the results of this molecule will be sent (a subfolder with the name of the molecule will be created)
+  orca:
+    folder_name: ORCA                               # Inside the molecule subfolder (e.g. <main_folder>/<mol_name>/<folder_name>)
+  qchem:
+    folder_name: QCHEM                              # Inside the molecule subfolder (e.g. <main_folder>/<mol_name>/<folder_name>)
+  qoctra:
+    folder_name: CONTROL                            # Inside the molecule subfolder (e.g. <main_folder>/<mol_name>/<folder_name>)
+    fidelity: obj.res                               # Inside the projector folder (e.g. <main_folder>/<mol_name>/<folder_name>/projector<state_label>/<folder_name>)
+    pulse_folder: 
+      folder_name: Pulse                            # Inside the projector folder (e.g. <main_folder>/<mol_name>/<folder_name>/projector<state_label>/<folder_name>)
+      guess_pulse: Pulse_init
+      guess_pulse_param: Pulse_param_init
+      final_pulse: Pulse_final
+      final_pulse_param: Pulse_param_final
+      final_pulse_heat: Pixel_heat_final
+    pcp_folder:
+      folder_name: PCP                              # Inside the projector folder
+      pop_zero: popzero1
+      pop_eigen: pop1
+      pop_schrodinger: popzero_Sch1
