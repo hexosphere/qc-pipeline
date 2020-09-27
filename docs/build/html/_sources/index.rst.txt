@@ -16,12 +16,6 @@ Welcome to CHAINS's documentation!
 
     CHAINS workflow
 
-.. code-block:: python
-
-   import image
-   print("this is my nice thesis !")
-
-
 
 
 Indices and tables
@@ -45,5 +39,6 @@ Indices and tables
 .. toctree::
    :maxdepth: 2
    :hidden:
-   :caption: ABIN Launcher
+   :caption: Docsite testing
 
+   Tests <tests.rst>
