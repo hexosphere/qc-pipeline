@@ -51,4 +51,4 @@ venv/Scripts/*
 
 
 ### ReadTheDocs/Sphinx ###
-docs/build
+docs/build/
