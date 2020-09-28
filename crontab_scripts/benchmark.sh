@@ -7,7 +7,6 @@
 
 # Command line arguments
 PROGRAM=$1
-export CLUSTER_NAME=$2
 
 # Define the timestamp
 timestamp=$(date +"%Y%m%d_%H%M%S")

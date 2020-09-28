@@ -39,29 +39,30 @@ import scaling_fcts
 parser = argparse.ArgumentParser(add_help=False, description="For one or more molecule files and a given ab initio program, this script prepares the input files needed for each calculation and launches the corresponding job on the cluster.")
 
 required = parser.add_argument_group('Required arguments')
-required.add_argument("-p","--program", type=str, help="Program you wish to run jobs with, must be the same as the name mentioned in the clusters configuration YAML file", required=True)
+required.add_argument("-p","--program", type=str, help="Program you wish to run jobs with, as defined in the clusters configuration YAML file", required=True)
 required.add_argument("-m","--mol_inp", type=str, help="Path to either a molecule file or a directory containing multiple molecule files", required=True)
 required.add_argument('-cf', '--config', type=str, help="Path to either a YAML config file or a directory containing multiple YAML config files", required=True)
 required.add_argument("-o","--out_dir", type=str, help="Path to the directory where you want to create the subdirectories for each job", required=True)
+required.add_argument('-cl', '--cluster_name', type=str, help="Name of the cluster where this script is running, as defined in the clusters configuration YAML file", required=True)
 
 optional = parser.add_argument_group('Optional arguments')
 optional.add_argument('-h','--help',action='help',default=argparse.SUPPRESS,help='Show this help message and exit')
-optional.add_argument('-cl', '--clusters', type=str, help="Path to the YAML clusters file, default is this_script_directory/clusters.yml")
+optional.add_argument('-ccf', '--clusters', type=str, help="Path to the YAML clusters configuration file, default is this_script_directory/clusters.yml")
 optional.add_argument("-ow","--overwrite",action="store_true",help="Overwrite files if they already exists")
-optional.add_argument('--max', type=int, help="Maximum number of molecule or configuration files that will be treated.")
+optional.add_argument('--max', type=int, help="Maximum number of molecule or configuration files that will be treated")
 optional.add_argument("-km","--keep_mol",action="store_true",help="Do not archive launched molecule files and leave them where they are")
 optional.add_argument("-kc","--keep_cf",action="store_true",help="Do not archive launched configuration files and leave them where they are")
-optional.add_argument("-d","--dry_run",action="store_true",help="Do not launch the jobs, just create the files.")
+optional.add_argument("-d","--dry_run",action="store_true",help="Do not launch the jobs, just create the files")
 
 args = parser.parse_args()
 
-#TODO: Give cluster_name manually (in case $CLUSTER_NAME isn't defined and there is no equivalent)
 # Define the variables corresponding to those arguments
 
 prog = args.program                      # Name of the program for which files need to be created
 mol_inp = args.mol_inp                   # Molecule file or folder containing the molecule files
 config_inp = args.config                 # YAML configuration file or folder containing the YAML configuration files
 out_dir = args.out_dir                   # Folder where all jobs subfolders will be created
+cluster_name = args.cluster_name         # Name of the cluster where this script is running, as defined in the clusters configuration YAML file
 
 clusters_file = args.clusters            # YAML file containing all informations about the clusters
 overwrite = args.overwrite               # Flag for overwriting the files
@@ -98,13 +99,6 @@ print("")
 print("".center(columns,"*"))
 
 # =========================================================
-# Define the cluster
-# =========================================================
-
-cluster_name = os.environ['CLUSTER_NAME']
-print("\nThis script is running on the %s cluster" % cluster_name.upper())
-
-# =========================================================
 # Define codes directory
 # =========================================================
 
@@ -113,88 +107,16 @@ code_dir = os.path.dirname(os.path.realpath(os.path.abspath(getsourcefile(lambda
 print ("{:<40} {:<100}".format('\nCodes directory:',code_dir))
 
 # =========================================================
-# Check arguments
+# Check and load the YAML clusters configuration file
 # =========================================================
 
-out_dir = errors.check_abspath(out_dir,"Command line argument -o / --out_dir","folder")
-print ("{:<40} {:<100}".format('\nJobs main directory:',out_dir))
+# Check if the file exists
 
 if clusters_file: 
   clusters_file = errors.check_abspath(clusters_file,"Command line argument -cl / --clusters","file")
 else:
   # If no value has been provided through the command line, take the clusters.yml file in the same directory as this script 
-  clusters_file = os.path.join(code_dir,"clusters.yml")
-
-if max != None and max <= 0:
-  print("\nERROR : The specified max value (%s) must be a non-zero positive integer" % max)
-  exit(1)
-
-# =========================================================
-# Check molecule file(s)
-# =========================================================
-
-mol_inp = errors.check_abspath(mol_inp,"Command line argument -m / --mol_inp")
-
-if os.path.isdir(mol_inp):
-  # If the argument mol_inp is a folder, we need to look for every molecule file with the given format in that folder.
-  print("{:<40} {:<100}".format("\nLooking for %s molecule files in" % mol_ext, mol_inp + " ..."), end="")
-  mol_inp_path = mol_inp
-  # Define which type of file we are looking for in a case-insensitive way (see https://gist.github.com/techtonik/5694830)
-  rule = re.compile(fnmatch.translate("*." + mol_fmt), re.IGNORECASE)
-  # Find all matching files in mol_inp folder
-  mol_inp_list = [mol for mol in os.listdir(mol_inp) if rule.match(mol)]
-  if mol_inp_list == []:
-    print("\nERROR: Can't find any molecule of the %s format in %s" % (mol_ext,mol_inp_path))
-    exit(1)
-  if max:
-    mol_inp_list = mol_inp_list[0:max]
-  print('%12s' % "[ DONE ]")
-
-else:
-  print ("{:<40} {:<100}".format('\nMolecule file:',mol_inp))
-  # If given a single molecule file as argument, check its extension.
-  if os.path.isfile(mol_inp) and os.path.splitext(mol_inp)[-1].lower() != (mol_ext.lower()):
-    print("  ^ ERROR: This is not an %s file." % mol_fmt)
-    exit(1)
-  mol_inp_path = os.path.dirname(mol_inp)
-  mol_inp_file = os.path.basename(mol_inp)
-  mol_inp_list = [mol_inp_file]
-  
-# =========================================================
-# Check config file(s)
-# =========================================================
-
-config_inp = errors.check_abspath(config_inp,"Command line argument -cf / --config")
-
-if os.path.isdir(config_inp):
-  # If the argument config_inp is a folder, we need to look for every YAML configuration file in that folder.
-  print("{:<40} {:<100}".format("\nLooking for .yml or .yaml files in", config_inp + " ..."), end="")
-  config_inp_path = config_inp
-  # Define which type of file we are looking for in a case-insensitive way (see https://gist.github.com/techtonik/5694830)
-  rule = re.compile(fnmatch.translate("*.yml"), re.IGNORECASE)
-  rule2 = re.compile(fnmatch.translate("*.yaml"), re.IGNORECASE)
-  # Find all matching files in mol_inp folder
-  config_inp_list = [config for config in os.listdir(config_inp) if (rule.match(config) or rule2.match(config))]
-  if config_inp_list == []:
-    print("\nERROR: Can't find any YAML config file with the .yml or .yaml extension in %s" % config_inp_path)
-    exit(1)
-  if max:
-    config_inp_list = config_inp_list[0:max]
-  print('%12s' % "[ DONE ]")
-
-else:
-  print ("{:<40} {:<100}".format('\nConfiguration file:',config_inp))
-  # If given a single config file as argument, check its extension.
-  if os.path.isfile(config_inp) and os.path.splitext(config_inp)[-1].lower() != (".yml") and os.path.splitext(config_inp)[-1].lower() != (".yaml"):
-    print("  ^ ERROR: This is not a YAML file (YAML file extension is either .yml or .yaml).")
-    exit(1)
-  config_inp_path = os.path.dirname(config_inp)
-  config_inp_file = os.path.basename(config_inp)
-  config_inp_list = [config_inp_file]
-
-# =========================================================
-# Load YAML files (except config)
-# =========================================================
+  clusters_file = errors.check_abspath(os.path.join(code_dir,"clusters.yml"),"Default clusters configuration YAML file","file")
 
 # Loading the clusters_file for the informations about the clusters
 
@@ -203,12 +125,26 @@ with open(clusters_file, 'r') as f_clusters:
   clusters_cfg = yaml.load(f_clusters, Loader=yaml.FullLoader)
 print('%12s' % "[ DONE ]")
 
+# =========================================================
+# Load Mendeleev's periodic table
+# =========================================================
+
 # Loading AlexGustafsson's Mendeleev Table (found at https://github.com/AlexGustafsson/molecular-data) which will be used for the scaling functions.
 
+mendeleev_file = errors.check_abspath(os.path.join(code_dir,"mendeleev.yml"),"Mendeleev periodic table YAML file","file")
 print ("{:<141}".format("\nLoading AlexGustafsson's Mendeleev Table ..."), end="")
-with open(os.path.join(code_dir,'mendeleev.yml'), 'r') as periodic_table:
+with open(mendeleev_file, 'r') as periodic_table:
   mendeleev = yaml.load(periodic_table, Loader=yaml.FullLoader)
 print('%12s' % "[ DONE ]")
+
+# =========================================================
+# Check the name of the cluster
+# =========================================================
+
+if cluster_name not in clusters_cfg:
+  raise errors.AbinError ("ERROR: There is no information about the %s cluster in the %s file. Please add relevant information or change the cluster before proceeding further." % (cluster_name,clusters_file))
+
+print("\nThis script is running on the %s cluster" % cluster_name.upper())
 
 # =========================================================
 # Check program and subfunctions
@@ -217,33 +153,28 @@ print('%12s' % "[ DONE ]")
 # Check if the program exists in our clusters database. 
 
 if prog not in clusters_cfg[cluster_name]["progs"]:
-  print("\nERROR: The specified program (%s) is unknown on this cluster. Possible programs include:" % prog, ', '.join(program for program in clusters_cfg[cluster_name]["progs"].keys()))
-  print("Please use one of those, change cluster or add information for this program to the YAML cluster file.")
-  exit(3) 
+  raise errors.AbinError ("ERROR: The specified program (%s) is unknown on this cluster. Possible programs include: %s \nPlease use one of those, change cluster or add information for this program to the YAML cluster file." % (prog, ', '.join(program for program in clusters_cfg[cluster_name]["progs"].keys())))
 
 # Define the scanning function that will extract informations about the molecule from the molecule file (depends on the file format) - defined in mol_scan.py
 
 scan_fct = mol_fmt + "_scan"
 
 if (scan_fct) not in dir(mol_scan) or not callable(getattr(mol_scan, scan_fct)):
-  print("\nERROR: There is no function defined for the %s format in mol_scan.py." % mol_fmt)
-  exit(3) 
+  raise errors.AbinError ("ERROR: There is no function defined for the %s format in mol_scan.py." % mol_fmt)
 
 # Define the scaling function that will determine the scale_index of the molecule (necessary for determining the job scale) - defined in scaling_fcts.py
 
 scaling_fct = clusters_cfg[cluster_name]["progs"][prog]["scaling_function"]
 
 if (scaling_fct) not in dir(scaling_fcts) or not callable(getattr(scaling_fcts, scaling_fct)):
-  print("\nERROR: There is no scaling function named %s defined in scaling_fcts.py." % scaling_fct)
-  exit(3) 
+  raise errors.AbinError ("ERROR: There is no scaling function named %s defined in scaling_fcts.py." % scaling_fct)
 
 # Define the rendering function that will render the job manifest and the input file (depends on the program)  - defined in renderer.py
 
 render_fct = prog + "_render"
 
 if (render_fct) not in dir(renderer) or not callable(getattr(renderer, render_fct)):
-  print("\nERROR: There is no function defined for the %s program in renderer.py." % prog)
-  exit(3) 
+  raise errors.AbinError ("ERROR: There is no function defined for the %s program in renderer.py." % prog)
 
 # =========================================================
 # Check jinja templates
@@ -279,12 +210,77 @@ print("\nJob scales for %s on %s:" % (prog,cluster_name.upper()))
 job_scales = OrderedDict(sorted(job_scales.items()))
 
 print("")
-print(''.center(105, '-'))
+print(''.center(106, '-'))
 print ("{:<15} {:<20} {:<20} {:<20} {:<10} {:<20}".format('Scale Limit','Label','Partition Name','Time','Cores','Mem per CPU (MB)'))
-print(''.center(105, '-'))
+print(''.center(106, '-'))
 for scale_limit, scale in job_scales.items():
   print ("{:<15} {:<20} {:<20} {:<20} {:<10} {:<20}".format(scale_limit, scale['label'], scale['partition_name'], scale['time'], scale['cores'], scale['mem_per_cpu']))
-print(''.center(105, '-'))
+print(''.center(106, '-'))
+
+# =========================================================
+# Check other arguments
+# =========================================================
+
+out_dir = errors.check_abspath(out_dir,"Command line argument -o / --out_dir","folder")
+print ("{:<40} {:<100}".format('\nJobs main directory:',out_dir))
+
+if max != None and max <= 0:
+  raise errors.AbinError ("ERROR: The specified max value (%s) must be a non-zero positive integer" % max)
+
+# Check molecule file(s)
+
+mol_inp = errors.check_abspath(mol_inp,"Command line argument -m / --mol_inp")
+
+if os.path.isdir(mol_inp):
+  # If the argument mol_inp is a folder, we need to look for every molecule file with the given format in that folder.
+  print("{:<40} {:<100}".format("\nLooking for %s molecule files in" % mol_ext, mol_inp + " ..."), end="")
+  mol_inp_path = mol_inp
+  # Define which type of file we are looking for in a case-insensitive way (see https://gist.github.com/techtonik/5694830)
+  rule = re.compile(fnmatch.translate("*." + mol_fmt), re.IGNORECASE)
+  # Find all matching files in mol_inp folder
+  mol_inp_list = [mol for mol in os.listdir(mol_inp) if rule.match(mol)]
+  if mol_inp_list == []:
+    raise errors.AbinError ("ERROR: Can't find any molecule of the %s format in %s" % (mol_ext,mol_inp_path))
+  if max:
+    mol_inp_list = mol_inp_list[0:max]
+  print('%12s' % "[ DONE ]")
+
+else:
+  print ("{:<40} {:<100}".format('\nMolecule file:',mol_inp))
+  # If given a single molecule file as argument, check its extension.
+  if os.path.isfile(mol_inp) and os.path.splitext(mol_inp)[-1].lower() != (mol_ext.lower()):
+    raise errors.AbinError ("  ^ ERROR: This is not an %s file." % mol_fmt)
+  mol_inp_path = os.path.dirname(mol_inp)
+  mol_inp_file = os.path.basename(mol_inp)
+  mol_inp_list = [mol_inp_file]
+
+# Check config file(s)
+
+config_inp = errors.check_abspath(config_inp,"Command line argument -cf / --config")
+
+if os.path.isdir(config_inp):
+  # If the argument config_inp is a folder, we need to look for every YAML configuration file in that folder.
+  print("{:<40} {:<100}".format("\nLooking for .yml or .yaml files in", config_inp + " ..."), end="")
+  config_inp_path = config_inp
+  # Define which type of file we are looking for in a case-insensitive way (see https://gist.github.com/techtonik/5694830)
+  rule = re.compile(fnmatch.translate("*.yml"), re.IGNORECASE)
+  rule2 = re.compile(fnmatch.translate("*.yaml"), re.IGNORECASE)
+  # Find all matching files in mol_inp folder
+  config_inp_list = [config for config in os.listdir(config_inp) if (rule.match(config) or rule2.match(config))]
+  if config_inp_list == []:
+    raise errors.AbinError ("ERROR: Can't find any YAML config file with the .yml or .yaml extension in %s" % config_inp_path)
+  if max:
+    config_inp_list = config_inp_list[0:max]
+  print('%12s' % "[ DONE ]")
+
+else:
+  print ("{:<40} {:<100}".format('\nConfiguration file:',config_inp))
+  # If given a single config file as argument, check its extension.
+  if os.path.isfile(config_inp) and os.path.splitext(config_inp)[-1].lower() != (".yml") and os.path.splitext(config_inp)[-1].lower() != (".yaml"):
+    raise errors.AbinError ("  ^ ERROR: This is not a YAML file (YAML file extension is either .yml or .yaml).")
+  config_inp_path = os.path.dirname(config_inp)
+  config_inp_file = os.path.basename(config_inp)
+  config_inp_list = [config_inp_file]
 
 # ===================================================================
 # ===================================================================
@@ -467,7 +463,7 @@ for mol_filename in mol_inp_list:
 
       # Load config file
 
-      print ("{:<40} {:<100}".format('\nLoading the configuration file',config_filename + " ..."), end="")
+      print ("{:<80}".format('\nLoading the configuration file %s ...' % config_filename), end="")
       with open(os.path.join(config_inp_path,config_filename), 'r') as f_config:
         config = yaml.load(f_config, Loader=yaml.FullLoader)
       print('%12s' % "[ DONE ]")

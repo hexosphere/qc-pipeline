@@ -152,21 +152,21 @@ lemaitre3:
       job_scales:
         - <<: *tiny_orca  
         - label: small
-          scale_limit: 1000
+          scale_limit: 500
           partition_name: batch
           time: 2-00:00:00
           cores: 8
           mem_per_cpu: 1000 # in MB
           delay_command:
         - label: medium
-          scale_limit: 1500
+          scale_limit: 1000
           partition_name: batch
           time: 2-00:00:00
           cores: 8
           mem_per_cpu: 2000 # in MB
           delay_command: --begin=now+60
         - label: big
-          scale_limit: 2000
+          scale_limit: 1500
           partition_name: batch
           time: 2-00:00:00
           cores: 8
@@ -262,6 +262,45 @@ vega:
       command:
       job_scales:
         - <<: *unique_qoctra
+    qchem:
+      jinja:
+        # Names of the jinja templates, those files must be put in the Templates folder.
+        templates:
+          input: qchem.in.jinja                        # The rendered file will be named <mol_name>.inp, where <mol_name> is the name of the molecule file
+          job_manifest: qchem_job.sh.jinja              
+        # Name of the files that will be rendered based on their jinja templates
+        renders:
+          job_manifest: qchem_job.sh   
+      set_env: 
+        - module purge
+        - module use /apps/brussel/commercial/q-chem/modules
+        - module load Q-Chem-5.2.1-intel-2019b-mpich3
+        - export QCSCRATCH=${TMPDIR}
+      command: srun qchem -nt ${SLURM_CPUS_PER_TASK}
+      scaling_function: *scl_fct
+      job_scales:
+        - <<: *tiny_qchem  
+        - label: small
+          scale_limit: 1000
+          partition_name: default
+          time: 2-00:00:00
+          cores: 8
+          mem_per_cpu: 4000 # in MB
+          delay_command:
+        - label: medium
+          scale_limit: 1500
+          partition_name: default
+          time: 5-00:00:00
+          cores: 16
+          mem_per_cpu: 4000 # in MB
+          delay_command: --begin=now+60
+        - label: big
+          scale_limit: 2000
+          partition_name: default
+          time: 10-00:00:00
+          cores: 16
+          mem_per_cpu: 8000 # in MB
+          delay_command: --begin=now+120
 
 hydra:
   host: ULB

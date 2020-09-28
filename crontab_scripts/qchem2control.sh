@@ -5,9 +5,6 @@
 ###      This script will be called via a cron task to execute control_launcher.py (with QOCT-RA)     ###
 #########################################################################################################
 
-# Command line arguments
-export CLUSTER_NAME=$1
-
 # Pretty print for log messages
 log_msg () {
   echo -e "$(date +"%Y-%m-%d %T")\t$1"

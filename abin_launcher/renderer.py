@@ -84,7 +84,7 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
 
     # Rendering the jinja template for the orca job manifest
   
-    print("\nRendering the jinja template for the orca job manifest ...", end="")
+    print("{:<80}".format("\nRendering the jinja template for the orca job manifest ..."), end="")
 
     render_vars = {  
         "mol_name" : misc['mol_name'],
@@ -117,7 +117,7 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
    
     # Rendering the jinja template for the orca input file
   
-    print("\nRendering the jinja template for the orca input file ...  ", end="")
+    print("{:<80}".format("\nRendering the jinja template for the orca input file ...  "), end="")
 
     orca_mem_per_cpu = int(0.75 * job_specs['mem_per_cpu']) # in MB
     
@@ -188,7 +188,7 @@ def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict,
 
     # Rendering the jinja template for the qchem job manifest
   
-    print("\nRendering the jinja template for the qchem job manifest ...", end="")
+    print("{:<80}".format("\nRendering the jinja template for the qchem job manifest ..."), end="")
   
     render_vars = {
         "mol_name" : misc['mol_name'],
@@ -221,7 +221,7 @@ def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict,
    
     # Rendering the jinja template for the qchem input file
   
-    print("\nRendering the jinja template for the qchem input file ...  ", end="")
+    print("{:<80}".format("\nRendering the jinja template for the qchem input file ...  "), end="")
     
     render_vars = {
         "job_type" : config[job_specs['prog']]['job-type'],

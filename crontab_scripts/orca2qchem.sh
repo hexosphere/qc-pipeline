@@ -5,9 +5,6 @@
 ###   This script will be called via a cron task to execute abin_launcher.py for the Q-CHEM program   ###
 #########################################################################################################
 
-# Command line arguments
-export CLUSTER_NAME=$1
-
 # Pretty print for log messages
 log_msg () {
   echo -e "$(date +"%Y-%m-%d %T")\t$1"
@@ -34,8 +31,7 @@ if [ $(ls $XYZ_FILEPATH 2>/dev/null | wc -l) -eq 0 ]; then
 else
 
   file_list=$(ls $XYZ_FILEPATH 2>/dev/null)
-  #source ${CECIHOME}/CHAINS/load_modules.sh
-  module load Python/3.5.2-foss-2016b # for HERCULES
+  source ${CECIHOME}/CHAINS/load_modules.sh
   mkdir -p "${ABIN_LOGS}"
 
   for filepath in $file_list
@@ -43,7 +39,7 @@ else
     filename="$(basename -- $filepath)"
     MOL_NAME=${filename%.*}
     mkdir -p ~/QCHEM
-    python ${CECIHOME}/CHAINS/abin_launcher/abin_launcher.py -p qchem -m ${filepath} -cf ${CECIHOME}/RESULTS/${MOL_NAME}/config.yml -o ~/QCHEM/ -ow -kc  > ${ABIN_LOGS}/$(date +"%Y%m%d_%H%M%S")_${MOL_NAME}.log
+    python ${CECIHOME}/CHAINS/abin_launcher/abin_launcher.py -p qchem -m ${filepath} -cf ${CECIHOME}/RESULTS/${MOL_NAME}/config.yml -o ~/QCHEM/ -cl ${CLUSTER_NAME} -ow -kc  > ${ABIN_LOGS}/$(date +"%Y%m%d_%H%M%S")_${MOL_NAME}.log
   done
 
   log_msg "INFO - Successfully processed:\n$file_list"
