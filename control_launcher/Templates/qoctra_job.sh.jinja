@@ -92,14 +92,14 @@ fi
 
 # Copying data files
 
-res_data_dir="{{  results_folder  }}/{{  mol_name  }}{{  results_subfolder  }}"
+res_data_dir="{{  results_folder  }}/{{  mol_name  }}/{{  results_subfolder  }}"
 echo -e "\nCopying data files to $res_data_dir."
 mkdir -p $res_data_dir
 cp -rf  {{  data_dir  }} $res_data_dir
 
 # Copying results file
 
-res_dir="{{  results_folder  }}/{{  mol_name  }}{{  results_subfolder  }}/{{ job_dirname  }}"
+res_dir="{{  results_folder  }}/{{  mol_name  }}/{{  results_subfolder  }}/{{ job_dirname  }}"
 
 echo -e "\nCopying job files to ${res_dir}."
 mkdir -p $res_dir

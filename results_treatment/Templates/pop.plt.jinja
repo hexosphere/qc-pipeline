@@ -57,7 +57,7 @@ set grid
 ##########################################
 
 plot\
-{% for state in states_list if state['Label'] != "S0" -%}
+{% for state in states_list -%}
 "{{  input_file  }}" using ($1*{{  time_conv  }}/(10**{{  exponent  }})):{{  state['Number']|int + 2 }} every skip title '{{  state['Label']  }}' with lines linetype {{  state['Number']|int + 1 }},\
 {% endfor -%}
 

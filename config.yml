@@ -54,7 +54,7 @@ qoctra:
     control:
       nstep: 20000                                  # Number of time steps
       dt: 7.d0                                      # Duration of a time step (a.u. of time)
-      niter: 300                                    # Number of iterations
+      niter: 3000                                   # Number of iterations
       threshold: 0.9999d0                           # Convergence threshold for the fidelity
       alpha0: 250.0d0                               # Constraint on the field amplitude
       ndump: 30                                     # Number of iterations between each writing of the field

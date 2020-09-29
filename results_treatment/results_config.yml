@@ -11,9 +11,14 @@ jinja_templates:
 # Define here the name of the gnuplot scripts files (and only those), they must be located inside the results_treatment folder
 gnuplot_scripts:
   fidelity: fidelity.plt
+  pulse_time: pulse_time.plt
+  pulse_spect: pulse_spect.plt
+  #pulse_gabor: pulse_gabor.plt
   
 
 # Define here any additionnal info
 other:
-  quality_treshold: 0   # Minimum fidelity value to consider plotting graphs and writing tables
-  nb_points: 1000       # Max number of points to be plotted by gnuplot scripts
+  gabor: /CECI/home/ulb/cqp/niacobel/QOCT-RA/Sub/xfrog84                        # Script used for the gabor transform
+  fft: /CECI/home/ulb/cqp/niacobel/QOCT-RA/Sub/FFT/analyse_champ.script         # Script used for the FFT
+  quality_treshold: 0                                         # Minimum fidelity value to consider plotting graphs and writing tables
+  nb_points: 1000                                             # Max number of points to be plotted by gnuplot scripts

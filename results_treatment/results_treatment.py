@@ -18,6 +18,7 @@ import re
 import shutil
 import sys
 from inspect import getsourcefile
+import math
 
 import jinja2 
 import yaml
@@ -183,9 +184,18 @@ for filename in config["gnuplot_scripts"].values():
 # =========================================================
 
 quality_treshold = float(config["other"]["quality_treshold"])
-nb_points = int(config["other"]["nb_points"])
-created_files = []                                               # Create a list to keep track of the files we've been creating (in order to remove them more easily if a problem occurs)
-time_conv = 2.4188843265857e-17                                  # Conversion factor for the time data given by QOCT-RA
+nb_points = int(config["other"]["nb_points"])                                     
+gabor = errors.check_abspath(config["other"]["gabor"],"Gabor transform calculating script","file")    # Location of the xfrog script, necessary to obtain the gabor transform of our pulses
+fft = errors.check_abspath(config["other"]["fft"],"FFT calculating script","file")                    # Location of the FFT script, necessary to obtain the Fourier transform of our pulses
+created_files = []                                                                                    # Create a list to keep track of the files we've been creating (in order to remove them more easily if a problem occurs)
+
+# =========================================================
+# Conversion factors
+# =========================================================
+
+ua_to_sec = 2.4188843265857e-17
+ua_to_cm = 219474.6313705                                                       # cm stands for cm-1
+cm_to_ua = 1 / ua_to_cm                                                         # cm stands for cm-1
 
 # =========================================================
 # Check molecule folder(s)
@@ -232,8 +242,8 @@ for mol_name in mol_inp_list:
     # Load molecule config file
     # =========================================================
 
-    mol_config_file = os.path.join(mol_dir, mol_name + ".yml")
-    mol_config_file = errors.check_abspath(mol_config_file,"file")
+    mol_config_file = os.path.join(mol_dir, "config.yml")
+    mol_config_file = errors.check_abspath(mol_config_file,"Molecule configuration file","file", True)
     print ("{:<40} {:<99}".format('\nLoading the configuration file',mol_config_file + " ..."), end="")
     with open(mol_config_file, 'r') as f_config:
       mol_config = yaml.load(f_config, Loader=yaml.FullLoader)
@@ -323,22 +333,15 @@ for mol_name in mol_inp_list:
         last_line = f.readline().decode()
 
       # Define how the lines of the iterations file must look like, here it is for example "    300     2  2sec |Proba_moy  0.000000E+00 |Fidelity(U)  0.000000E+00 |Chp  0.123802E+00 -0.119953E+00 |Aire  0.140871E-03 |Fluence  0.530022E+01 |Recou(i)  0.000000E+00 |Tr_dist(i) -0.500000E+00 |Tr(rho)(i)  0.100000E+01 |Tr(rho^2)(i)  0.100000E+01 |Projector  0.479527E-13"
-      # template_iter_file = re.compile(r"^\s+(?P<niter>\d+)\s+\d+\s+\d+sec\s\|Proba_moy\s+\d.\d+E[+-]\d+\s\|Fidelity\(U\)\s+\d.\d+E[+-]\d+\s\|Chp\s+\d.\d+E[+-]\d+\s+-?\d.\d+E[+-]\d+\s\|Aire\s+\d.\d+E[+-]\d+\s\|Fluence\s+\d.\d+E[+-]\d+\s\|Recou\(i\)\s+\d.\d+E[+-]\d+\s\|Tr_dist\(i\)\s+-*\d.\d+E[+-]\d+\s\|Tr\(rho\)\(i\)\s+\d.\d+E[+-]\d+\s\|Tr\(rho\^2\)\(i\)\s+\d.\d+E[+-]\d+\s\|Projector\s+(?P<projector>\d.\d+E[+-]\d+)")
-      template_iter_file = re.compile(r"^\s+(?P<niter>\d+)\s+\d+\s+\d+sec\s\|Proba_moy\s+\d\.\d+E[+-]\d+\s\|Fidelity\(U\)\s+\d\.\d+E[+-]\d+\s\|Chp\s+\d\.\d+E[+-]\d+\s+-?\d\.\d+E[+-]\d+\s\|Aire\s+\d\.\d+E[+-]\d+\s\|Fluence\s+\d\.\d+E[+-]\d+\s\|Recou\(i\)\s+\d\.\d+E[+-]\d+\s\|Tr_dist\(i\)\s+-*\d\.\d+E[+-]\d+\s\|Tr\(rho\)\(i\)\s+\d\.\d+E[+-]\d+\s\|Tr\(rho\^2\)\(i\)\s+\d\.\d+E[+-]\d+\s\|Projector\s+(?P<projector>\d\.\d+E[+-]\d+)")
+      template_iter_file = re.compile(r"^\s+(?P<niter>\d+)\s+\d+\s+\d+sec\s\|Proba_moy\s+\d\.\d+E[+-]\d+\s\|Fidelity\(U\)\s+\d\.\d+E[+-]\d+\s\|Chp\s+\d\.\d+E[+-]\d+\s+-?\d\.\d+E[+-]\d+\s\|Aire\s+-?\d\.\d+E[+-]\d+\s\|Fluence\s+\d\.\d+E[+-]\d+\s\|Recou\(i\)\s+\d\.\d+E[+-]\d+\s\|Tr_dist\(i\)\s+-?\d\.\d+E[+-]\d+\s\|Tr\(rho\)\(i\)\s+\d\.\d+E[+-]\d+\s\|Tr\(rho\^2\)\(i\)\s+\d\.\d+E[+-]\d+\s\|Projector\s+(?P<projector>\d\.\d+E[+-]\d+)")
 
       # Get the number of iterations and the last fidelity from the last line
       content = template_iter_file.match(last_line)
       if content is not None:
-        proj_dict["niter"] = content.group("niter")
-        proj_dict["fidelity"] = content.group("projector")
+        proj_dict["niter"] = int(content.group("niter"))
+        proj_dict["fidelity"] = float(content.group("projector"))
       else:
         raise errors.ResultsError ("ERROR: Unable to get information from the last line of %s" % iter_file) 
-
-      # # Get the number of iterations and the last fidelity from the last line
-
-      # splitted = [value for value in last_line.split(' ') if value != '']
-      # proj_dict["niter"] = int(splitted[0])
-      # proj_dict["fidelity"] = float(splitted[-1])
 
       # Pulse folder
 
@@ -388,6 +391,7 @@ for mol_name in mol_inp_list:
 
     print("{:<40} {:<99}".format("\nQuality threshold",quality_treshold))
     to_remove = [] # List of the projectors that will be removed due to not meeting the quality threshold
+    fidelities = {} # Dictionary of the form <target>:<fidelity> 
 
     print("")
     print(''.center(45, '-'))
@@ -400,6 +404,7 @@ for mol_name in mol_inp_list:
       print("{:<15} {:<15} {:<15}".format(target, fidelity, good))
       if fidelity < quality_treshold:
         to_remove.append(os.path.basename(projector["main_path"]))
+      fidelities[target] = fidelity
     print(''.center(45, '-'))
 
     if to_remove != []:
@@ -422,8 +427,6 @@ for mol_name in mol_inp_list:
     # List of excited states
     # =========================================================
 
-#TODO: Add fidelities to this table
-
     # Load states_file
 
     print("\nScanning states file {} ... ".format(states_file))
@@ -440,10 +443,15 @@ for mol_name in mol_inp_list:
         state['Energy (cm-1)'] = None
         state['Energy (ev)'] = None
         state['Energy (nm)'] = None
+        state['Fidelity'] = None
       else:
         state['Energy (cm-1)'] = float(state['Energy (cm-1)'])
         state['Energy (ev)'] = state['Energy (cm-1)'] / 8065.6
         state['Energy (nm)'] = 10000000 / state['Energy (cm-1)']
+        if state['Label'] in fidelities.keys():
+          state['Fidelity'] = "{:e}".format(float(fidelities[state['Label']])) 
+        else:
+          state['Fidelity'] = None
     
     # Rendering the jinja template for the states list
 
@@ -602,9 +610,8 @@ for mol_name in mol_inp_list:
       else:
         raise errors.ResultsError ("ERROR: Unable to get information from the last line of %s" % pop_file) 
 
-      #last_time = [value for value in last_line.split(' ') if value != ''][0]       # Get the first value of the last line, which corresponds to the last data point for time
-      conversion = float(last_time) * time_conv                                     # Convert from u.a. to seconds
-      exponent = re.split(r'[Ee]', str(conversion))[1]                              # Get the exponent only from the scientific notation
+      last_time_sec = float(last_time) * ua_to_sec                                     # Convert from u.a. to seconds
+      time_exponent = re.split(r'[Ee]', str(last_time_sec))[1]                         # Get the exponent only from the scientific notation
 
       # Rendering the jinja template for the gnuplot script
 
@@ -616,9 +623,9 @@ for mol_name in mol_inp_list:
           "output_file" : pop_graph,
           "nb_lines" : nb_lines,
           "nb_points" : nb_points,
-          "exponent" : exponent,
+          "exponent" : time_exponent,
           "states_list" : states_list,
-          "time_conv" : time_conv
+          "time_conv" : ua_to_sec
           }
 
       rendered_file_path = os.path.join(out_dir, pop_script)
@@ -644,6 +651,99 @@ for mol_name in mol_inp_list:
       os.remove(os.path.join(out_dir, pop_script))
       created_files.remove(pop_script)
 
+      # =========================================================
+      # Gabor transform of the final pulse
+      # =========================================================   
+
+      print("{:139}".format("    Calculating the Gabor transform of the final pulse ... "), end="")
+
+      # Get the central frequency of the pulse
+      #TODO: see if we can get omegazero without recalculating it
+      with open(energies_file,'r') as energies:
+        energies_cm = energies.read().splitlines()
+      
+      energies_ua = [(float(energy) * cm_to_ua) for energy in energies_cm]
+      ozero = sum(energies_ua) / (len(energies_ua) - 1) # Just like in control_launcher, -1 because the ground state doesn't count
+
+      # Get the full width in frequency
+
+      fwhm = float(mol_config['qoctra']['param_nml']['guess_pulse']['widthhalfmax']) * cm_to_ua
+      full_width = fwhm / 2.355 * 6
+
+      # Obtain the gabor transform through xfrog
+
+      gabor_file = mol_name + "_" + projector["target"] + ".xfg"
+      gabor_file_path = os.path.join(out_dir, gabor_file)
+      freq_max = ozero + (full_width / 2)
+      freq_min = ozero - (full_width / 2)
+      # command = gabor + " -o " + gabor_file_path + " -fd " + str(freq_min) + " " + str(freq_max) + " " + os.path.relpath(projector["final_pulse"])
+      # retcode = os.system(command)
+      # if retcode != 0 :
+      #   raise errors.ResultsError ("ERROR: The %s gabor script encountered an issue" % gabor)      
+      # created_files.append(gabor_file)
+
+      print('%12s' % "[ DONE ]")
+
+      # Get the frequency exponent
+
+      freq_max_cm = freq_max * ua_to_cm
+      freq_exponent = re.split(r'[Ee]', "{:e}".format(freq_max_cm))[1]                         # Get the exponent only from the scientific notation
+
+      # =========================================================
+      # Temporal representation of the final pulse
+      # =========================================================   
+
+      time_script = os.path.join(code_dir,config["gnuplot_scripts"]["pulse_time"])
+      time_graph = mol_name + "_" + projector["target"] + "_time.tex"
+      print("{:139}".format("    Creating the graph presenting the temporal representation of the final pulse (%s) ... " % time_graph), end="")
+
+      os.chdir(out_dir)
+      command = "gnuplot -c {} {} {} {} {} {}".format(time_script,projector["final_pulse"],time_graph,int(mol_config['qoctra']['param_nml']['control']['nstep']),nb_points,time_exponent)
+      retcode = os.system(command)
+      if retcode != 0 :
+        raise errors.ResultsError ("ERROR: The %s gnuplot script encountered an issue" % time_script)
+
+      created_files.append(time_graph)
+
+      print('%12s' % "[ DONE ]")
+
+      # =========================================================
+      # Spectral representation of the final pulse
+      # =========================================================   
+
+      # Obtain the FFT of the final pulse
+
+      print("{:139}".format("    Calculating the FFT transform of the final pulse ... "), end="")
+
+      command = fft + " 1 " + projector["final_pulse"]      # The 1 is an argument of the FFT script, to indicate that we want the FFT mode of that script
+      retcode = os.system(command)
+      if retcode != 0 :
+        raise errors.ResultsError ("ERROR: The %s fft script encountered an issue" % fft)
+
+      fft_file = projector["final_pulse"] + "_TF"
+
+      print('%12s' % "[ DONE ]")
+
+      # Plot the data
+
+      spect_script = os.path.join(code_dir,config["gnuplot_scripts"]["pulse_spect"])
+      spect_graph = mol_name + "_" + projector["target"] + "_spect.tex"
+      print("{:139}".format("    Creating the graph presenting the spectral representation of the final pulse (%s) ... " % spect_graph), end="")
+
+      os.chdir(out_dir)
+      command = "gnuplot -c {} {} {} {} {} {}".format(spect_script,fft_file,spect_graph,int(freq_exponent),freq_min,freq_max)
+      retcode = os.system(command)
+      if retcode != 0 :
+        os.remove(fft_file)
+        raise errors.ResultsError ("ERROR: The %s gnuplot script encountered an issue" % spect_script)
+
+      created_files.append(spect_graph)
+
+      print('%12s' % "[ DONE ]")
+  
+      # Remove the newly created FFT file since it has done its job
+
+      os.remove(fft_file)
 
   except errors.ResultsError as error:
     print("\n",error)

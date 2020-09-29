@@ -31,8 +31,8 @@ shared:
         scale_limit: 50
         partition_name: default
         time: 0-00:10:00
-        cores: 4 
-        mem_per_cpu: 500 # in MB
+        cores: 2 
+        mem_per_cpu: 300 # in MB
         delay_command:
     qoctra: 
       jinja: &qoctra_jinja
@@ -152,11 +152,11 @@ lemaitre3:
       job_scales:
         - <<: *tiny_orca  
         - label: small
-          scale_limit: 500
+          scale_limit: 700
           partition_name: batch
-          time: 2-00:00:00
+          time: 1-00:00:00
           cores: 8
-          mem_per_cpu: 1000 # in MB
+          mem_per_cpu: 500 # in MB
           delay_command:
         - label: medium
           scale_limit: 1000
@@ -203,27 +203,34 @@ hercules:
       command: srun qchem -nt ${SLURM_CPUS_PER_TASK}
       scaling_function: *scl_fct
       job_scales:
-        - <<: *tiny_qchem  
+        - <<: *tiny_qchem
+        - label: very small
+          scale_limit: 500
+          partition_name: default
+          time: 1-00:00:00
+          cores: 8
+          mem_per_cpu: 1000 # in MB
+          delay_command:  
         - label: small
           scale_limit: 1000
           partition_name: default
           time: 2-00:00:00
           cores: 8
-          mem_per_cpu: 4000 # in MB
+          mem_per_cpu: 1500 # in MB
           delay_command:
         - label: medium
           scale_limit: 1500
           partition_name: default
           time: 5-00:00:00
           cores: 16
-          mem_per_cpu: 4000 # in MB
+          mem_per_cpu: 2000 # in MB
           delay_command: --begin=now+60
         - label: big
           scale_limit: 2000
           partition_name: default
           time: 10-00:00:00
           cores: 16
-          mem_per_cpu: 8000 # in MB
+          mem_per_cpu: 4000 # in MB
           delay_command: --begin=now+120
 
 # Legacy, old decommissioned clusters

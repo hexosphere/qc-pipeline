@@ -724,7 +724,7 @@ rnd_manifest = clusters_cfg[cluster_name]['progs'][prog]['jinja']['renders']['jo
 
 # Determine the central frequency of the guess pulse in cm-1 (here defined as the average of the eigenvalues)
 
-central_frequency = np.mean(eigenvalues)
+central_frequency = sum(eigenvalues) / (len(eigenvalues) - 1) # -1 because the ground state doesn't count
 
 # Define here the number of iterations for QOCT-RA, as it will be used multiple times later on
 

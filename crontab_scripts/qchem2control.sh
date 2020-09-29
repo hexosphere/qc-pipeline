@@ -42,7 +42,8 @@ else
       # If successful, archive the source file and the log file
       mv ~/CONTROL/${MOL_NAME}.log ~/CONTROL/${MOL_NAME}/${MOL_NAME}.log
       mkdir -p ${WATCH_DIR}/Launched
-      mv ${filepath} Launched/
+      mv ${filepath} ${WATCH_DIR}/Launched/
+    fi
   done
 
   log_msg "INFO - Successfully processed:\n$file_list"
