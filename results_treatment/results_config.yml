@@ -7,6 +7,7 @@ jinja_templates:
   coupling_list: soc_list.tex.jinja
   momdip_list: momdip_list.tex.jinja
   pop_gnuplot: pop.plt.jinja
+  tpl_pdf: preview_pdf.tex.jinja
 
 # Define here the name of the gnuplot scripts files (and only those), they must be located inside the results_treatment folder
 gnuplot_scripts:

@@ -47,7 +47,7 @@ shared:
         label: unique
         scale_limit: 100
         partition_name: default
-        time: 0-10:00:00
+        time: 0-15:00:00
         mem_per_cpu: 2000 # in MB
 
 # Below are all the useful informations specific to each cluster and each program you wish to run on this cluster.

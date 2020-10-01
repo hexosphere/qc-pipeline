@@ -1,0 +1,89 @@
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass{article} % The class file specifying the document structure
+
+\usepackage[utf8]{inputenc} % Required for inputting international characters
+\usepackage[T1]{fontenc} % Output font encoding for international characters
+
+\usepackage{mathpazo} % Use the Palatino font by default
+\usepackage[french]{babel}
+\usepackage{graphicx}
+{% raw %}\graphicspath{{./}}{% endraw %}
+\usepackage{amsmath}
+\usepackage{physics}
+\usepackage{mathtools}
+\usepackage{xcolor}
+\usepackage{adjustbox}
+\usepackage{numprint}
+\usepackage[justification=centering]{caption}
+\usepackage{geometry}
+\geometry{
+	paper=a4paper, % Change to letterpaper for US letter
+	inner=2.5cm, % Inner margin
+	outer=3.8cm, % Outer margin
+	bindingoffset=.5cm, % Binding offset
+	top=1.5cm, % Top margin
+	bottom=1.5cm, % Bottom margin
+	%showframe, % Uncomment to show how the type block is set on the page
+}
+
+\usepackage[figuresright]{rotating}
+\usepackage{placeins} % Required for \FloatBarrier command
+\usepackage[lofdepth,lotdepth]{subfig}
+
+%----------------------------------------------------------------------------------------
+%	BEGIN DOCUMENT
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+
+\section{Informations générales sur la molécule {{  mol_name  }} }
+
+\begin{table}[!htb]
+\centering
+{{ '\include{' }}{{  mol_name  }}_states}
+\caption{Niveaux d'énergie excités, la fidélité obtenue pour chacun des états cibles est également indiquée.}
+\end{table}
+
+\begin{table}[!htb]
+\centering
+{{ '\include{' }}{{  mol_name  }}_momdip}
+\caption{Liste des moments dipolaires de transition.}
+\end{table}
+
+\begin{table}[!htb]
+\centering
+{{ '\include{' }}{{  mol_name  }}_soc}
+\caption{Liste des couplages spin-orbite reliant les états électroniques excités.}
+\end{table}
+
+{% for state in states_list if state['Label'] in fidelities.keys() -%}
+\clearpage
+
+\section{Contrôle optimal appliqué à l'état {{  state['Label']  }} }
+
+\begin{figure}
+\begin{center}
+{{ '\include{' }}{{  mol_name  }}_{{  state['Label']  }}_time}
+\end{center}
+\caption{Représentation temporelle de l'impulsion laser obtenue pour l'état cible {{  state['Label']  }} }
+\end{figure}
+
+\begin{figure}
+\begin{center}
+{{ '\include{' }}{{  mol_name  }}_{{  state['Label']  }}_spect}
+\end{center}
+\caption{Représentation spectrale de l'impulsion laser obtenue pour l'état cible {{  state['Label']  }} }
+\end{figure}
+
+\begin{figure}
+\begin{center}
+{{ '\include{' }}{{  mol_name  }}_{{  state['Label']  }}_pop}
+\end{center}
+\caption{Evolution des populations lors de l'application de l'impulsion laser obtenue pour l'état cible {{  state['Label']  }} }
+\end{figure}
+{% endfor -%}
+
+\end{document}

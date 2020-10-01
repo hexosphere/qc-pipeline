@@ -558,6 +558,8 @@ for mol_name in mol_inp_list:
    
     for projector in proj_info:
 
+      created_files = []
+
       print("\nTreating the %s projector ..." % projector["target"])
 
       # =========================================================
@@ -744,6 +746,31 @@ for mol_name in mol_inp_list:
       # Remove the newly created FFT file since it has done its job
 
       os.remove(fft_file)
+
+    # =========================================================
+    # Compile preview PDF
+    # =========================================================  
+
+    # Rendering the jinja template for the states list
+
+    tpl_pdf = config["jinja_templates"]["tpl_pdf"]   # Name of the template file
+    rnd_pdf = mol_name + ".tex"                      # Name of the rendered file
+
+    print("{:140}".format("\nCompling the preview PDF %s file ... " % rnd_pdf), end="")
+  
+    render_vars = {
+        "mol_name" : mol_name,
+        "states_list" : states_list,
+        "fidelities" : fidelities
+        }
+
+    rendered_file_path = os.path.join(out_dir, rnd_pdf)
+    with open(rendered_file_path, "w", encoding='utf-8') as result_file:
+      result_file.write(jinja_render(path_tpl_dir, tpl_pdf, render_vars))
+
+    created_files.append(rnd_pdf)
+
+    print('%12s' % "[ DONE ]")
 
   except errors.ResultsError as error:
     print("\n",error)
