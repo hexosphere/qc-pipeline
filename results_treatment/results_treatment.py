@@ -678,11 +678,11 @@ for mol_name in mol_inp_list:
       gabor_file_path = os.path.join(out_dir, gabor_file)
       freq_max = ozero + (full_width / 2)
       freq_min = ozero - (full_width / 2)
-      # command = gabor + " -o " + gabor_file_path + " -fd " + str(freq_min) + " " + str(freq_max) + " " + os.path.relpath(projector["final_pulse"])
-      # retcode = os.system(command)
-      # if retcode != 0 :
-      #   raise errors.ResultsError ("ERROR: The %s gabor script encountered an issue" % gabor)      
-      # created_files.append(gabor_file)
+      command = gabor + " -o " + gabor_file_path + " -fd " + str(freq_min) + " " + str(freq_max) + " " + os.path.relpath(projector["final_pulse"])
+      retcode = os.system(command)
+      if retcode != 0 :
+        raise errors.ResultsError ("ERROR: The %s gabor script encountered an issue" % gabor)      
+      created_files.append(gabor_file)
 
       print('%12s' % "[ DONE ]")
 
@@ -690,6 +690,27 @@ for mol_name in mol_inp_list:
 
       freq_max_cm = freq_max * ua_to_cm
       freq_exponent = re.split(r'[Ee]', "{:e}".format(freq_max_cm))[1]                         # Get the exponent only from the scientific notation
+
+      # Plot the data
+
+      gabor_script = os.path.join(code_dir,config["gnuplot_scripts"]["pulse_gabor"])
+      gabor_graph = mol_name + "_" + projector["target"] + "_gabor.tex"
+      print("{:139}".format("    Creating the graph presenting the gabor transformation of the final pulse (%s) ... " % gabor_graph), end="")
+
+      os.chdir(out_dir)
+      command = "gnuplot -c {} {} {} {} {}".format(gabor_script,gabor_file,gabor_graph,int(time_exponent),int(freq_exponent))
+      retcode = os.system(command)
+      if retcode != 0 :
+        raise errors.ResultsError ("ERROR: The %s gnuplot script encountered an issue" % gabor_script)
+
+      created_files.append(gabor_graph)
+
+      print('%12s' % "[ DONE ]")
+  
+      # Remove the newly created gabor file since it has done its job
+
+      os.remove(gabor_file)
+      created_files.remove(gabor_file)      
 
       # =========================================================
       # Temporal representation of the final pulse
@@ -700,7 +721,7 @@ for mol_name in mol_inp_list:
       print("{:139}".format("    Creating the graph presenting the temporal representation of the final pulse (%s) ... " % time_graph), end="")
 
       os.chdir(out_dir)
-      command = "gnuplot -c {} {} {} {} {} {}".format(time_script,projector["final_pulse"],time_graph,int(mol_config['qoctra']['param_nml']['control']['nstep']),nb_points,time_exponent)
+      command = "gnuplot -c {} {} {} {} {} {} {} {}".format(time_script,projector["final_pulse"],time_graph,int(mol_config['qoctra']['param_nml']['control']['nstep']),nb_points,time_exponent,freq_min,freq_max)
       retcode = os.system(command)
       if retcode != 0 :
         raise errors.ResultsError ("ERROR: The %s gnuplot script encountered an issue" % time_script)
@@ -723,6 +744,7 @@ for mol_name in mol_inp_list:
         raise errors.ResultsError ("ERROR: The %s fft script encountered an issue" % fft)
 
       fft_file = projector["final_pulse"] + "_TF"
+      created_files.append(fft_file)
 
       print('%12s' % "[ DONE ]")
 
@@ -736,7 +758,6 @@ for mol_name in mol_inp_list:
       command = "gnuplot -c {} {} {} {} {} {}".format(spect_script,fft_file,spect_graph,int(freq_exponent),freq_min,freq_max)
       retcode = os.system(command)
       if retcode != 0 :
-        os.remove(fft_file)
         raise errors.ResultsError ("ERROR: The %s gnuplot script encountered an issue" % spect_script)
 
       created_files.append(spect_graph)
@@ -746,6 +767,7 @@ for mol_name in mol_inp_list:
       # Remove the newly created FFT file since it has done its job
 
       os.remove(fft_file)
+      created_files.remove(fft_file)    
 
     # =========================================================
     # Compile preview PDF
@@ -756,7 +778,7 @@ for mol_name in mol_inp_list:
     tpl_pdf = config["jinja_templates"]["tpl_pdf"]   # Name of the template file
     rnd_pdf = mol_name + ".tex"                      # Name of the rendered file
 
-    print("{:140}".format("\nCompling the preview PDF %s file ... " % rnd_pdf), end="")
+    print("{:140}".format("\nCompiling the preview PDF %s file ... " % rnd_pdf), end="")
   
     render_vars = {
         "mol_name" : mol_name,

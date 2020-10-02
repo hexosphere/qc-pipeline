@@ -14,7 +14,7 @@ gnuplot_scripts:
   fidelity: fidelity.plt
   pulse_time: pulse_time.plt
   pulse_spect: pulse_spect.plt
-  #pulse_gabor: pulse_gabor.plt
+  pulse_gabor: pulse_gabor.plt
   
 
 # Define here any additionnal info

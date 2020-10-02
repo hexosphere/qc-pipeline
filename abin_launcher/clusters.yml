@@ -212,7 +212,7 @@ hercules:
           mem_per_cpu: 1000 # in MB
           delay_command:  
         - label: small
-          scale_limit: 1000
+          scale_limit: 800
           partition_name: default
           time: 2-00:00:00
           cores: 8
